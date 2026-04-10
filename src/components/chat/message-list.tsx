@@ -3,12 +3,15 @@
 import { Bot, User } from "lucide-react";
 import type { ChatMessage } from "@/lib/tools";
 import { PaymentCard } from "@/components/payment/payment-card";
+import { DocumentUpload } from "@/components/upload/document-upload";
 
 interface MessageListProps {
   messages: ChatMessage[];
   sessionId: string;
   onOptionSelect: (text: string) => void;
   onPaymentComplete: () => void;
+  onUploadComplete: (uploaded: number) => void;
+  onUploadSkip: () => void;
 }
 
 export function MessageList({
@@ -16,6 +19,8 @@ export function MessageList({
   sessionId,
   onOptionSelect,
   onPaymentComplete,
+  onUploadComplete,
+  onUploadSkip,
 }: MessageListProps) {
   if (messages.length === 0) {
     return (
@@ -115,6 +120,31 @@ export function MessageList({
                     className="mx-11 p-3 bg-green-50 border border-green-200 rounded-xl text-sm text-green-800"
                   >
                     Payment completed successfully.
+                  </div>
+                );
+              }
+            }
+
+            // Upload tool
+            if (part.type === "tool-uploadDocuments") {
+              if (part.state === "input-available" || part.state === "input-streaming") {
+                const isLatest = msgIndex === lastMsgIndex;
+                return (
+                  <DocumentUpload
+                    key={part.toolCallId}
+                    sessionId={part.input?.sessionId ?? sessionId}
+                    onComplete={isLatest ? onUploadComplete : () => {}}
+                    onSkip={isLatest ? onUploadSkip : () => {}}
+                  />
+                );
+              }
+              if (part.state === "output-available") {
+                return (
+                  <div
+                    key={part.toolCallId}
+                    className="mx-11 p-3 bg-green-50 border border-green-200 rounded-xl text-sm text-green-800"
+                  >
+                    Documents submitted.
                   </div>
                 );
               }

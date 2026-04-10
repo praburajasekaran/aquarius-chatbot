@@ -13,6 +13,7 @@
     "@ai-sdk/react": "^3.0.160",
     "@openrouter/ai-sdk-provider": "^2.5.1",
     "@upstash/redis": "^1.37.0",
+    "@vercel/blob": "^2.3.3",
     "ai": "^6.0.158",
     "lucide-react": "^1.8.0",
     "next": "16.2.3",

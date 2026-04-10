@@ -37,9 +37,19 @@ export function ChatWidget() {
   }
 
   function handlePaymentComplete() {
-    sendMessage({
-      text: "I have completed the payment.",
-    });
+    sendMessage({ text: "I have completed the payment." });
+  }
+
+  function handleUploadComplete(uploaded: number) {
+    const text =
+      uploaded > 0
+        ? `I have uploaded ${uploaded} document${uploaded !== 1 ? "s" : ""}.`
+        : "I do not have any documents to upload.";
+    sendMessage({ text });
+  }
+
+  function handleUploadSkip() {
+    sendMessage({ text: "I do not have any documents to upload." });
   }
 
   return (
@@ -50,6 +60,8 @@ export function ChatWidget() {
         sessionId={sessionId}
         onOptionSelect={(text) => sendMessage({ text })}
         onPaymentComplete={handlePaymentComplete}
+        onUploadComplete={handleUploadComplete}
+        onUploadSkip={handleUploadSkip}
       />
       <div ref={messagesEndRef} />
       {isLoading && (
