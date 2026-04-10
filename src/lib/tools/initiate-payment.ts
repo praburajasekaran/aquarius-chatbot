@@ -1,0 +1,17 @@
+import { tool } from "ai";
+import { z } from "zod";
+
+// This tool has no execute — it renders a client-side payment UI
+export const initiatePayment = tool({
+  description:
+    "Initiate Stripe Checkout for the Legal Strategy Session fee. This renders a payment form on the client side. Use this after the visitor has confirmed their urgency selection and reviewed the cost disclosure.",
+  inputSchema: z.object({
+    sessionId: z.string().describe("The chat session ID"),
+    urgency: z
+      .enum(["urgent", "non-urgent"])
+      .describe("The selected urgency level"),
+    amount: z.number().describe("The payment amount in cents"),
+    displayPrice: z.string().describe("The formatted display price"),
+  }),
+  // No execute — this is a client-side rendered tool
+});
