@@ -48,6 +48,7 @@ export function ChatWidget() {
       <MessageList
         messages={messages}
         sessionId={sessionId}
+        onOptionSelect={(text) => sendMessage({ text })}
         onPaymentComplete={handlePaymentComplete}
       />
       <div ref={messagesEndRef} />

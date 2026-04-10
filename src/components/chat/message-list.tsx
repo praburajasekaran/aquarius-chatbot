@@ -7,12 +7,14 @@ import { PaymentCard } from "@/components/payment/payment-card";
 interface MessageListProps {
   messages: ChatMessage[];
   sessionId: string;
+  onOptionSelect: (text: string) => void;
   onPaymentComplete: () => void;
 }
 
 export function MessageList({
   messages,
   sessionId,
+  onOptionSelect,
   onPaymentComplete,
 }: MessageListProps) {
   if (messages.length === 0) {
@@ -28,10 +30,13 @@ export function MessageList({
     );
   }
 
+  // Only show quick-reply buttons for the last assistant message's showOptions
+  const lastMsgIndex = messages.length - 1;
+
   return (
     <div className="flex-1 overflow-y-auto p-4 space-y-4">
-      {messages.map((message) => (
-        <div key={message.id}>
+      {messages.map((message, msgIndex) => (
+        <div key={message.id} className="space-y-2">
           {message.parts.map((part, i) => {
             if (part.type === "text" && part.text) {
               const isUser = message.role === "user";
@@ -64,7 +69,33 @@ export function MessageList({
               );
             }
 
-            // Render client-side payment tool
+            // Quick-reply buttons — only interactive on the last message
+            if (part.type === "tool-showOptions" && part.state === "input-available") {
+              const isLatest = msgIndex === lastMsgIndex;
+              return (
+                <div
+                  key={part.toolCallId}
+                  className="flex flex-wrap gap-2 pl-11"
+                >
+                  {part.input?.options?.map((option: string) => (
+                    <button
+                      key={option}
+                      onClick={() => isLatest && onOptionSelect(option)}
+                      disabled={!isLatest}
+                      className={`px-3 py-1.5 rounded-full border text-sm font-medium transition-colors ${
+                        isLatest
+                          ? "border-brand text-brand hover:bg-brand hover:text-white cursor-pointer"
+                          : "border-gray-200 text-gray-400 cursor-default"
+                      }`}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              );
+            }
+
+            // Payment tool
             if (part.type === "tool-initiatePayment") {
               if (part.state === "input-available" || part.state === "input-streaming") {
                 return (
