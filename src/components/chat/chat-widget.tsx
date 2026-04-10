@@ -2,7 +2,7 @@
 
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { useRef, useEffect, useMemo } from "react";
+import { useRef, useEffect, useMemo, useState } from "react";
 import { DisclaimerBanner } from "./disclaimer-banner";
 import { MessageList } from "./message-list";
 import { MessageInput } from "./message-input";
@@ -13,7 +13,7 @@ function generateSessionId() {
 }
 
 export function ChatWidget() {
-  const sessionId = useRef(generateSessionId()).current;
+  const [sessionId] = useState(generateSessionId);
 
   const transport = useMemo(
     () => new DefaultChatTransport({ api: "/api/chat" }),
