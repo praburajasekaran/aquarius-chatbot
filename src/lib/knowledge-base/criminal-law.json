@@ -1,0 +1,92 @@
+[
+  {
+    "id": "q1",
+    "question": "What should I do if I have been charged with a criminal offence?",
+    "answer": "If you have been charged with a criminal offence, it is important to seek legal advice as soon as possible. Do not make any statements to police without a lawyer present. Contact Aquarius Lawyers to discuss your matter and understand your rights.",
+    "keywords": ["charged", "criminal offence", "arrested", "charge sheet", "what to do"]
+  },
+  {
+    "id": "q2",
+    "question": "What happens at a court hearing?",
+    "answer": "At your first court hearing (mention), the charge will be read and you will enter a plea. If you plead not guilty, the matter will be adjourned for a contested hearing or committal. If you plead guilty, the court may proceed to sentencing or adjourn for a pre-sentence report. Your lawyer will guide you through each step.",
+    "keywords": ["court", "hearing", "mention", "plea", "what happens"]
+  },
+  {
+    "id": "q3",
+    "question": "How much does a criminal lawyer cost?",
+    "answer": "Legal fees vary depending on the complexity of your matter. Aquarius Lawyers offers an initial Legal Strategy Session to assess your case. The fee for an urgent matter is $1,320 (incl. GST) and for a non-urgent matter is $726 (incl. GST). We will provide a detailed cost estimate after reviewing your case.",
+    "keywords": ["cost", "fees", "how much", "price", "expensive", "afford"]
+  },
+  {
+    "id": "q4",
+    "question": "Can I get bail?",
+    "answer": "Whether you can get bail depends on several factors including the nature of the offence, your criminal history, and whether you pose a flight risk or danger to the community. Aquarius Lawyers can advise you on your bail prospects and represent you in a bail application if needed.",
+    "keywords": ["bail", "custody", "remand", "release"]
+  },
+  {
+    "id": "q5",
+    "question": "What is an AVO or apprehended violence order?",
+    "answer": "An Apprehended Violence Order (AVO) is a court order that restricts a person's behaviour to protect another person. There are two types: Apprehended Domestic Violence Orders (ADVOs) for domestic relationships and Apprehended Personal Violence Orders (APVOs) for non-domestic situations. Breaching an AVO is a criminal offence.",
+    "keywords": ["AVO", "apprehended violence order", "ADVO", "APVO", "restraining order", "protection order"]
+  },
+  {
+    "id": "q6",
+    "question": "What are the penalties for drink driving in NSW?",
+    "answer": "Penalties for drink driving in NSW depend on your blood alcohol concentration (BAC) and whether it is a first or subsequent offence. Penalties can include fines, licence disqualification, and imprisonment. An interlock device may also be required. Contact Aquarius Lawyers for advice specific to your situation.",
+    "keywords": ["drink driving", "DUI", "drunk driving", "BAC", "blood alcohol", "licence"]
+  },
+  {
+    "id": "q7",
+    "question": "What is a Section 10 dismissal?",
+    "answer": "A Section 10 (now Section 10A under the Crimes (Sentencing Procedure) Act) allows a court to find you guilty but dismiss the charge without recording a conviction. This means you will not have a criminal record for that offence. Eligibility depends on the nature of the offence and your personal circumstances.",
+    "keywords": ["section 10", "no conviction", "dismissal", "criminal record", "section 10A"]
+  },
+  {
+    "id": "q8",
+    "question": "Do I need a lawyer for a minor offence?",
+    "answer": "Even for minor offences, having legal representation can significantly impact the outcome. A lawyer can negotiate with police or prosecutors, present mitigating factors, and work towards the best possible result including avoiding a criminal record. We recommend seeking legal advice for any criminal matter.",
+    "keywords": ["minor offence", "need lawyer", "small charge", "traffic offence", "represent myself"]
+  },
+  {
+    "id": "q9",
+    "question": "What is the difference between a summary and indictable offence?",
+    "answer": "Summary offences are less serious matters dealt with in the Local Court by a magistrate. Indictable offences are more serious and may be heard in the District or Supreme Court before a judge and jury. Some indictable offences can be dealt with summarily in the Local Court if both parties agree.",
+    "keywords": ["summary", "indictable", "serious", "local court", "district court", "difference"]
+  },
+  {
+    "id": "q10",
+    "question": "Can a criminal record be cleared?",
+    "answer": "In NSW, spent convictions legislation means that certain convictions may become 'spent' after a crime-free period (typically 10 years for adults). Once spent, you generally do not need to disclose the conviction. However, this does not apply to all offences. Contact Aquarius Lawyers to discuss your specific situation.",
+    "keywords": ["clear record", "spent conviction", "expunge", "remove conviction", "criminal record check"]
+  },
+  {
+    "id": "q11",
+    "question": "What should I do if police want to question me?",
+    "answer": "You have the right to remain silent and the right to have a lawyer present during questioning. We strongly recommend that you do not answer any police questions without first obtaining legal advice. Contact Aquarius Lawyers immediately if police wish to interview you.",
+    "keywords": ["police", "questioning", "interview", "rights", "remain silent", "statement"]
+  },
+  {
+    "id": "q12",
+    "question": "What are drug possession penalties?",
+    "answer": "Penalties for drug possession in NSW vary depending on the type and quantity of drug. Small quantities for personal use may result in a caution or fine, while larger quantities can lead to serious charges including deemed supply. Contact Aquarius Lawyers for advice on your specific matter.",
+    "keywords": ["drug", "possession", "cannabis", "marijuana", "cocaine", "MDMA", "ice", "methamphetamine"]
+  },
+  {
+    "id": "q13",
+    "question": "How long does a criminal case take?",
+    "answer": "The duration of a criminal case varies depending on its complexity, whether you plead guilty or not guilty, court availability, and other factors. Simple matters may be resolved in weeks, while complex indictable matters can take months or even years. Your lawyer will provide an estimated timeline for your specific case.",
+    "keywords": ["how long", "duration", "timeline", "time", "weeks", "months"]
+  },
+  {
+    "id": "q14",
+    "question": "What happens if I breach my bail conditions?",
+    "answer": "Breaching bail conditions is a serious matter. Police may arrest you and you could be brought before the court. The court may revoke your bail and remand you in custody, or impose stricter bail conditions. If you are at risk of breaching bail, contact Aquarius Lawyers immediately for advice.",
+    "keywords": ["breach bail", "bail conditions", "break bail", "violate bail"]
+  },
+  {
+    "id": "q15",
+    "question": "Can I travel overseas with a criminal record?",
+    "answer": "Having a criminal record can affect your ability to travel overseas. Many countries, including the United States, Canada, and New Zealand, may deny entry to individuals with criminal convictions. The impact depends on the nature of the offence and the destination country's laws. Seek legal advice before making travel plans.",
+    "keywords": ["travel", "overseas", "passport", "visa", "criminal record", "fly"]
+  }
+]
