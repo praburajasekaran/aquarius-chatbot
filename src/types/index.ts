@@ -26,3 +26,17 @@ export interface ClientDetails {
   phone: string;
   matterDescription: string;
 }
+
+export interface UploadTokenRecord {
+  matterRef: string;
+  clientEmail: string;
+  clientName: string;
+  sessionId: string;
+  createdAt: string;
+}
+
+export interface UploadSessionCookie {
+  matterRef: string;
+  sessionId: string;
+  exp: number;
+}

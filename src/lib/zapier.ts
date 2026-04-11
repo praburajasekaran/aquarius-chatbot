@@ -1,6 +1,8 @@
-export async function sendToZapier(payload: Record<string, unknown>) {
-  const url = process.env.ZAPIER_WEBHOOK_URL;
-  if (!url) throw new Error("ZAPIER_WEBHOOK_URL not configured");
+export async function sendToZapier(
+  url: string,
+  payload: Record<string, unknown>
+) {
+  if (!url) throw new Error("Zapier webhook URL not configured");
 
   const attempt = async () => {
     const res = await fetch(url, {
@@ -16,7 +18,6 @@ export async function sendToZapier(payload: Record<string, unknown>) {
   try {
     return await attempt();
   } catch {
-    // Retry once on failure
     return await attempt();
   }
 }
