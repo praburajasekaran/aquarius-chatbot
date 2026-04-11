@@ -13,5 +13,8 @@ export const initiatePayment = tool({
     amount: z.number().describe("The payment amount in cents"),
     displayPrice: z.string().describe("The formatted display price"),
   }),
+  outputSchema: z.object({
+    status: z.enum(["completed"]).describe("Payment completion status"),
+  }),
   // No execute — this is a client-side rendered tool
 });

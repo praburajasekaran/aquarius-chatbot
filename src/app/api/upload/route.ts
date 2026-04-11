@@ -1,7 +1,7 @@
 import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { validateFileType, validateFileSize } from "@/lib/validators";
-import { getSession, updateSession } from "@/lib/kv";
+import { createSession, getSession, updateSession } from "@/lib/kv";
 
 const MAX_FILES_PER_SESSION = 5;
 
@@ -25,13 +25,11 @@ export async function POST(req: Request) {
       );
     }
 
-    const session = await getSession(sessionId);
-    if (!session) {
-      return NextResponse.json(
-        { error: "Session expired. Please restart the chat." },
-        { status: 404 }
-      );
-    }
+    // Session is generated client-side; if it isn't in Redis yet (nothing has
+    // persisted it up to this point in the flow), create it on demand so the
+    // upload can proceed.
+    const session =
+      (await getSession(sessionId)) ?? (await createSession(sessionId));
 
     const remainingSlots = MAX_FILES_PER_SESSION - session.uploadRefs.length;
     if (remainingSlots <= 0) {
@@ -71,8 +69,13 @@ export async function POST(req: Request) {
           { access: "public", contentType: file.type }
         );
         uploadedRefs.push(blob.url);
-      } catch {
-        errors.push({ name: file.name, reason: "Upload failed, please retry" });
+      } catch (err) {
+        console.error("[upload] vercel blob put failed:", err);
+        const message = err instanceof Error ? err.message : "Unknown error";
+        errors.push({
+          name: file.name,
+          reason: `Upload failed: ${message}`,
+        });
       }
     }
 
