@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     model: geminiFlash,
     system: systemPrompt,
     messages: await convertToModelMessages(messages as UIMessage[]),
-    stopWhen: stepCountIs(5),
+    stopWhen: stepCountIs(10),
     tools,
   });
 

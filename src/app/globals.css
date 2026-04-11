@@ -4,6 +4,9 @@
   --color-brand: #61bbca;
   --color-brand-dark: #4a9eab;
   --color-brand-light: #a8dce5;
+  /* AAA-accessible brand: 7.88:1 contrast with white */
+  --color-brand-accessible: #085a66;
+  --color-brand-accessible-hover: #064550;
   --background: #ffffff;
   --foreground: #171717;
 }
@@ -14,6 +17,8 @@
   --color-brand: var(--color-brand);
   --color-brand-dark: var(--color-brand-dark);
   --color-brand-light: var(--color-brand-light);
+  --color-brand-accessible: var(--color-brand-accessible);
+  --color-brand-accessible-hover: var(--color-brand-accessible-hover);
   --font-heading: "Rubik", sans-serif;
   --font-body: "Open Sans", sans-serif;
 }
@@ -22,8 +27,68 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-body);
+  font-size: 1rem; /* 16px — mobile minimum per learnui.design guidelines */
+  line-height: 1.5;
+}
+
+@media (min-width: 1024px) {
+  body {
+    font-size: 1.0625rem; /* ~17px — comfortable desktop reading size */
+  }
 }
 
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
+}
+
+/* Skip navigation — keyboard users.
+   Visually hidden until focused; uses clip+size technique that works
+   regardless of containing block height. */
+.skip-link {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.skip-link:focus {
+  position: absolute;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0.75rem 1.5rem;
+  overflow: visible;
+  clip: auto;
+  z-index: 50;
+  background: var(--color-brand-accessible);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 1rem;
+  text-decoration: none;
+  border-radius: 0 0 0.5rem 0;
+}
+
+/* Enhanced focus ring — WCAG 2.4.7 / AAA focus appearance */
+:focus-visible {
+  outline: 3px solid var(--color-brand-accessible);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* Reduced motion — WCAG 2.3.3 AAA */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

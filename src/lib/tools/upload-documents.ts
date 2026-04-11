@@ -12,4 +12,7 @@ export const uploadDocuments = tool({
       .optional()
       .describe("Optional context message shown above the upload area"),
   }),
+  outputSchema: z.object({
+    uploaded: z.number().describe("Number of documents the visitor uploaded (0 if skipped)"),
+  }),
 });
