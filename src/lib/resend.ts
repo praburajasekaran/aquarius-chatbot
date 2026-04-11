@@ -122,3 +122,62 @@ export async function sendClientInquiryEmail({
     `,
   });
 }
+
+export async function sendBookingNotificationEmail({
+  clientName,
+  clientEmail,
+  matterDescription,
+  urgency,
+  eventStartTime,
+  eventUri,
+  inviteeUri,
+  stripeSessionId,
+}: {
+  clientName: string;
+  clientEmail: string;
+  matterDescription?: string;
+  urgency?: "urgent" | "non-urgent";
+  eventStartTime: string;
+  eventUri: string;
+  inviteeUri: string;
+  stripeSessionId?: string | null;
+}) {
+  const to = process.env.FIRM_NOTIFICATION_EMAIL ?? "prabu@paretoid.com";
+
+  let startLocal = eventStartTime;
+  try {
+    startLocal = new Intl.DateTimeFormat("en-AU", {
+      timeZone: "Australia/Sydney",
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    }).format(new Date(eventStartTime));
+  } catch {
+    // fall back to raw ISO string if parsing fails
+  }
+
+  return resend.emails.send({
+    from: "Aquarius Chatbot <chatbot@aquariuslawyers.com.au>",
+    to,
+    subject: `Booking confirmed — ${clientName} — ${startLocal}`,
+    html: `
+      <div style="font-family:-apple-system,Segoe UI,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#1a1a1a">
+        <h2 style="margin:0 0 16px;font-size:20px">New Legal Strategy Session booking</h2>
+        <table style="border-collapse:collapse;width:100%;margin:16px 0">
+          <tr><td style="padding:8px;border:1px solid #e5e5e5;font-weight:600;width:35%">Client</td><td style="padding:8px;border:1px solid #e5e5e5">${clientName}</td></tr>
+          <tr><td style="padding:8px;border:1px solid #e5e5e5;font-weight:600">Email</td><td style="padding:8px;border:1px solid #e5e5e5">${clientEmail}</td></tr>
+          ${urgency ? `<tr><td style="padding:8px;border:1px solid #e5e5e5;font-weight:600">Urgency</td><td style="padding:8px;border:1px solid #e5e5e5">${urgency}</td></tr>` : ""}
+          ${matterDescription ? `<tr><td style="padding:8px;border:1px solid #e5e5e5;font-weight:600">Matter</td><td style="padding:8px;border:1px solid #e5e5e5">${matterDescription}</td></tr>` : ""}
+          <tr><td style="padding:8px;border:1px solid #e5e5e5;font-weight:600">Start time</td><td style="padding:8px;border:1px solid #e5e5e5">${startLocal}</td></tr>
+          <tr><td style="padding:8px;border:1px solid #e5e5e5;font-weight:600">Calendly event</td><td style="padding:8px;border:1px solid #e5e5e5"><a href="${eventUri}">${eventUri}</a></td></tr>
+          <tr><td style="padding:8px;border:1px solid #e5e5e5;font-weight:600">Calendly invitee</td><td style="padding:8px;border:1px solid #e5e5e5"><a href="${inviteeUri}">${inviteeUri}</a></td></tr>
+          ${stripeSessionId ? `<tr><td style="padding:8px;border:1px solid #e5e5e5;font-weight:600">Stripe session</td><td style="padding:8px;border:1px solid #e5e5e5">${stripeSessionId}</td></tr>` : ""}
+        </table>
+      </div>
+    `,
+  });
+}
