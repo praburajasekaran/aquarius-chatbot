@@ -32,9 +32,9 @@ export const collectDetails = tool({
       );
     }
 
-    if (!matterDescription.trim() || matterDescription.trim().length < 10) {
+    if (!matterDescription.trim() || matterDescription.trim().length < 2) {
       errors.push(
-        "Please provide a brief description of your matter (at least a few words)."
+        "Please provide a brief description of your matter."
       );
     }
 

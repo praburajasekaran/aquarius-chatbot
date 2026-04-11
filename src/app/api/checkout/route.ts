@@ -26,6 +26,7 @@ export async function POST(req: Request) {
       },
     ],
     ui_mode: "embedded_page",
+    redirect_on_completion: "if_required",
     return_url: `${process.env.NEXT_PUBLIC_URL}?payment=success&session_id={CHECKOUT_SESSION_ID}`,
     metadata: { sessionId, urgency },
     expires_at: Math.floor(Date.now() / 1000) + 30 * 60, // 30 min
