@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getStripe, PRICING } from "@/lib/stripe";
+import { createCheckoutSession, PRICING } from "@/lib/stripe";
+import { updateIntake } from "@/lib/intake";
 
 export async function POST(req: Request) {
   const { sessionId, urgency } = (await req.json()) as {
@@ -7,30 +8,21 @@ export async function POST(req: Request) {
     urgency: "urgent" | "non-urgent";
   };
 
-  const pricing = PRICING[urgency];
-  if (!pricing) {
+  if (!PRICING[urgency]) {
     return NextResponse.json({ error: "Invalid urgency" }, { status: 400 });
   }
 
-  const checkoutSession = await getStripe().checkout.sessions.create({
-    mode: "payment",
-    currency: "aud",
-    line_items: [
-      {
-        price_data: {
-          currency: "aud",
-          unit_amount: pricing.amount,
-          product_data: { name: pricing.label },
-        },
-        quantity: 1,
-      },
-    ],
-    ui_mode: "embedded_page",
-    redirect_on_completion: "if_required",
-    return_url: `${process.env.NEXT_PUBLIC_URL}?payment=success&session_id={CHECKOUT_SESSION_ID}`,
-    metadata: { sessionId, urgency },
-    expires_at: Math.floor(Date.now() / 1000) + 30 * 60, // 30 min
+  const checkoutSession = await createCheckoutSession({
+    sessionId,
+    urgency,
+    returnUrlBase: process.env.NEXT_PUBLIC_URL ?? "",
   });
+
+  try {
+    await updateIntake(sessionId, { stripeSessionId: checkoutSession.id });
+  } catch (err) {
+    console.error("[checkout] failed to persist stripeSessionId to intake", err);
+  }
 
   return NextResponse.json({ clientSecret: checkoutSession.client_secret });
 }
