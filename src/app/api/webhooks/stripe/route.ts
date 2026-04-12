@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
 import { updateSession, redis } from "@/lib/kv";
 import { createUploadToken, hashToken } from "@/lib/upload-tokens";
-import { resend } from "@/lib/resend";
+import { resend, sendTranscriptEmail } from "@/lib/resend";
+import { getIntake } from "@/lib/intake";
 import PaymentReceipt from "@/lib/email/payment-receipt";
 import { assertNoResendTracking } from "@/lib/email/assert-no-tracking";
 
@@ -100,6 +101,18 @@ export async function POST(req: Request) {
             amountCents: session.amount_total ?? 0,
             uploadLink,
           }),
+        });
+
+        // Notify firm about the paid inquiry
+        const intake = await getIntake(sessionId);
+        await sendTranscriptEmail({
+          clientName: intake?.clientName ?? clientName,
+          clientEmail: intake?.clientEmail ?? clientEmail,
+          clientPhone: intake?.clientPhone ?? "N/A",
+          matterDescription: intake?.matterDescription ?? "N/A",
+          urgency: intake?.urgency ?? "N/A",
+          paymentAmount: session.amount_total ?? 0,
+          stripeSessionId: session.id,
         });
       } catch (err) {
         // Webhook MUST return 200 regardless — otherwise Stripe retries forever
