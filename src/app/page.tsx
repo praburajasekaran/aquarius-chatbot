@@ -1,5 +1,6 @@
 import { ChatWidget } from "@/components/chat/chat-widget";
 import { Scale } from "lucide-react";
+import { BRANDING } from "@/lib/branding";
 
 export default async function Home({
   searchParams,
@@ -23,7 +24,7 @@ export default async function Home({
           </div>
           <div>
             <h1 className="text-base font-heading font-semibold text-gray-900">
-              Aquarius Lawyers
+              {BRANDING.firmName}
             </h1>
             <p className="text-sm text-gray-500">Criminal Law Assistant</p>
           </div>

@@ -9,6 +9,7 @@ import {
   Section,
   Text,
 } from "@react-email/components";
+import { BRANDING } from "@/lib/branding";
 
 export interface PaymentReceiptProps {
   name?: string;
@@ -36,7 +37,7 @@ export default function PaymentReceipt({
   return (
     <Html>
       <Head />
-      <Preview>Your Aquarius Lawyers payment receipt & upload link</Preview>
+      <Preview>Your {BRANDING.firmName} payment receipt &amp; upload link</Preview>
       <Body style={body}>
         <Container style={container}>
           <Heading style={heading}>Payment received</Heading>
@@ -44,8 +45,8 @@ export default function PaymentReceipt({
           <Text style={paragraph}>{greeting}</Text>
 
           <Text style={paragraph}>
-            Thank you for your payment of <strong>{amount}</strong> to Aquarius
-            Lawyers. Your matter reference is{" "}
+            Thank you for your payment of <strong>{amount}</strong> to{" "}
+            {BRANDING.firmName}. Your matter reference is{" "}
             <strong>{matterRef}</strong>.
           </Text>
 

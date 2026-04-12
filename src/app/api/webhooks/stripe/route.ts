@@ -6,6 +6,7 @@ import { resend, sendTranscriptEmail } from "@/lib/resend";
 import { getIntake } from "@/lib/intake";
 import PaymentReceipt from "@/lib/email/payment-receipt";
 import { assertNoResendTracking } from "@/lib/email/assert-no-tracking";
+import { BRANDING } from "@/lib/branding";
 
 const DEDUPE_TTL_SECONDS = 60 * 60 * 24 * 7;
 
@@ -94,7 +95,7 @@ export async function POST(req: Request) {
         await resend.emails.send({
           from,
           to: clientEmail,
-          subject: "Your payment receipt — Aquarius Lawyers",
+          subject: `Your payment receipt — ${BRANDING.firmName}`,
           react: PaymentReceipt({
             name: clientName || undefined,
             matterRef: sessionId,
