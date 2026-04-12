@@ -24,7 +24,7 @@ export async function sendTranscriptEmail({
 }) {
   const to = process.env.FIRM_NOTIFICATION_EMAIL ?? "prabu@paretoid.com";
   return resend.emails.send({
-    from: "Aquarius Chatbot <chatbot@paretoid.com>",
+    from: "Aquarius Chatbot <chatbot@send.growthkiwi.com>",
     to,
     subject: `New ${urgency} Criminal Law Inquiry — ${clientName}`,
     html: `
@@ -97,7 +97,7 @@ export async function sendClientInquiryEmail({
   `;
 
   return resend.emails.send({
-    from: "Aquarius Chatbot <chatbot@paretoid.com>",
+    from: "Aquarius Chatbot <chatbot@send.growthkiwi.com>",
     to: clientEmail,
     subject: "Your Legal Strategy Session inquiry — Aquarius Lawyers",
     html: `
@@ -162,7 +162,7 @@ export async function sendBookingNotificationEmail({
   }
 
   return resend.emails.send({
-    from: "Aquarius Chatbot <chatbot@paretoid.com>",
+    from: "Aquarius Chatbot <chatbot@send.growthkiwi.com>",
     to,
     subject: `Booking confirmed — ${clientName} — ${startLocal}`,
     html: `
