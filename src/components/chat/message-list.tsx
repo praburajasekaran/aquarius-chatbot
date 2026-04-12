@@ -8,6 +8,7 @@ import { PaymentCard } from "@/components/payment/payment-card";
 import { DocumentUpload } from "@/components/upload/document-upload";
 import { CalendlyEmbed } from "@/components/booking/calendly-embed";
 import { UrgentContactCard } from "@/components/booking/urgent-contact-card";
+import { BRANDING } from "@/lib/branding";
 
 interface MessageListProps {
   messages: ChatMessage[];
@@ -57,7 +58,7 @@ export function MessageList({
         <div>
           <Bot className="h-12 w-12 mx-auto mb-3 text-brand/40" aria-hidden="true" />
           <p className="text-base">
-            Welcome to Aquarius Lawyers. Ask me anything about criminal law.
+            {BRANDING.welcomeShort}
           </p>
         </div>
       </div>

@@ -2,11 +2,12 @@ import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
 import { verifyCookie, COOKIE_NAME } from "@/lib/upload-session";
 import { LateUploadClient } from "@/components/upload/late-upload-client";
+import { BRANDING } from "@/lib/branding";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Upload your documents — Aquarius Lawyers",
+  title: `Upload your documents — ${BRANDING.firmName}`,
   robots: { index: false, follow: false },
   referrer: "no-referrer" as const,
 };
@@ -25,10 +26,10 @@ export default async function Page() {
             Upload your documents
           </h1>
           <p className="mt-1 text-sm text-gray-600">
-            Files uploaded here are sent securely to Aquarius Lawyers and stored
+            Files uploaded here are sent securely to {BRANDING.firmName} and stored
             in our case-management system. See our{" "}
             <a
-              href="https://aquariuslawyers.com.au/privacy"
+              href={BRANDING.privacyUrl}
               className="text-brand underline"
               rel="noreferrer"
             >

@@ -3,11 +3,12 @@ import { cookies, headers } from "next/headers";
 import { resolveUploadToken } from "@/lib/upload-tokens";
 import { getLimiter } from "@/lib/rate-limit";
 import { signCookie, COOKIE_NAME, COOKIE_MAX_AGE_SECONDS } from "@/lib/upload-session";
+import { BRANDING } from "@/lib/branding";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Upload your documents — Aquarius Lawyers",
+  title: `Upload your documents — ${BRANDING.firmName}`,
   robots: { index: false, follow: false },
   referrer: "no-referrer" as const,
 };

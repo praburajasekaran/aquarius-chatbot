@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { FIRM_CONTACT } from "@/lib/contact";
+import { BRANDING } from "@/lib/branding";
 
 export const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -24,7 +25,7 @@ export async function sendTranscriptEmail({
 }) {
   const to = process.env.FIRM_NOTIFICATION_EMAIL ?? "prabu@paretoid.com";
   return resend.emails.send({
-    from: "Aquarius Chatbot <chatbot@send.growthkiwi.com>",
+    from: `${BRANDING.emailSenderName} <chatbot@send.growthkiwi.com>`,
     to,
     subject: `New ${urgency} Criminal Law Inquiry — ${clientName}`,
     html: `
@@ -97,14 +98,14 @@ export async function sendClientInquiryEmail({
   `;
 
   return resend.emails.send({
-    from: "Aquarius Chatbot <chatbot@send.growthkiwi.com>",
+    from: `${BRANDING.emailSenderName} <chatbot@send.growthkiwi.com>`,
     to: clientEmail,
-    subject: "Your Legal Strategy Session inquiry — Aquarius Lawyers",
+    subject: `Your Legal Strategy Session inquiry — ${BRANDING.firmName}`,
     html: `
       <div style="font-family:-apple-system,Segoe UI,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#1a1a1a">
         <h2 style="margin:0 0 16px;font-size:20px">Hi ${clientName},</h2>
         <p style="margin:0 0 16px;font-size:15px;line-height:1.5">
-          Thanks for your inquiry with Aquarius Lawyers. Here's a quick summary of what you shared with us:
+          Thanks for your inquiry with ${BRANDING.firmName}. Here's a quick summary of what you shared with us:
         </p>
         <table style="border-collapse:collapse;width:100%;margin:16px 0">
           <tr><td style="padding:8px;border:1px solid #e5e5e5;font-weight:600;width:35%">Matter</td><td style="padding:8px;border:1px solid #e5e5e5">${matterDescription}</td></tr>
@@ -115,9 +116,7 @@ export async function sendClientInquiryEmail({
         ${urgency === "urgent" ? urgentBlock : nonUrgentBlock}
         <hr style="border:none;border-top:1px solid #e5e5e5;margin:24px 0" />
         <p style="margin:0;font-size:12px;color:#777;line-height:1.5">
-          This email was sent by the Aquarius Lawyers chatbot in response to your inquiry.
-          Aquarius Lawyers provides general information only — not legal advice. Reply to this
-          email if you have any questions.
+          ${BRANDING.emailFooter}
         </p>
       </div>
     `,
@@ -162,7 +161,7 @@ export async function sendBookingNotificationEmail({
   }
 
   return resend.emails.send({
-    from: "Aquarius Chatbot <chatbot@send.growthkiwi.com>",
+    from: `${BRANDING.emailSenderName} <chatbot@send.growthkiwi.com>`,
     to,
     subject: `Booking confirmed — ${clientName} — ${startLocal}`,
     html: `

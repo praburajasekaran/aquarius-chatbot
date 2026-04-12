@@ -10,6 +10,7 @@ import {
 } from "@/lib/allowed-types";
 import { getRecordByHash } from "@/lib/upload-tokens";
 import type { UploadTokenRecord } from "@/types";
+import { BRANDING } from "@/lib/branding";
 
 export interface HandleCompletedArgs {
   blob: PutBlobResult;
@@ -93,7 +94,7 @@ export async function handleUploadCompleted(
         size_bytes: sizeBytes,
       },
       uploaded_at: uploadedAt,
-      source: "aquarius-chatbot/late-upload",
+      source: "chatbot/late-upload",
     });
   } catch (err) {
     attachZapStatus = "failed";
@@ -159,10 +160,10 @@ export async function handleUploadCompleted(
         text: [
           `Hi ${record.clientName || "there"},`,
           "",
-          `We just received "${fileName}" for your matter at Aquarius Lawyers.`,
+          `We just received "${fileName}" for your matter with ${BRANDING.firmName}.`,
           "If this wasn't you, please reply to this email immediately so we can secure your upload link.",
           "",
-          "— Aquarius Lawyers",
+          `— ${BRANDING.firmName}`,
         ].join("\n"),
       });
     } catch (err) {

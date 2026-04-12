@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Rubik, Open_Sans } from "next/font/google";
 import "./globals.css";
+import { BRANDING } from "@/lib/branding";
 
 const rubik = Rubik({
   variable: "--font-rubik",
@@ -15,9 +16,8 @@ const openSans = Open_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Aquarius Lawyers — Criminal Law Assistant",
-  description:
-    "Get answers to your criminal law questions and book a Legal Strategy Session with Aquarius Lawyers.",
+  title: BRANDING.pageTitle,
+  description: BRANDING.pageDescription,
 };
 
 export default function RootLayout({
