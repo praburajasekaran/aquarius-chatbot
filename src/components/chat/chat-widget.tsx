@@ -61,6 +61,30 @@ export function ChatWidget() {
     });
   }
 
+  function handleScheduleBooked(
+    toolCallId: string,
+    result: { eventStartTime: string; eventUri: string; inviteeUri: string }
+  ) {
+    addToolOutput({
+      tool: "scheduleAppointment",
+      toolCallId,
+      output: {
+        booked: true,
+        eventStartTime: result.eventStartTime,
+        eventUri: result.eventUri,
+        inviteeUri: result.inviteeUri,
+      },
+    });
+  }
+
+  function handleUrgentAcknowledged(toolCallId: string) {
+    addToolOutput({
+      tool: "showUrgentContact",
+      toolCallId,
+      output: { acknowledged: true },
+    });
+  }
+
   return (
     <div className="flex flex-col h-full bg-white" aria-label="Criminal Law Assistant chat">
       <DisclaimerBanner />
@@ -73,6 +97,8 @@ export function ChatWidget() {
         onPaymentComplete={handlePaymentComplete}
         onUploadComplete={handleUploadComplete}
         onUploadSkip={handleUploadSkip}
+        onScheduleBooked={handleScheduleBooked}
+        onUrgentAcknowledged={handleUrgentAcknowledged}
       />
       <div ref={messagesEndRef} />
       {/* aria-live region announces typing state to screen readers */}

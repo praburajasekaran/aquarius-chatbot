@@ -5,6 +5,8 @@ import { selectUrgency } from "./select-urgency";
 import { initiatePayment } from "./initiate-payment";
 import { uploadDocuments } from "./upload-documents";
 import { showOptions } from "./show-options";
+import { scheduleAppointment } from "./schedule-appointment";
+import { showUrgentContact } from "./show-urgent-contact";
 
 export const tools = {
   matchQuestion,
@@ -13,6 +15,8 @@ export const tools = {
   initiatePayment,
   uploadDocuments,
   showOptions,
+  scheduleAppointment,
+  showUrgentContact,
 } satisfies ToolSet;
 
 export type ChatTools = InferUITools<typeof tools>;

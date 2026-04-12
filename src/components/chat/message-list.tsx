@@ -6,6 +6,8 @@ import { Bot, User } from "lucide-react";
 import type { ChatMessage } from "@/lib/tools";
 import { PaymentCard } from "@/components/payment/payment-card";
 import { DocumentUpload } from "@/components/upload/document-upload";
+import { CalendlyEmbed } from "@/components/booking/calendly-embed";
+import { UrgentContactCard } from "@/components/booking/urgent-contact-card";
 
 interface MessageListProps {
   messages: ChatMessage[];
@@ -14,6 +16,11 @@ interface MessageListProps {
   onPaymentComplete: (toolCallId: string) => void;
   onUploadComplete: (toolCallId: string, uploaded: number) => void;
   onUploadSkip: (toolCallId: string) => void;
+  onScheduleBooked: (
+    toolCallId: string,
+    result: { eventStartTime: string; eventUri: string; inviteeUri: string }
+  ) => void;
+  onUrgentAcknowledged: (toolCallId: string) => void;
 }
 
 export function MessageList({
@@ -23,6 +30,8 @@ export function MessageList({
   onPaymentComplete,
   onUploadComplete,
   onUploadSkip,
+  onScheduleBooked,
+  onUrgentAcknowledged,
 }: MessageListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -227,6 +236,64 @@ export function MessageList({
                     className="mx-11 p-3 bg-green-50 border border-green-200 rounded-xl text-base text-green-900"
                   >
                     Documents submitted.
+                  </div>
+                );
+              }
+            }
+
+            if (part.type === "tool-scheduleAppointment") {
+              if (part.state === "input-available" || part.state === "input-streaming") {
+                const isLatest = msgIndex === lastMsgIndex;
+                return (
+                  <CalendlyEmbed
+                    key={part.toolCallId}
+                    sessionId={part.input?.sessionId ?? sessionId}
+                    prefillName={part.input?.prefillName ?? ""}
+                    prefillEmail={part.input?.prefillEmail ?? ""}
+                    matterDescription={part.input?.matterDescription ?? ""}
+                    onBooked={
+                      isLatest
+                        ? (result) => onScheduleBooked(part.toolCallId, result)
+                        : () => {}
+                    }
+                    disabled={!isLatest}
+                  />
+                );
+              }
+              if (part.state === "output-available") {
+                return (
+                  <div
+                    key={part.toolCallId}
+                    role="status"
+                    className="mx-11 p-3 bg-green-50 border border-green-200 rounded-xl text-base text-green-900"
+                  >
+                    Session booked.
+                  </div>
+                );
+              }
+            }
+
+            if (part.type === "tool-showUrgentContact") {
+              if (part.state === "input-available" || part.state === "input-streaming") {
+                const isLatest = msgIndex === lastMsgIndex;
+                return (
+                  <UrgentContactCard
+                    key={part.toolCallId}
+                    onAcknowledge={
+                      isLatest ? () => onUrgentAcknowledged(part.toolCallId) : () => {}
+                    }
+                    disabled={!isLatest}
+                  />
+                );
+              }
+              if (part.state === "output-available") {
+                return (
+                  <div
+                    key={part.toolCallId}
+                    role="status"
+                    className="mx-11 p-3 bg-green-50 border border-green-200 rounded-xl text-base text-green-900"
+                  >
+                    Thanks — we&apos;ll be ready for your call.
                   </div>
                 );
               }
