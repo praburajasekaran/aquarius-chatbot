@@ -1,18 +1,5 @@
 import type { Metadata } from "next";
-import { Rubik, Open_Sans } from "next/font/google";
 import "./globals.css";
-
-const rubik = Rubik({
-  variable: "--font-rubik",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const openSans = Open_Sans({
-  variable: "--font-open-sans",
-  subsets: ["latin"],
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: "Aquarius Lawyers — Criminal Law Assistant",
@@ -28,7 +15,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${rubik.variable} ${openSans.variable} h-full`}
+      className="h-full"
     >
       <body className="h-full font-body antialiased">{children}</body>
     </html>
