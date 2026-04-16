@@ -1,7 +1,7 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, lastAssistantMessageIsCompleteWithToolCalls } from "ai";
+import { DefaultChatTransport } from "ai";
 import { useRef, useEffect, useMemo, useState } from "react";
 import { DisclaimerBanner } from "./disclaimer-banner";
 import { MessageList } from "./message-list";
@@ -10,6 +10,41 @@ import type { ChatMessage } from "@/lib/tools";
 
 function generateSessionId() {
   return `s_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+}
+
+// Custom auto-continuation condition. The AI SDK's built-in
+// `lastAssistantMessageIsCompleteWithToolCalls` would auto-submit after any
+// tool call completes, including `showOptions`. Since `showOptions` now
+// auto-resolves on the server (it's pure UI), that would create an infinite
+// loop. Here we auto-submit only when there's at least one non-showOptions
+// tool call that has resolved — so AI-relay-after-lookup flows still work,
+// but pure suggestion chips don't drive another round-trip.
+function shouldAutoContinue({
+  messages,
+}: {
+  messages: ChatMessage[];
+}): boolean {
+  const last = messages[messages.length - 1];
+  if (!last || last.role !== "assistant") return false;
+
+  const toolParts = last.parts.filter(
+    (p): p is (typeof last.parts)[number] & { type: string; state?: string } =>
+      typeof (p as { type?: string }).type === "string" &&
+      (p as { type: string }).type.startsWith("tool-")
+  );
+  if (toolParts.length === 0) return false;
+
+  // Every tool call must have completed (success or error). Streaming-in or
+  // waiting-for-input tool calls mean we're not yet at a stable point.
+  const allComplete = toolParts.every(
+    (p) => p.state === "output-available" || p.state === "output-error"
+  );
+  if (!allComplete) return false;
+
+  // Auto-continue only if at least one completed tool is NOT showOptions.
+  // A message containing ONLY resolved showOptions calls should stop and
+  // wait for the user's next input.
+  return toolParts.some((p) => p.type !== "tool-showOptions");
 }
 
 // Pull the `options` array from the most recent assistant message's
@@ -52,7 +87,7 @@ export function ChatWidget() {
 
   const { messages, sendMessage, addToolOutput, status } = useChat<ChatMessage>({
     transport,
-    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+    sendAutomaticallyWhen: shouldAutoContinue,
   });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
