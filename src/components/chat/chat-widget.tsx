@@ -12,13 +12,24 @@ function generateSessionId() {
   return `s_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
-// Custom auto-continuation condition. The AI SDK's built-in
-// `lastAssistantMessageIsCompleteWithToolCalls` would auto-submit after any
-// tool call completes, including `showOptions`. Since `showOptions` now
-// auto-resolves on the server (it's pure UI), that would create an infinite
-// loop. Here we auto-submit only when there's at least one non-showOptions
-// tool call that has resolved — so AI-relay-after-lookup flows still work,
-// but pure suggestion chips don't drive another round-trip.
+// Tools that pause the stream when called and need the client to resolve
+// them (via addToolOutput). When the user completes one of these, we need
+// to resume the AI so it can respond to the result and move to the next
+// step. Server-executed tools (matchQuestion, collectDetails, selectUrgency,
+// showOptions) handle their continuation inside the same stream and are
+// deliberately excluded — auto-continuing on them would loop because they
+// are already resolved by the time the client sees the message.
+const CLIENT_TOOLS_REQUIRING_CONTINUATION = new Set([
+  "tool-initiatePayment",
+  "tool-uploadDocuments",
+  "tool-scheduleAppointment",
+  "tool-showUrgentContact",
+]);
+
+// Auto-continuation condition. Fires only when one of the whitelisted client
+// tools in the last assistant message has entered a resolved state, meaning
+// the user has just completed an action (paid, uploaded, booked, etc.) and
+// the AI needs to see the result to produce the next turn.
 function shouldAutoContinue({
   messages,
 }: {
@@ -27,24 +38,12 @@ function shouldAutoContinue({
   const last = messages[messages.length - 1];
   if (!last || last.role !== "assistant") return false;
 
-  const toolParts = last.parts.filter(
-    (p): p is (typeof last.parts)[number] & { type: string; state?: string } =>
-      typeof (p as { type?: string }).type === "string" &&
-      (p as { type: string }).type.startsWith("tool-")
-  );
-  if (toolParts.length === 0) return false;
-
-  // Every tool call must have completed (success or error). Streaming-in or
-  // waiting-for-input tool calls mean we're not yet at a stable point.
-  const allComplete = toolParts.every(
-    (p) => p.state === "output-available" || p.state === "output-error"
-  );
-  if (!allComplete) return false;
-
-  // Auto-continue only if at least one completed tool is NOT showOptions.
-  // A message containing ONLY resolved showOptions calls should stop and
-  // wait for the user's next input.
-  return toolParts.some((p) => p.type !== "tool-showOptions");
+  return last.parts.some((p) => {
+    const part = p as { type?: string; state?: string };
+    if (typeof part.type !== "string") return false;
+    if (!CLIENT_TOOLS_REQUIRING_CONTINUATION.has(part.type)) return false;
+    return part.state === "output-available" || part.state === "output-error";
+  });
 }
 
 // Pull the `options` array from the most recent assistant message's
