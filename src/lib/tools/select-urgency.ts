@@ -6,7 +6,7 @@ import { sendClientInquiryEmail } from "@/lib/resend";
 
 export const selectUrgency = tool({
   description:
-    "Record the visitor's urgency selection, persist inquiry details for the 7-day intake window, and send them a client confirmation email. Use this after collecting details. The visitor chooses between an urgent ($1,320 incl. GST) or non-urgent ($726 incl. GST) Legal Strategy Session.",
+    "Record the visitor's urgency selection, persist inquiry details for the 7-day intake window, and send them a client confirmation email. Use this after collecting details. The visitor chooses between an urgent matter ($1,320 incl. GST — Initial Deposit for Urgent Court Matter) or a non-urgent matter ($726 incl. GST — Legal Strategy Session).",
   inputSchema: z.object({
     sessionId: z.string().describe("The chat session ID"),
     urgency: z
@@ -57,16 +57,24 @@ export const selectUrgency = tool({
       console.error("[selectUrgency] failed to send client inquiry email", err);
     }
 
+    const costDisclosure =
+      urgency === "urgent"
+        ? "In accordance with the Legal Profession Uniform Law, the Initial Deposit for an Urgent Court Matter is a fixed amount. " +
+          `The total cost is ${pricing.displayPrice}. ` +
+          "This deposit covers initial work to commence acting on your urgent matter. " +
+          "Any further legal work will be quoted separately."
+        : "In accordance with the Legal Profession Uniform Law, the fee for a Legal Strategy Session is a fixed fee. " +
+          `The total cost is ${pricing.displayPrice}. ` +
+          "This covers an initial consultation to assess your matter and provide a strategy. " +
+          "Any further legal work will be quoted separately.";
+
     return {
       urgency,
       amount: pricing.amount,
       displayPrice: pricing.displayPrice,
-      label: pricing.label,
-      costDisclosure:
-        "In accordance with the Legal Profession Uniform Law, the fee for a Legal Strategy Session is a fixed fee. " +
-        `The total cost for your ${urgency} matter is ${pricing.displayPrice}. ` +
-        "This covers an initial consultation to assess your matter and provide a strategy. " +
-        "Any further legal work will be quoted separately.",
+      tier: pricing.tier,
+      lineItem: pricing.lineItem,
+      costDisclosure,
     };
   },
 });

@@ -7,6 +7,7 @@ import {
   EmbeddedCheckout,
 } from "@stripe/react-stripe-js";
 import { CreditCard } from "lucide-react";
+import { PRICING } from "@/lib/stripe";
 
 // loadStripe must live outside the component so the Stripe object isn't
 // recreated on every render.
@@ -54,19 +55,16 @@ export function PaymentCard({
       </div>
       <div className="text-base text-gray-700">
         <p>
-          <strong>
-            {urgency === "urgent" ? "Urgent" : "Non-Urgent"} Criminal Matter
-          </strong>{" "}
-          — Legal Strategy Session
+          <strong>{PRICING[urgency].tier}</strong> — {PRICING[urgency].lineItem}
         </p>
         <p className="text-lg font-semibold text-gray-900 mt-1">
           {displayPrice}
         </p>
       </div>
       <p className="text-sm text-gray-700">
-        In accordance with the Legal Profession Uniform Law, this is a fixed
-        fee for an initial consultation. Further legal work will be quoted
-        separately.
+        {urgency === "urgent"
+          ? "In accordance with the Legal Profession Uniform Law, this is a fixed initial deposit to commence work on your urgent matter. Further legal work will be quoted separately."
+          : "In accordance with the Legal Profession Uniform Law, this is a fixed fee for an initial consultation. Further legal work will be quoted separately."}
       </p>
       {error && (
         <p role="alert" className="text-sm text-red-800">
