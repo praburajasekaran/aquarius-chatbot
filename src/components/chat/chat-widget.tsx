@@ -12,6 +12,17 @@ function generateSessionId() {
   return `s_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
+// Chips shown alongside the initial assistant greeting, before the visitor
+// has sent any message. These mirror the options the AI would emit itself if
+// the visitor said "hi" first — rendering them statically avoids a wasted
+// round-trip on page load.
+const INITIAL_WELCOME_CHIPS = [
+  "I've been charged",
+  "I need bail advice",
+  "Ask about fees",
+  "Something else",
+];
+
 // Tools that pause the stream when called and need the client to resolve
 // them (via addToolOutput). When the user completes one of these, we need
 // to resume the AI so it can respond to the result and move to the next
@@ -104,15 +115,23 @@ export function ChatWidget() {
 
   const isLoading = status === "streaming" || status === "submitted";
 
-  const rawSuggestions = useMemo(() => extractSuggestions(messages), [messages]);
+  const rawSuggestions = useMemo(() => {
+    // Before any message is sent, show the welcome chips alongside the
+    // static initial greeting rendered by MessageList.
+    if (messages.length === 0) return INITIAL_WELCOME_CHIPS;
+    return extractSuggestions(messages);
+  }, [messages]);
   // Suggestions are visible unless they were explicitly dismissed for the
   // current assistant message. A new assistant turn resets this automatically
   // because lastAssistantMessageId will differ from dismissedForMessageId.
+  // Before any message exists (initial greeting), dismissal is keyed by the
+  // sentinel "initial" so typing/sending clears the welcome chips too.
+  const suggestionsKey = lastAssistantMessageId ?? "initial";
   const suggestions =
-    dismissedForMessageId === lastAssistantMessageId ? [] : rawSuggestions;
+    dismissedForMessageId === suggestionsKey ? [] : rawSuggestions;
 
   function handleSend(text: string) {
-    setDismissedForMessageId(lastAssistantMessageId);
+    setDismissedForMessageId(suggestionsKey);
     sendMessage({ text });
   }
 
@@ -195,7 +214,7 @@ export function ChatWidget() {
         onSend={handleSend}
         disabled={isLoading}
         suggestions={suggestions}
-        onSuggestionsDismissed={() => setDismissedForMessageId(lastAssistantMessageId)}
+        onSuggestionsDismissed={() => setDismissedForMessageId(suggestionsKey)}
       />
     </div>
   );

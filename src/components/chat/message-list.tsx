@@ -51,13 +51,25 @@ export function MessageList({
   }, [scrollKey]);
 
   if (messages.length === 0) {
+    // Show the welcome message as a proper assistant bubble on mount so the
+    // AI greets the visitor first, instead of an empty canvas that requires
+    // the visitor to type the first message. The suggestion chips for this
+    // initial state are provided by ChatWidget through MessageInput.
     return (
-      <div className="flex-1 flex items-center justify-center p-8 text-center text-gray-700">
-        <div>
-          <Bot className="h-12 w-12 mx-auto mb-3 text-brand/40" aria-hidden="true" />
-          <p className="text-base">
-            {BRANDING.welcomeShort}
-          </p>
+      <div role="log" aria-label="Conversation" className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex gap-3">
+          <div
+            aria-hidden="true"
+            className="shrink-0 h-8 w-8 rounded-full flex items-center justify-center bg-brand/10"
+          >
+            <Bot className="h-4 w-4 text-brand" />
+          </div>
+          <div
+            aria-label={`Assistant: ${BRANDING.welcomeMessage}`}
+            className="max-w-[80%] rounded-2xl px-4 py-2.5 text-base leading-relaxed bg-gray-100 text-gray-800 rounded-bl-md"
+          >
+            {BRANDING.welcomeMessage}
+          </div>
         </div>
       </div>
     );
