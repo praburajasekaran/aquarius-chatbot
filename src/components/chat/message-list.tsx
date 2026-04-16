@@ -13,7 +13,6 @@ import { BRANDING } from "@/lib/branding";
 interface MessageListProps {
   messages: ChatMessage[];
   sessionId: string;
-  onOptionSelect: (toolCallId: string, text: string) => void;
   onPaymentComplete: (toolCallId: string) => void;
   onUploadComplete: (toolCallId: string, uploaded: number) => void;
   onUploadSkip: (toolCallId: string) => void;
@@ -27,7 +26,6 @@ interface MessageListProps {
 export function MessageList({
   messages,
   sessionId,
-  onOptionSelect,
   onPaymentComplete,
   onUploadComplete,
   onUploadSkip,
@@ -143,48 +141,6 @@ export function MessageList({
                       </div>
                     )}
                   </div>
-                </div>
-              );
-            }
-
-            // Quick-reply buttons — interactive only on the latest unanswered group.
-            // After the user picks, that option stays filled (highlighted) so they can see what they chose.
-            if (part.type === "tool-showOptions" && (part.state === "input-available" || part.state === "output-available")) {
-              const isLatest = msgIndex === lastMsgIndex;
-              const isAnswered = part.state === "output-available";
-              const selectedOption = isAnswered ? part.output?.selected : null;
-              const canInteract = isLatest && !isAnswered;
-              return (
-                <div
-                  key={part.toolCallId}
-                  role="group"
-                  aria-label="Quick reply options"
-                  className="flex flex-wrap gap-2 pl-11"
-                >
-                  {part.input?.options?.map((option: string) => {
-                    const isSelected = option === selectedOption;
-                    /* Three visual states:
-                       1. canInteract → outlined teal, hoverable (active choice)
-                       2. isSelected  → filled teal, white text (your pick — AAA 7.88:1)
-                       3. otherwise   → muted gray (historical, not chosen) */
-                    const stateClasses = canInteract
-                      ? "border-[#085a66] text-[#085a66] hover:bg-[#085a66] hover:text-white cursor-pointer"
-                      : isSelected
-                      ? "border-[#085a66] bg-[#085a66] text-white cursor-default"
-                      : "border-gray-300 text-gray-500 cursor-default";
-                    return (
-                      <button
-                        key={option}
-                        onClick={() => canInteract && onOptionSelect(part.toolCallId, option)}
-                        disabled={!canInteract}
-                        aria-pressed={isSelected || undefined}
-                        /* min-h-[44px] satisfies WCAG 2.5.5 AAA 44×44px touch target */
-                        className={`px-4 min-h-[44px] rounded-full border text-base font-medium transition-colors ${stateClasses}`}
-                      >
-                        {option}
-                      </button>
-                    );
-                  })}
                 </div>
               );
             }
