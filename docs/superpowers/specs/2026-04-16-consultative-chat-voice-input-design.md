@@ -91,7 +91,19 @@ Add a mic button between the textarea and the send button.
 **Graceful degradation:**
 - Check `'SpeechRecognition' in window || 'webkitSpeechRecognition' in window` on mount
 - If not supported, mic button is not rendered — layout unchanged
-- Works in Chrome and Safari (covers the vast majority of mobile users)
+
+**Browser coverage:**
+
+| Browser | Web Speech API support | Mic button visible? |
+|---|---|---|
+| Chrome (desktop + mobile) | Yes | Yes |
+| Edge, Brave, Opera, Samsung Internet (all Chromium) | Yes | Yes |
+| Safari (iOS + macOS) | Yes | Yes |
+| **Firefox (desktop + Android)** | **No** — Mozilla has not shipped it | **No (hidden)** |
+
+Combined coverage: ~90%+ of real-world users. Firefox is the explicit gap (~2-4% globally, likely 1-2% for the target audience). Firefox users can still type normally; they just don't see the mic button.
+
+**Post-launch fallback option (not in scope):** If Firefox users complain, add a server-side fallback using `MediaRecorder` (which Firefox supports) → Groq Whisper API (~$0.002/min). Keep this in mind when structuring the mic logic so the component can be extended without rewriting.
 
 **`MessageInput` prop change:** no new props needed — voice state is internal to the component.
 
@@ -112,6 +124,7 @@ Add a mic button between the textarea and the send button.
 
 ## Out of scope
 
-- Server-side speech transcription (Whisper, Groq) — revisit if Web Speech API accuracy proves insufficient in production
+- Server-side speech transcription (Whisper, Groq) — revisit if Web Speech API accuracy proves insufficient in production, or if Firefox coverage becomes important
 - Streaming interim voice results into the textarea
 - Multi-language voice support beyond `en-AU`
+- Firefox voice support (see fallback option above)
