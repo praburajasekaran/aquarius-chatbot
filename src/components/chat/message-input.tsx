@@ -95,12 +95,23 @@ export function MessageInput({
     recognition.onstart = () => setIsListening(true);
 
     recognition.onresult = (event) => {
-      const transcript = event.results[0]?.[0]?.transcript ?? "";
-      if (transcript) {
-        setInput(transcript);
-        // Focus so the user can review/edit before sending
-        textareaRef.current?.focus();
-      }
+      const transcript = (event.results[0]?.[0]?.transcript ?? "").trim();
+      if (!transcript) return;
+      // Append the transcript to whatever the user has already typed, separated
+      // by a space. This preserves manual input rather than overwriting it.
+      setInput((prev) => {
+        const existing = prev.trimEnd();
+        return existing ? `${existing} ${transcript}` : transcript;
+      });
+      // After React flushes the value update, move the cursor to the end and
+      // refocus so the user can hit send or keep editing.
+      requestAnimationFrame(() => {
+        const el = textareaRef.current;
+        if (!el) return;
+        el.focus();
+        const end = el.value.length;
+        el.setSelectionRange(end, end);
+      });
     };
 
     recognition.onerror = () => {
