@@ -76,8 +76,10 @@ export function MessageInput({
 
   function handleMicClick() {
     if (isListening) {
-      recognitionRef.current?.abort();
-      setIsListening(false);
+      // Use stop() not abort() — stop() ends listening and delivers any
+      // speech that's already been recognised. abort() throws results away.
+      // onend will clear isListening once the engine has flushed.
+      recognitionRef.current?.stop();
       return;
     }
 
