@@ -12,15 +12,20 @@ export function getStripe(): Stripe {
   return _stripe;
 }
 
+// `lineItem` is the firm-prescribed payment description (do not paraphrase) —
+// it flows to the BPoint/Stripe receipt and the Smokeball invoice line item
+// for reconciliation. `tier` is the visitor-facing tier heading.
 export const PRICING = {
   urgent: {
     amount: 132000, // $1,320.00 in cents
-    label: "Urgent Criminal Matter — Legal Strategy Session",
+    tier: "Urgent Criminal Matter",
+    lineItem: "Initial Deposit for Urgent Court Matter",
     displayPrice: "$1,320.00 (incl. GST)",
   },
   "non-urgent": {
     amount: 72600, // $726.00 in cents
-    label: "Non-Urgent Criminal Matter — Legal Strategy Session",
+    tier: "Non-Urgent Criminal Matter",
+    lineItem: "Legal Strategy Session",
     displayPrice: "$726.00 (incl. GST)",
   },
 } as const;
@@ -45,7 +50,7 @@ export async function createCheckoutSession(args: CreateCheckoutSessionArgs) {
         price_data: {
           currency: "aud",
           unit_amount: pricing.amount,
-          product_data: { name: pricing.label },
+          product_data: { name: pricing.lineItem },
         },
         quantity: 1,
       },

@@ -1,92 +1,475 @@
 [
   {
-    "id": "q1",
-    "question": "What should I do if I have been charged with a criminal offence?",
-    "answer": "If you have been charged with a criminal offence, it is important to seek legal advice as soon as possible. Do not make any statements to police without a lawyer present. Contact our firm to discuss your matter and understand your rights.",
-    "keywords": ["charged", "criminal offence", "arrested", "charge sheet", "what to do"]
+    "id": "general-1",
+    "category": "General Criminal Law",
+    "question": "What happens after I am charged with a criminal offence?",
+    "answer": "After being charged, you will usually receive a court date. You may be granted bail or held in custody. Your case will then proceed through mentions for a forward court date and plea, possible negotiations, and ultimately a hearing and sentencing if you plead guilty. If you've just been charged, speaking to a lawyer early can significantly affect the outcome — you can contact us for immediate guidance.",
+    "keywords": ["charged", "criminal offence", "after charge", "what happens", "just charged"]
   },
   {
-    "id": "q2",
-    "question": "What happens at a court hearing?",
-    "answer": "At your first court hearing (mention), the charge will be read and you will enter a plea. If you plead not guilty, the matter will be adjourned for a contested hearing or committal. If you plead guilty, the court may proceed to sentencing or adjourn for a pre-sentence report. Your lawyer will guide you through each step.",
-    "keywords": ["court", "hearing", "mention", "plea", "what happens"]
+    "id": "general-2",
+    "category": "General Criminal Law",
+    "question": "Do I have to go to court for a criminal charge?",
+    "answer": "In most cases, yes. Some minor offences can be dealt with by fine, but criminal charges typically require you to attend court. Not sure if you need to attend? We can quickly assess your situation.",
+    "keywords": ["go to court", "have to attend", "court appearance", "do i need to go"]
   },
   {
-    "id": "q3",
-    "question": "How much does a criminal lawyer cost?",
-    "answer": "Legal fees vary depending on the complexity of your matter. We offer an initial Legal Strategy Session to assess your case. The fee for an urgent matter is $1,320 (incl. GST) and for a non-urgent matter is $726 (incl. GST). We will provide a detailed cost estimate after reviewing your case.",
-    "keywords": ["cost", "fees", "how much", "price", "expensive", "afford"]
+    "id": "general-3",
+    "category": "General Criminal Law",
+    "question": "What is a \"mention\" in court?",
+    "answer": "A mention is a short court appearance where your case is listed. It is used to enter a plea, request adjournments, or update the court on the progress of your matter.",
+    "keywords": ["mention", "court mention", "first court date", "court listing"]
   },
   {
-    "id": "q4",
-    "question": "Can I get bail?",
-    "answer": "Whether you can get bail depends on several factors including the nature of the offence, your criminal history, and whether you pose a flight risk or danger to the community. Our lawyers can advise you on your bail prospects and represent you in a bail application if needed.",
-    "keywords": ["bail", "custody", "remand", "release"]
+    "id": "general-4",
+    "category": "General Criminal Law",
+    "question": "What happens if I plead guilty?",
+    "answer": "If you plead guilty, the court will usually proceed to sentencing. Your lawyer can present your circumstances and argue for a more lenient outcome. Legal representation at this stage can make a real difference — speak to us before entering a plea.",
+    "keywords": ["plead guilty", "guilty plea", "sentencing", "admit"]
   },
   {
-    "id": "q5",
-    "question": "What is an AVO or apprehended violence order?",
-    "answer": "An Apprehended Violence Order (AVO) is a court order that restricts a person's behaviour to protect another person. There are two types: Apprehended Domestic Violence Orders (ADVOs) for domestic relationships and Apprehended Personal Violence Orders (APVOs) for non-domestic situations. Breaching an AVO is a criminal offence.",
-    "keywords": ["AVO", "apprehended violence order", "ADVO", "APVO", "restraining order", "protection order"]
+    "id": "general-5",
+    "category": "General Criminal Law",
+    "question": "What happens if I plead not guilty?",
+    "answer": "Your case will be adjourned for a hearing where evidence is presented and witnesses may be called. The magistrate or judge will then decide whether you are guilty. Preparing a strong defence early is critical — we can help you build your case.",
+    "keywords": ["plead not guilty", "not guilty", "defence", "contest", "hearing"]
   },
   {
-    "id": "q6",
-    "question": "What are the penalties for drink driving in NSW?",
-    "answer": "Penalties for drink driving in NSW depend on your blood alcohol concentration (BAC) and whether it is a first or subsequent offence. Penalties can include fines, licence disqualification, and imprisonment. An interlock device may also be required. Contact our firm for advice specific to your situation.",
-    "keywords": ["drink driving", "DUI", "drunk driving", "BAC", "blood alcohol", "licence"]
+    "id": "general-6",
+    "category": "General Criminal Law",
+    "question": "Can charges be withdrawn?",
+    "answer": "Yes. Charges may be withdrawn if there is insufficient evidence or after negotiations with the prosecution. We regularly negotiate with prosecutors — contact us to explore your options.",
+    "keywords": ["charges withdrawn", "drop charges", "withdraw", "negotiate prosecution"]
+  },
+
+  {
+    "id": "traffic-1",
+    "category": "Traffic Offences",
+    "question": "What happens after I am charged with a traffic offence?",
+    "answer": "You may receive a fine, licence suspension, or a court attendance notice depending on the seriousness of the offence.",
+    "keywords": ["traffic offence", "traffic charge", "court attendance notice", "fine"]
   },
   {
-    "id": "q7",
-    "question": "What is a Section 10 dismissal?",
-    "answer": "A Section 10 (now Section 10A under the Crimes (Sentencing Procedure) Act) allows a court to find you guilty but dismiss the charge without recording a conviction. This means you will not have a criminal record for that offence. Eligibility depends on the nature of the offence and your personal circumstances.",
-    "keywords": ["section 10", "no conviction", "dismissal", "criminal record", "section 10A"]
+    "id": "traffic-2",
+    "category": "Traffic Offences",
+    "question": "Do I have to go to court for drink driving?",
+    "answer": "Yes, drink driving offences are usually dealt with in court. Licence outcomes can affect your work and lifestyle — get advice early.",
+    "keywords": ["drink driving", "DUI", "drunk driving", "court for drink driving"]
   },
   {
-    "id": "q8",
-    "question": "Do I need a lawyer for a minor offence?",
-    "answer": "Even for minor offences, having legal representation can significantly impact the outcome. A lawyer can negotiate with police or prosecutors, present mitigating factors, and work towards the best possible result including avoiding a criminal record. We recommend seeking legal advice for any criminal matter.",
-    "keywords": ["minor offence", "need lawyer", "small charge", "traffic offence", "represent myself"]
+    "id": "traffic-3",
+    "category": "Traffic Offences",
+    "question": "What happens at a traffic court hearing?",
+    "answer": "The magistrate will consider the facts, your driving history, and any submissions before deciding the penalty.",
+    "keywords": ["traffic court hearing", "traffic hearing", "driving history"]
   },
   {
-    "id": "q9",
-    "question": "What is the difference between a summary and indictable offence?",
-    "answer": "Summary offences are less serious matters dealt with in the Local Court by a magistrate. Indictable offences are more serious and may be heard in the District or Supreme Court before a judge and jury. Some indictable offences can be dealt with summarily in the Local Court if both parties agree.",
-    "keywords": ["summary", "indictable", "serious", "local court", "district court", "difference"]
+    "id": "traffic-4",
+    "category": "Traffic Offences",
+    "question": "Can I keep driving before my court date?",
+    "answer": "This depends on whether your licence has been immediately suspended by police.",
+    "keywords": ["keep driving", "drive before court", "immediate suspension", "police suspension"]
   },
   {
-    "id": "q10",
-    "question": "Can a criminal record be cleared?",
-    "answer": "In NSW, spent convictions legislation means that certain convictions may become 'spent' after a crime-free period (typically 10 years for adults). Once spent, you generally do not need to disclose the conviction. However, this does not apply to all offences. Contact our firm to discuss your specific situation.",
-    "keywords": ["clear record", "spent conviction", "expunge", "remove conviction", "criminal record check"]
+    "id": "traffic-5",
+    "category": "Traffic Offences",
+    "question": "Can I get a work licence or restricted licence?",
+    "answer": "In some jurisdictions and circumstances, yes — but eligibility is limited. We can assess your eligibility and help you apply.",
+    "keywords": ["work licence", "restricted licence", "limited licence"]
   },
   {
-    "id": "q11",
-    "question": "What should I do if police want to question me?",
-    "answer": "You have the right to remain silent and the right to have a lawyer present during questioning. We strongly recommend that you do not answer any police questions without first obtaining legal advice. Contact us immediately if police wish to interview you.",
-    "keywords": ["police", "questioning", "interview", "rights", "remain silent", "statement"]
+    "id": "traffic-6",
+    "category": "Traffic Offences",
+    "question": "What happens if I drive while suspended?",
+    "answer": "This is a serious offence and can result in further disqualification and possible imprisonment. You will need to vigorously defend this charge to prevent a jail sentence.",
+    "keywords": ["drive while suspended", "driving suspended", "disqualified driving"]
+  },
+
+  {
+    "id": "duid-1",
+    "category": "Driving Under the Influence of Drugs (DUID)",
+    "question": "What happens if I am charged with driving under the influence of drugs?",
+    "answer": "You will usually be required to attend court. Police may suspend your licence immediately, and the matter will proceed through the court process where penalties can include disqualification, fines, or more serious consequences depending on the circumstances. Drug driving charges can carry significant penalties — speaking to a lawyer early can help protect your licence.",
+    "keywords": ["drug driving", "DUID", "driving under influence drugs", "drug driving charge"]
   },
   {
-    "id": "q12",
-    "question": "What are drug possession penalties?",
-    "answer": "Penalties for drug possession in NSW vary depending on the type and quantity of drug. Small quantities for personal use may result in a caution or fine, while larger quantities can lead to serious charges including deemed supply. Contact our firm for advice on your specific matter.",
-    "keywords": ["drug", "possession", "cannabis", "marijuana", "cocaine", "MDMA", "ice", "methamphetamine"]
+    "id": "duid-2",
+    "category": "Driving Under the Influence of Drugs (DUID)",
+    "question": "Do I have to go to court for drug driving?",
+    "answer": "Yes, most drug driving offences are dealt with in court, particularly where impairment is alleged. We can guide you through the court process and prepare your case.",
+    "keywords": ["court for drug driving", "drug driving court"]
   },
   {
-    "id": "q13",
+    "id": "duid-3",
+    "category": "Driving Under the Influence of Drugs (DUID)",
+    "question": "What evidence is used in drug driving cases?",
+    "answer": "Evidence may include roadside drug tests (saliva testing), blood analysis, police observations of impairment, and expert reports. Challenging the evidence can be crucial — legal advice early can make a difference.",
+    "keywords": ["drug driving evidence", "saliva test", "roadside drug test", "blood analysis"]
+  },
+  {
+    "id": "duid-4",
+    "category": "Driving Under the Influence of Drugs (DUID)",
+    "question": "What drugs can lead to a charge?",
+    "answer": "Both illegal drugs (such as cannabis, methamphetamine, and MDMA) and certain prescription medications can lead to charges if they impair your ability to drive. If your charge involves prescription medication, we can assess possible defences.",
+    "keywords": ["what drugs", "cannabis driving", "methamphetamine driving", "MDMA driving", "prescription medication driving"]
+  },
+  {
+    "id": "duid-5",
+    "category": "Driving Under the Influence of Drugs (DUID)",
+    "question": "What are the penalties for drug driving?",
+    "answer": "Penalties vary depending on the offence and your history but can include fines, licence disqualification, and in some cases, imprisonment. We can help you minimise penalties and explore alternatives where available.",
+    "keywords": ["penalties drug driving", "drug driving penalty", "drug driving fine", "drug driving disqualification"]
+  },
+  {
+    "id": "duid-6",
+    "category": "Driving Under the Influence of Drugs (DUID)",
+    "question": "Can I lose my licence immediately?",
+    "answer": "Yes, police may impose an immediate suspension in some cases, particularly for serious offences. If your licence has been suspended, we can advise you on your options moving forward.",
+    "keywords": ["lose licence immediately", "immediate licence suspension", "police suspend licence"]
+  },
+  {
+    "id": "duid-7",
+    "category": "Driving Under the Influence of Drugs (DUID)",
+    "question": "Can I defend a drug driving charge?",
+    "answer": "Yes, depending on the circumstances. Defences may relate to the validity of testing procedures, lack of impairment, or other legal issues. Every case is different — contact us to assess your defence options.",
+    "keywords": ["defend drug driving", "drug driving defence", "challenge drug test"]
+  },
+  {
+    "id": "duid-8",
+    "category": "Driving Under the Influence of Drugs (DUID)",
+    "question": "Can I get a restricted or work licence after a drug driving charge?",
+    "answer": "Eligibility is limited and depends on the jurisdiction and offence. In many cases, restricted licences are not available for drug driving offences. We can advise whether any licence options are available in your situation.",
+    "keywords": ["restricted licence drug driving", "work licence drug driving"]
+  },
+  {
+    "id": "duid-9",
+    "category": "Driving Under the Influence of Drugs (DUID)",
+    "question": "What should I do if I have been charged with drug driving?",
+    "answer": "You should seek legal advice as soon as possible, avoid driving if your licence is suspended, and prepare for your court date. Early advice can significantly impact your outcome — speak with our team today.",
+    "keywords": ["what to do drug driving", "charged drug driving advice"]
+  },
+
+  {
+    "id": "assault-1",
+    "category": "Assault & Violence Offences",
+    "question": "What happens after I am charged with assault?",
+    "answer": "You will be given a court date and may be subject to bail conditions, including no-contact orders. The case will proceed through mentions and possibly a hearing or sentencing. Bail conditions can impact your daily life — we can help you respond quickly.",
+    "keywords": ["charged with assault", "assault charge", "no-contact order", "assault bail"]
+  },
+  {
+    "id": "assault-2",
+    "category": "Assault & Violence Offences",
+    "question": "Will there be a hearing for an assault charge?",
+    "answer": "If you plead not guilty, the matter will proceed to a hearing where witnesses give evidence and are cross-examined.",
+    "keywords": ["assault hearing", "assault witnesses", "cross-examined assault"]
+  },
+  {
+    "id": "assault-3",
+    "category": "Assault & Violence Offences",
+    "question": "What evidence is used in assault cases?",
+    "answer": "Evidence may include witness statements, medical reports, CCTV footage, and police observations.",
+    "keywords": ["assault evidence", "CCTV assault", "witness statements assault", "medical report assault"]
+  },
+  {
+    "id": "assault-4",
+    "category": "Assault & Violence Offences",
+    "question": "Can the alleged victim withdraw the complaint?",
+    "answer": "Even if the complainant withdraws, police may still proceed with the charges depending on the evidence. These situations are complex — getting legal advice early is important.",
+    "keywords": ["victim withdraw complaint", "complainant withdraw", "drop assault charge"]
+  },
+  {
+    "id": "assault-5",
+    "category": "Assault & Violence Offences",
+    "question": "What happens if there is a cross-complaint (both parties charged)?",
+    "answer": "Each case is assessed separately. The court will consider evidence for both sides and determine the outcome. We can help you navigate cross-allegations and protect your position.",
+    "keywords": ["cross-complaint", "both parties charged", "cross-allegation", "mutual charges"]
+  },
+
+  {
+    "id": "avo-1",
+    "category": "Apprehended Violence Orders (AVOs)",
+    "question": "What happens when a domestic violence order is applied for?",
+    "answer": "The court may issue an interim order for immediate protection, followed by a hearing to determine whether a final order should be made. These orders can be made quickly — urgent legal advice is recommended.",
+    "keywords": ["domestic violence order", "DV order applied", "interim order"]
+  },
+  {
+    "id": "avo-2",
+    "category": "Apprehended Violence Orders (AVOs)",
+    "question": "What happens if an Apprehended Violence Order (AVO) is taken out against me?",
+    "answer": "The court may issue an interim AVO for immediate protection, which remains in place until your matter is finalised. You will be given a court date to either agree to the order or contest it. AVOs can affect where you live, who you see, and your record — getting legal advice early is important.",
+    "keywords": ["AVO against me", "apprehended violence order", "AVO taken out"]
+  },
+  {
+    "id": "avo-3",
+    "category": "Apprehended Violence Orders (AVOs)",
+    "question": "Do I have to go to court for a domestic violence order?",
+    "answer": "Yes, especially if you want to contest the order. If you agree, the order can sometimes be made without admissions. We can help you decide whether to consent or defend the order based on your circumstances.",
+    "keywords": ["court for domestic violence order", "court for DV order", "consent without admissions"]
+  },
+  {
+    "id": "avo-4",
+    "category": "Apprehended Violence Orders (AVOs)",
+    "question": "What conditions are included in these orders?",
+    "answer": "Conditions often include no contact, no approach, and restrictions on attending certain locations.",
+    "keywords": ["AVO conditions", "AVO restrictions", "no contact order", "no approach order"]
+  },
+  {
+    "id": "avo-5",
+    "category": "Apprehended Violence Orders (AVOs)",
+    "question": "What is the difference between an ADVO and APVO?",
+    "answer": "An ADVO (Apprehended Domestic Violence Order) applies where there is a domestic relationship, while an APVO (Apprehended Personal Violence Order) applies to non-domestic situations.",
+    "keywords": ["ADVO APVO", "ADVO", "APVO", "difference ADVO APVO"]
+  },
+  {
+    "id": "avo-6",
+    "category": "Apprehended Violence Orders (AVOs)",
+    "question": "What happens if I breach an AVO?",
+    "answer": "Breaching an AVO is a criminal offence and can result in serious penalties, including fines or imprisonment. If you've been accused of a breach, it's critical to get legal advice immediately.",
+    "keywords": ["breach AVO", "broke AVO", "AVO breach", "violate AVO"]
+  },
+  {
+    "id": "avo-7",
+    "category": "Apprehended Violence Orders (AVOs)",
+    "question": "Can I contest an AVO?",
+    "answer": "Yes. If you do not agree to the order, the matter can proceed to a hearing where evidence is presented and the court decides whether the order should be made. Defending an AVO requires preparation — we can help you build your case.",
+    "keywords": ["contest AVO", "fight AVO", "defend AVO"]
+  },
+  {
+    "id": "avo-8",
+    "category": "Apprehended Violence Orders (AVOs)",
+    "question": "Can I change or vary an AVO?",
+    "answer": "Yes, you can apply to the court to vary or revoke an AVO if circumstances change. We can assist with applications to vary conditions or remove the order.",
+    "keywords": ["change AVO", "vary AVO", "revoke AVO", "remove AVO"]
+  },
+  {
+    "id": "avo-9",
+    "category": "Apprehended Violence Orders (AVOs)",
+    "question": "What should I do if police contact me about an AVO?",
+    "answer": "You should seek legal advice before responding or attending court, and ensure you comply with any interim conditions. Early advice can help you avoid mistakes — contact us as soon as possible.",
+    "keywords": ["police contact AVO", "police about AVO"]
+  },
+  {
+    "id": "avo-10",
+    "category": "Apprehended Violence Orders (AVOs)",
+    "question": "Will an AVO give me a criminal record?",
+    "answer": "An AVO itself is not a criminal conviction. However, breaching an AVO is a criminal offence and can result in a record. Understanding the long-term impact is important — we can guide you through it.",
+    "keywords": ["AVO criminal record", "AVO conviction", "does AVO show on record"]
+  },
+
+  {
+    "id": "drug-1",
+    "category": "Drug Offences",
+    "question": "What happens if I am caught with drugs by police?",
+    "answer": "Police may issue a caution, infringement notice, or charge you. This depends on the type and quantity of drugs and your prior history. Early advice can sometimes help you avoid a conviction — speak to us promptly.",
+    "keywords": ["caught with drugs", "drug possession police", "drug caution"]
+  },
+  {
+    "id": "drug-2",
+    "category": "Drug Offences",
+    "question": "Will my case go to court for a drug offence?",
+    "answer": "Minor offences may be dealt with by diversion or fines, but more serious matters will go to court.",
+    "keywords": ["drug court case", "drug offence court", "drug diversion or court"]
+  },
+  {
+    "id": "drug-3",
+    "category": "Drug Offences",
+    "question": "What is a drug diversion program?",
+    "answer": "It is a program that allows eligible offenders to avoid a criminal conviction by completing education or treatment instead of going through the full court process. We can assess whether you're eligible and guide you through the process.",
+    "keywords": ["drug diversion", "diversion program", "avoid conviction drugs"]
+  },
+  {
+    "id": "drug-4",
+    "category": "Drug Offences",
+    "question": "What factors affect the penalty for drug offences?",
+    "answer": "The court considers the type and quantity of drugs, whether it was for personal use or supply, and your criminal history.",
+    "keywords": ["drug penalty factors", "drug sentencing", "personal use vs supply"]
+  },
+  {
+    "id": "drug-5",
+    "category": "Drug Offences",
+    "question": "What happens if police allege I was supplying drugs?",
+    "answer": "Supply charges are treated more seriously and usually proceed to court. Evidence may include messages, cash, packaging, or large quantities. These are serious charges — get legal advice as soon as possible.",
+    "keywords": ["drug supply", "supplying drugs", "supply charge", "deemed supply"]
+  },
+
+  {
+    "id": "theft-1",
+    "category": "Theft, Fraud & Property Offences",
+    "question": "What happens if I am charged with theft or shoplifting?",
+    "answer": "You may receive a court date or, in minor cases, a fine or caution. Court proceedings will follow if charges are laid.",
+    "keywords": ["theft charge", "shoplifting charge", "charged with theft"]
+  },
+  {
+    "id": "theft-2",
+    "category": "Theft, Fraud & Property Offences",
+    "question": "Will I have to go to court for shoplifting?",
+    "answer": "Often yes, particularly if charges are formally laid. However, first-time offenders may be eligible for diversion. We can help you minimise long-term consequences.",
+    "keywords": ["shoplifting court", "first-time shoplifting", "shoplifting diversion"]
+  },
+  {
+    "id": "theft-3",
+    "category": "Theft, Fraud & Property Offences",
+    "question": "What evidence is used in theft or fraud cases?",
+    "answer": "Evidence may include CCTV footage, financial records, witness statements, and electronic communications.",
+    "keywords": ["theft evidence", "fraud evidence", "CCTV theft", "financial records fraud"]
+  },
+  {
+    "id": "theft-4",
+    "category": "Theft, Fraud & Property Offences",
+    "question": "Can theft charges be reduced or withdrawn?",
+    "answer": "In some cases, yes — particularly if the value is low or restitution is made early. Early intervention can improve your chances — contact us to discuss strategy.",
+    "keywords": ["reduce theft charge", "withdraw theft charge", "restitution theft"]
+  },
+  {
+    "id": "theft-5",
+    "category": "Theft, Fraud & Property Offences",
+    "question": "What happens if I repay the money or return the goods?",
+    "answer": "This may be considered favourably by the court but does not automatically result in charges being dropped.",
+    "keywords": ["repay money theft", "return goods", "restitution"]
+  },
+
+  {
+    "id": "fishing-1",
+    "category": "Fishing Licence Offences",
+    "question": "I've been fined for a fishing offence — do I have to pay it?",
+    "answer": "Not necessarily. You may have options to challenge the fine or have it reviewed. In some cases, penalties can be reduced or withdrawn. It's important to get legal advice before paying, as payment may be treated as accepting the offence. Would you like a lawyer to review your notice?",
+    "keywords": ["fishing fine", "fishing offence fine", "challenge fishing fine"]
+  },
+  {
+    "id": "fishing-2",
+    "category": "Fishing Licence Offences",
+    "question": "I've been charged with a fishing offence and have a court date — what should I do?",
+    "answer": "You should seek legal advice as soon as possible. A lawyer can assess the evidence, explain your options, and represent you in court. Acting early can improve your chances of avoiding a conviction or reducing penalties. Do you want help booking a consultation?",
+    "keywords": ["fishing charge court date", "fishing offence court", "fishing court appearance"]
+  },
+  {
+    "id": "fishing-3",
+    "category": "Fishing Licence Offences",
+    "question": "Fisheries officers want to interview me — do I have to speak to them?",
+    "answer": "You generally have the right to seek legal advice before participating in an interview. It's often best not to provide detailed statements until you've spoken with a lawyer. We can arrange for a lawyer to guide you before responding and to attend an interview if required.",
+    "keywords": ["fisheries officer interview", "fisheries questioning", "fisheries investigation"]
+  },
+  {
+    "id": "fishing-4",
+    "category": "Fishing Licence Offences",
+    "question": "They seized my boat or fishing gear — can I get it back?",
+    "answer": "In some cases, yes. There may be legal options to challenge the seizure or apply for the return of your property. The process depends on the circumstances and the type of offence. A lawyer can assess your situation and advise on next steps.",
+    "keywords": ["seized boat", "seized fishing gear", "fisheries seizure", "return property fishing"]
+  },
+  {
+    "id": "fishing-5",
+    "category": "Fishing Licence Offences",
+    "question": "What penalties apply for fishing offences?",
+    "answer": "Penalties vary depending on the offence but can include fines, licence suspension, seizure of equipment, or court-imposed penalties. Some matters can result in a criminal record. A lawyer can help you understand your specific risk and how to minimise it.",
+    "keywords": ["fishing penalties", "fishing offence penalty", "fishing licence suspension"]
+  },
+
+  {
+    "id": "boating-1",
+    "category": "Boating Offences",
+    "question": "I've been fined for a boating offence — do I have to pay it?",
+    "answer": "Not necessarily. You may have options to challenge the fine or request a review. Paying it can sometimes be treated as accepting the offence, so it's worth getting legal advice first. Would you like a lawyer to review your notice?",
+    "keywords": ["boating fine", "boating offence fine", "challenge boating fine"]
+  },
+  {
+    "id": "boating-2",
+    "category": "Boating Offences",
+    "question": "I've been charged with a boating offence — what happens next?",
+    "answer": "Boating offences can lead to court proceedings, fines, or licence disqualification. A lawyer can assess the evidence, explain your options, and represent you in court. Early advice can make a significant difference to the outcome.",
+    "keywords": ["boating charge", "charged with boating offence", "boating court"]
+  },
+  {
+    "id": "boating-3",
+    "category": "Boating Offences",
+    "question": "Can I lose my boating licence or be banned from operating a vessel?",
+    "answer": "Yes, depending on the offence. Serious matters (like dangerous operation or alcohol-related offences) can result in suspension or disqualification. A lawyer may assist in reducing or avoiding these penalties.",
+    "keywords": ["lose boating licence", "boating ban", "vessel ban", "dangerous operation vessel"]
+  },
+  {
+    "id": "boating-4",
+    "category": "Boating Offences",
+    "question": "I was involved in a boating incident or accident — what should I do?",
+    "answer": "You may have legal obligations to report the incident, and there could be liability or regulatory issues. It's important to document what happened and seek legal advice before making detailed statements, especially if injuries or damage are involved.",
+    "keywords": ["boating incident", "boating accident", "vessel accident", "report boating"]
+  },
+  {
+    "id": "boating-5",
+    "category": "Boating Offences",
+    "question": "Maritime authorities contacted me about an investigation — do I have to respond?",
+    "answer": "You may have obligations to respond, but you also have the right to seek legal advice before providing detailed information. It's often best to understand your position first. Would you like to upload your notice or provide details? A lawyer can review your situation and advise on next steps.",
+    "keywords": ["maritime authority", "maritime investigation", "maritime contacted me"]
+  },
+
+  {
+    "id": "court-1",
+    "category": "Court Process & Bail",
+    "question": "What happens when I apply for bail?",
+    "answer": "The court considers factors such as risk of reoffending, likelihood of appearing in court, and community safety before granting bail. Strong bail applications can improve your chances — we can assist.",
+    "keywords": ["apply for bail", "bail application", "get bail", "bail court"]
+  },
+  {
+    "id": "court-2",
+    "category": "Court Process & Bail",
+    "question": "What conditions can be imposed on bail?",
+    "answer": "Conditions may include reporting to police, curfews, no-contact orders, or surrendering your passport.",
+    "keywords": ["bail conditions", "conditions of bail", "curfew bail", "reporting bail"]
+  },
+  {
+    "id": "court-3",
+    "category": "Court Process & Bail",
     "question": "How long does a criminal case take?",
-    "answer": "The duration of a criminal case varies depending on its complexity, whether you plead guilty or not guilty, court availability, and other factors. Simple matters may be resolved in weeks, while complex indictable matters can take months or even years. Your lawyer will provide an estimated timeline for your specific case.",
-    "keywords": ["how long", "duration", "timeline", "time", "weeks", "months"]
+    "answer": "It varies. Simple matters may resolve in weeks, while complex cases can take months or longer.",
+    "keywords": ["how long criminal case", "case duration", "criminal case timeline"]
   },
   {
-    "id": "q14",
-    "question": "What happens if I breach my bail conditions?",
-    "answer": "Breaching bail conditions is a serious matter. Police may arrest you and you could be brought before the court. The court may revoke your bail and remand you in custody, or impose stricter bail conditions. If you are at risk of breaching bail, contact us immediately for advice.",
-    "keywords": ["breach bail", "bail conditions", "break bail", "violate bail"]
+    "id": "court-4",
+    "category": "Court Process & Bail",
+    "question": "Can my case be adjourned?",
+    "answer": "Yes, cases are often adjourned to allow time for legal advice, negotiations, or preparation.",
+    "keywords": ["adjourn case", "adjournment", "delay court"]
+  },
+
+  {
+    "id": "record-1",
+    "category": "Criminal Records",
+    "question": "When do I get a criminal record?",
+    "answer": "A criminal record is usually created when a conviction is recorded by the court.",
+    "keywords": ["get criminal record", "when criminal record", "conviction record"]
   },
   {
-    "id": "q15",
-    "question": "Can I travel overseas with a criminal record?",
-    "answer": "Having a criminal record can affect your ability to travel overseas. Many countries, including the United States, Canada, and New Zealand, may deny entry to individuals with criminal convictions. The impact depends on the nature of the offence and the destination country's laws. Seek legal advice before making travel plans.",
-    "keywords": ["travel", "overseas", "passport", "visa", "criminal record", "fly"]
+    "id": "record-2",
+    "category": "Criminal Records",
+    "question": "Can a charge be dismissed without a conviction?",
+    "answer": "Yes, courts can dismiss matters without recording a conviction in appropriate cases. We can argue for non-conviction outcomes where possible.",
+    "keywords": ["dismissed without conviction", "non-conviction", "no conviction recorded"]
+  },
+  {
+    "id": "record-3",
+    "category": "Criminal Records",
+    "question": "How long does a criminal record last?",
+    "answer": "Some records become \"spent\" after a period of time, depending on the offence and state laws.",
+    "keywords": ["criminal record last", "spent conviction", "how long criminal record"]
+  },
+
+  {
+    "id": "police-1",
+    "category": "Police Powers",
+    "question": "What happens if police arrest me?",
+    "answer": "You may be taken to a police station, questioned, and either charged and released on bail or held for a court appearance. If you've been arrested or asked to attend an interview, contact us immediately.",
+    "keywords": ["police arrest me", "arrested", "police station", "police interview"]
+  },
+  {
+    "id": "police-2",
+    "category": "Police Powers",
+    "question": "Can police enter my home without a warrant?",
+    "answer": "In certain urgent situations, police may enter without a warrant, but generally a warrant is required.",
+    "keywords": ["police enter home", "police warrant", "search warrant", "police without warrant"]
+  },
+  {
+    "id": "police-3",
+    "category": "Police Powers",
+    "question": "What should I do during a police search?",
+    "answer": "Remain calm and do not resist. You can ask the basis for the search and contact a lawyer as soon as possible. Knowing your rights matters — we can advise you straight away.",
+    "keywords": ["police search", "during police search", "search rights"]
   }
 ]

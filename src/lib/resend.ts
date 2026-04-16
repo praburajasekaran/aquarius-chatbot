@@ -97,10 +97,15 @@ export async function sendClientInquiryEmail({
     </p>
   `;
 
+  const subjectMatterLabel =
+    urgency === "urgent"
+      ? "Initial Deposit for Urgent Court Matter"
+      : "Legal Strategy Session";
+
   return resend.emails.send({
     from: `${BRANDING.emailSenderName} <chatbot@send.growthkiwi.com>`,
     to: clientEmail,
-    subject: `Your Legal Strategy Session inquiry — ${BRANDING.firmName}`,
+    subject: `Your ${subjectMatterLabel} inquiry — ${BRANDING.firmName}`,
     html: `
       <div style="font-family:-apple-system,Segoe UI,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#1a1a1a">
         <h2 style="margin:0 0 16px;font-size:20px">Hi ${clientName},</h2>
