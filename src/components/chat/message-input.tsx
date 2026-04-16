@@ -18,14 +18,21 @@ export function MessageInput({
 }: MessageInputProps) {
   const [input, setInput] = useState("");
   const [isListening, setIsListening] = useState(false);
-  // Lazily evaluate Web Speech API support once on first render (client only).
-  // Using a lazy initialiser avoids a synchronous setState inside an effect.
-  const [speechSupported] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    return Boolean(window.SpeechRecognition || window.webkitSpeechRecognition);
-  });
+  // Server and client must produce the same initial HTML — default to false.
+  // After hydration, the effect below flips this on if the browser supports
+  // SpeechRecognition. This avoids a hydration mismatch that would occur if
+  // we used a lazy useState initialiser (which would evaluate to true on the
+  // client but false on the server).
+  const [speechSupported, setSpeechSupported] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const Ctor = window.SpeechRecognition || window.webkitSpeechRecognition;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (Ctor) setSpeechSupported(true);
+  }, []);
 
   useEffect(() => {
     if (!disabled) textareaRef.current?.focus();
