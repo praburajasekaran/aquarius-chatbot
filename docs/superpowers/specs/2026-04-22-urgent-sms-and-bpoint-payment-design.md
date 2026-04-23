@@ -256,3 +256,87 @@ None at design time. Implementation may surface questions about:
 - Exact location of the current Stripe-embed component (verify by grep before refactor).
 - Exact Stripe webhook path to delete (verify during cleanup phase).
 - BPoint UAT vs production hostname differences for iframe-fields JS asset URL.
+
+---
+
+## Addendum — 2026-04-23 client-credentials setup
+
+Reviewed + updated after the client-credentials meeting with Julie
+Bargenquast. Captures architectural decisions made while wiring the live
+integrations that weren't in the original design. Live handover status is
+tracked in [`docs/2026-04-23-integration-status.md`](../../2026-04-23-integration-status.md).
+
+### New decisions
+
+| Decision | Choice | Reason |
+|---|---|---|
+| Dev vs prod Zap isolation | Separate Zap IDs per environment | Smokeball has no sandbox — test pollution is unrecoverable without manual matter deletion. Dev code hits email-only Zap #4; prod code hits Smokeball Zap #1. |
+| Test-payload guard flag | Top-level `isTest: boolean` in webhook body | Nested `meta.testPayload` silently failed to bind in Zapier's Filter-step field picker; top-level flat keys bind reliably. |
+| Prod Zap filter behaviour | Filter: "Only continue if `isTest` is false OR does not exist" | Both belt + braces — env-var error and guard flag must both fail before a test payload reaches Smokeball. |
+| Session → Smokeball matter mapping | Capture-back via Zap #1 tail webhook, not custom Smokeball field | Avoids Julie-side admin work, keeps matter IDs as Smokeball's own UUIDs, and the mapping becomes reusable (e.g., lawyer admin view, client "your matter" link). |
+| Capture-back auth | `X-Smokeball-Capture-Secret` shared-secret header | Simpler than HMAC while still preventing spoofed matter IDs. Secret stored in Vercel env + Zapier action config. |
+| BPoint env strategy | Prod facility only; dev uses BPoint sandbox endpoint with same SCI creds | Aquarius has no separate UAT facility. Pre-launch smoke test will be a real $0.01 txn + refund on prod. |
+| Calendly webhook creation | Programmatic via Personal Access Token + `POST /webhook_subscriptions` | Calendly's UI doesn't expose the signing key we supply — only the POST API does. Signing key is generated client-side (`openssl rand -hex 32`) and passed into the subscription request. |
+| ClickSend sender ID | Start with shared numeric, swap to alpha `AquariusLaw` once ClickSend approves | Alpha approval is 1–2 business days; don't block Monday demo. |
+
+### New architecture fragment — session → matter capture-back
+
+```
+1. Visitor pays via BPoint
+       ↓
+2. /api/checkout/confirm → createIntake → POST to ZAPIER_WEBHOOK_URL
+       ↓
+3. Zap #1 — Filter(isTest) → Smokeball Create Matter
+       ↓
+4. Zap #1 tail — Webhooks by Zapier POST to
+   /api/webhooks/smokeball-matter-created with
+   { sessionId, smokeballMatterId } + X-Smokeball-Capture-Secret header
+       ↓
+5. Our endpoint verifies the secret, writes
+   `session:${sessionId}:matterId → smokeballMatterId` to Redis (TTL 90d)
+       ↓
+6. Later: client uploads late doc → handleUploadCompleted reads
+   Redis → includes smokeballMatterId as matter_ref in Zap #2 payload
+       ↓
+7. Zap #2 — Filter(isTest) → Smokeball Upload File to Matter
+```
+
+### New env vars (added to `.env.example`)
+
+```
+BPOINT_API_USERNAME=           # SCI-only user created in BPoint Back Office
+BPOINT_API_PASSWORD=
+BPOINT_MERCHANT_NUMBER=
+BPOINT_BILLER_CODE=
+BPOINT_ENV=sandbox             # "sandbox" | "prod"
+
+CLICKSEND_USERNAME=
+CLICKSEND_API_KEY=
+CLICKSEND_SENDER_ID=           # blank = shared number; "AquariusLaw" once approved
+URGENT_SMS_RECIPIENT=          # E.164 solicitor mobile
+
+CALENDLY_PERSONAL_ACCESS_TOKEN=
+CALENDLY_WEBHOOK_SIGNING_KEY=  # we generate + supply on subscription create
+
+ZAPIER_DEV_WEBHOOK_URL=        # dev-only Zap #4 (email, never Smokeball)
+SMOKEBALL_CAPTURE_SECRET=      # shared secret for capture-back endpoint auth
+```
+
+### New files to build (weekend)
+
+- `src/app/api/webhooks/smokeball-matter-created/route.ts` — capture-back endpoint
+- `src/lib/session-matter-map.ts` — Redis read/write helper (`setMatterIdForSession`, `getMatterIdForSession`)
+- Updates to `src/lib/late-upload/handle-completed.ts` — resolve `matterRef` from Redis by sessionId rather than accepting as function arg
+
+### Rollout order (Monday demo path)
+
+1. **Weekend (agency)** — build endpoint + helper + update late-upload, deploy to `aquarius-chatbot.vercel.app`.
+2. **Sunday** — set `SMOKEBALL_CAPTURE_SECRET` in Vercel prod env vars.
+3. **Sunday** — wire the Zap #1 tail webhook step (URL + header + JSON body), test end-to-end with a real-shaped payload, confirm Redis write.
+4. **Sunday** — configure Zap #2 Matter ID dynamic mapping, add filter, publish.
+5. **Monday** — demo flow: intake → BPoint pay (mocked if Iframe Fields still pending) → Smokeball matter appears → optional late-upload demo.
+
+### Known weekend unknowns
+
+- **Does Smokeball's Zapier "Create Matter" action return the new matter UUID as a field that can be mapped in the tail step?** High confidence yes (Zapier standard pattern) but verify by inspecting step 3's output schema during testing.
+- **Does Smokeball's Zapier "Upload File to Matter" accept a UUID directly in the Matter ID field when dynamic-mapped, or only via its dropdown search?** If only dropdown, we need a "Find Matter" preceding step even with capture-back. Will test Sunday.

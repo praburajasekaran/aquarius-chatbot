@@ -43,13 +43,13 @@ Already drafted in code — firm review deferred to post-demo walkthrough (see "
 
 ### Payment
 - [ ] **Sample BPoint receipt** — screenshot or PDF of what the firm/client actually receives after payment, so we can match the format in the confirmation screen and email transcript
-- [ ] **Scope confirmation: Stripe → BPoint.** Proposal and current code use Stripe. Firm is on BPoint. Confirm switch in writing before we rebuild the payment layer. Invoicing stays in Smokeball as it works today (per client direction).
+- [x] **Scope confirmation: Stripe → BPoint.** Confirmed in writing via email 2026-04-16. Invoicing stays in Smokeball as it works today (per client direction).
 
 ### Code fix triggered by firm's line-item spec
 - [x] **Done 2026-04-16.** Split `PRICING.label` into `tier` + `lineItem` in `src/lib/stripe.ts`. Urgent now uses **"Initial Deposit for Urgent Court Matter"**, non-urgent uses **"Legal Strategy Session"**. Updated `payment-card.tsx`, `select-urgency.ts` (incl. cost-disclosure copy now branches on urgency), `initiate-payment.ts` description, and the client inquiry email subject in `resend.ts`. Generic pre-urgency CTAs (welcome message, system prompt, disclaimer banner) deliberately left as "Legal Strategy Session" — visitor doesn't know their tier yet at that point.
 
 ### Contact
-- [ ] Single point of contact designated at the firm (name + email + phone)
+- [x] **Julie Bargenquast** — Practice Manager | P: 02 88583233 | E: marketing@aquariuslawyers.com.au | W: aquariuslawyers.com.au
 
 ---
 
@@ -68,20 +68,28 @@ Walk the firm through the staging demo and redline as needed. Items to confirm:
 
 ## Outstanding — blocking M2 (production integrations)
 
-- [ ] **Zapier account** access / auth session (~10 min guided)
-- [ ] **Smokeball** access via Zapier (Lead, Contact, Matter creation + doc attachment)
-- [ ] **Calendly** — firm's configured scheduling link for non-urgent bookings
-- [ ] **Resend** API key (for firm notification emails + transcripts)
-- [ ] Confirm destination inbox — proposal references `info@aquariuslawyers.com.au`
+✅ **2026-04-23 client call completed** — Julie set up all services; credentials shared securely.
+
+- [x] **Zapier** — Professional plan, member invite sent, Smokeball connected (test Zap verified)
+- [x] **Resend** — Account created, domain added, DNS records published, team invite sent
+- [x] **ClickSend** — Account created, funded, sender ID `AQUARIUS` submitted (approval 1–2 days)
+- [x] **Calendly** — Standard plan confirmed, webhook subscription created, signing key captured
+- [x] **BPoint UAT** — CBA merchant facility confirmed for API + Iframe; UAT API user created
+- [x] **Destination inbox** — confirmed `info@aquariuslawyers.com.au` receives notifications
 
 ---
 
-## Open scope questions to raise with the firm
+## Awaiting from firm (async follow-up)
 
-1. **Stripe → BPoint swap.** Signed scope change needed; affects payment UI, receipt handling, and confirmation email. No impact on Smokeball invoicing.
-2. **BPoint integration method.** Hosted redirect vs embedded? Does BPoint return a webhook / receipt payload we can capture, or does the client need to manually forward the emailed receipt? This determines whether we can auto-attach payment confirmation to the Smokeball matter.
-3. **Bank account reconciliation.** Sample invoice #193 shows BSB 062-703, Account **10275405** as the payment-instruction account — but the CBA General Account we were given is **10226910** (same BSB). Two possibilities:
-   - 10275405 is the **trust account** (client funds, per Legal Profession Uniform Law) and 10226910 is the general operating account where BPoint settles → normal setup, nothing to fix.
-   - One of them is out of date.
-   - Ask the firm which account is the live BPoint settlement destination and whether there's also a trust account we should be aware of.
-4. **Ongoing maintenance plan** — single practice area ($400/mo) vs all five ($600/mo), to be decided before go-live.
+- [ ] **Smokeball field mapping clarification** — which fields should receive:
+  - Urgency tag?
+  - BPoint receipt number (for Trust Accounting reconciliation)?
+  - Matter description?
+  - _(Will use sensible defaults if no reply by 2026-04-25)_
+- [ ] **Sample BPoint receipt** — screenshot/PDF of customer confirmation (for M1 demo UI polish)
+- [ ] **Signed scope change** — Stripe → BPoint swap confirmation (routine, not blocking)
+- [ ] **Maintenance plan decision** — single practice area ($400/mo) vs all five ($600/mo), to be decided pre-launch
+
+## Deferred to post-demo (not blocking M1)
+
+- [ ] **Vercel + Upstash** — Aquarius owns infrastructure pre-launch; demo runs on agency Vercel
