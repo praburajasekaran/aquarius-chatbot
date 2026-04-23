@@ -29,7 +29,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. No TypeScript errors exist across the codebase — stripeSessionId has been fully replaced by bpointTxnNumber in all types, Redis session, intake, and email modules
   4. The IsTestTxn flag is false in production environment and true only in non-production — confirmed by environment check
   5. The AuthKey session expires after 30 minutes, consistent with the existing Stripe session TTL
-**Plans**: TBD
+**Plans** (4 plans in 3 waves):
+- [ ] 01-01-PLAN.md — Extract src/lib/pricing.ts (provider-neutral PRICING + CheckoutUrgency) from src/lib/stripe.ts [Wave 1]
+- [ ] 01-02-PLAN.md — Create src/lib/bpoint.ts — AuthKey client with pipe-separated Basic Auth, per-call IsTestTxn, integer cents, 30min TTL [Wave 2]
+- [ ] 01-03-PLAN.md — Rename stripeSessionId → bpointTxnNumber across 9 files (types, Redis, intake, emails, routes, CLI) [Wave 2]
+- [ ] 01-04-PLAN.md — Swap POST /api/checkout to call createAuthKey, return { authKey } instead of { clientSecret } [Wave 3]
 
 ### Phase 2: Confirmation & UI
 **Goal**: Clients can enter card details in the embedded BPoint iframe and payment confirmation is verified server-side
@@ -71,7 +75,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/TBD | Not started | - |
+| 1. Foundation | 0/4 | Not started | - |
 | 2. Confirmation & UI | 0/TBD | Not started | - |
 | 3. Webhook & Cleanup | 0/TBD | Not started | - |
 | 4. Validation | 0/TBD | Not started | - |
