@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 01-02-PLAN.md (BPoint AuthKey client in src/lib/bpoint.ts)
-last_updated: "2026-04-23T17:35:37.505Z"
+stopped_at: Completed 01-03-PLAN.md (stripeSessionId -> bpointTxnNumber rename across 9 files)
+last_updated: "2026-04-23T17:35:32Z"
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 4
-  completed_plans: 2
+  completed_plans: 3
 ---
 
 # Project State
@@ -24,25 +24,25 @@ See: .planning/PROJECT.md (updated 2026-04-23)
 ## Current Position
 
 Phase: 01 (foundation) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 2
-- Average duration: ~1.5min
-- Total execution time: ~3 min
+- Total plans completed: 3
+- Average duration: ~1.7min
+- Total execution time: ~5 min
 
 **By Phase:**
 
 | Phase          | Plans | Total | Avg/Plan |
 |----------------|-------|-------|----------|
-| 01-foundation  | 2     | 3min  | ~1.5min  |
+| 01-foundation  | 3     | 5min  | ~1.7min  |
 
 **Recent Trend:**
 
-- Last 5 plans: Phase 01-foundation P01 (2min, 2 tasks, 2 files), Phase 01-foundation P02 (1min, 1 task, 1 file)
+- Last 5 plans: Phase 01-foundation P01 (2min, 2 tasks, 2 files), Phase 01-foundation P02 (1min, 1 task, 1 file), Phase 01-foundation P03 (2min, 3 tasks, 9 files)
 - Trend: stable/fast
 
 *Updated after each plan completion*
@@ -60,6 +60,9 @@ Recent decisions affecting current work:
 - [Phase 01-foundation]: Pricing moved to provider-neutral src/lib/pricing.ts; stripe.ts re-exports for back-compat
 - [Phase 01-foundation]: Plan 01-02: BPoint AuthKey client uses per-call BPOINT_ENV evaluation (not module-level) to avoid Vercel bundle-time pinning
 - [Phase 01-foundation]: Plan 01-02: Basic Auth header format is username|merchantNumber:password (pipe separator mandatory per BPoint v5, not standard user:pass)
+- [Phase 01-foundation]: Plan 01-03: Field renamed stripeSessionId -> bpointTxnNumber across types/Redis/intake/email/routes (9 files); Stripe session IDs continue populating the renamed field during Phase 1 soak
+- [Phase 01-foundation]: Plan 01-03: checkout/route.ts limited to 2-site field-name swap; createCheckoutSession call + clientSecret response shape deferred to Plan 04
+- [Phase 01-foundation]: Plan 01-03: Zapier transcript HTML row count preserved (7 rows); only label text changed Stripe Session -> BPoint Transaction (DATA-02 contract intact)
 
 ### Pending Todos
 
@@ -73,6 +76,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-23T17:35:37.503Z
-Stopped at: Completed 01-02-PLAN.md (BPoint AuthKey client in src/lib/bpoint.ts)
-Resume file: .planning/phases/01-foundation/01-03-PLAN.md
+Last session: 2026-04-23T17:35:32Z
+Stopped at: Completed 01-03-PLAN.md (stripeSessionId -> bpointTxnNumber rename across 9 files)
+Resume file: .planning/phases/01-foundation/01-04-PLAN.md

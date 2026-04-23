@@ -39,8 +39,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Data Schema
 
-- [ ] **DATA-01**: Session schema field renamed from `stripeSessionId` to `bpointTxnNumber` across types, Redis session, intake, and email modules
-- [ ] **DATA-02**: Zapier-monitored transcript email fields updated to use BPoint transaction identifiers while preserving field structure
+- [x] **DATA-01**: Session schema field renamed from `stripeSessionId` to `bpointTxnNumber` across types, Redis session, intake, and email modules
+- [x] **DATA-02**: Zapier-monitored transcript email fields updated to use BPoint transaction identifiers while preserving field structure
 - [x] **DATA-03**: `paymentAmount` field stores integer cents matching existing schema
 
 ### Stripe Removal
@@ -98,8 +98,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SESS-03 | Phase 1 | Complete |
 | SESS-04 | Phase 1 | Complete |
 | SESS-05 | Phase 1 | Complete |
-| DATA-01 | Phase 1 | Pending |
-| DATA-02 | Phase 1 | Pending |
+| DATA-01 | Phase 1 | Complete |
+| DATA-02 | Phase 1 | Complete |
 | DATA-03 | Phase 1 | Complete |
 | CONF-01 | Phase 2 | Pending |
 | CONF-02 | Phase 2 | Pending |
