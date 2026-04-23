@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: unknown
-stopped_at: Completed 01-03-PLAN.md (stripeSessionId -> bpointTxnNumber rename across 9 files)
-last_updated: "2026-04-23T17:35:32Z"
+status: phase-01-complete
+stopped_at: Completed 01-04-PLAN.md (checkout route swapped to BPoint createAuthKey; Phase 1 foundation complete)
+last_updated: "2026-04-23T17:40:47.221Z"
 progress:
   total_phases: 4
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 4
-  completed_plans: 3
+  completed_plans: 4
 ---
 
 # Project State
@@ -23,29 +23,30 @@ See: .planning/PROJECT.md (updated 2026-04-23)
 
 ## Current Position
 
-Phase: 01 (foundation) — EXECUTING
-Plan: 4 of 4
+Phase: 01 (foundation) — COMPLETED
+Plan: 4 of 4 (all plans complete; ready for Phase 02)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 3
-- Average duration: ~1.7min
-- Total execution time: ~5 min
+- Total plans completed: 4
+- Average duration: ~1.5min
+- Total execution time: ~6 min
 
 **By Phase:**
 
 | Phase          | Plans | Total | Avg/Plan |
 |----------------|-------|-------|----------|
-| 01-foundation  | 3     | 5min  | ~1.7min  |
+| 01-foundation  | 4     | 6min  | ~1.5min  |
 
 **Recent Trend:**
 
-- Last 5 plans: Phase 01-foundation P01 (2min, 2 tasks, 2 files), Phase 01-foundation P02 (1min, 1 task, 1 file), Phase 01-foundation P03 (2min, 3 tasks, 9 files)
+- Last 5 plans: Phase 01-foundation P01 (2min, 2 tasks, 2 files), Phase 01-foundation P02 (1min, 1 task, 1 file), Phase 01-foundation P03 (2min, 3 tasks, 9 files), Phase 01-foundation P04 (1min, 1 task, 1 file)
 - Trend: stable/fast
 
 *Updated after each plan completion*
+| Phase 01-foundation P04 | 1min | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -63,6 +64,9 @@ Recent decisions affecting current work:
 - [Phase 01-foundation]: Plan 01-03: Field renamed stripeSessionId -> bpointTxnNumber across types/Redis/intake/email/routes (9 files); Stripe session IDs continue populating the renamed field during Phase 1 soak
 - [Phase 01-foundation]: Plan 01-03: checkout/route.ts limited to 2-site field-name swap; createCheckoutSession call + clientSecret response shape deferred to Plan 04
 - [Phase 01-foundation]: Plan 01-03: Zapier transcript HTML row count preserved (7 rows); only label text changed Stripe Session -> BPoint Transaction (DATA-02 contract intact)
+- [Phase 01-foundation]: Plan 01-04: POST /api/checkout now returns { authKey } — no clientSecret alias (PaymentCard UI breakage expected; Phase 2 swaps in BPoint iframe)
+- [Phase 01-foundation]: Plan 01-04: Nested try/catch isolates Redis persistence failures from BPoint 502s — AuthKey creation success must not be gated on Upstash health
+- [Phase 01-foundation]: Plan 01-04: BPoint upstream failures return 502 (not 500) with sanitized client-facing error; provider-specific detail stays in server logs
 
 ### Pending Todos
 
@@ -76,6 +80,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-23T17:35:32Z
-Stopped at: Completed 01-03-PLAN.md (stripeSessionId -> bpointTxnNumber rename across 9 files)
-Resume file: .planning/phases/01-foundation/01-04-PLAN.md
+Last session: 2026-04-23T17:39:22Z
+Stopped at: Completed 01-04-PLAN.md (checkout route swapped to BPoint createAuthKey; Phase 1 foundation complete)
+Resume file: Phase 02 (UI swap — replace PaymentCard with BPoint iframe)
