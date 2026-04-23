@@ -66,7 +66,7 @@ export async function createAuthKey(
     cfg.password
   );
 
-  const res = await fetch(`${cfg.baseUrl}/txns/authkey`, {
+  const res = await fetch(`${cfg.baseUrl}/txns/processtxnauthkey`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
