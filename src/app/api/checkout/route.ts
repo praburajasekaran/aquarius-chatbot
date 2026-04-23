@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { createCheckoutSession, PRICING } from "@/lib/stripe";
+import { PRICING } from "@/lib/pricing";
+import { createAuthKey } from "@/lib/bpoint";
 import { updateIntake } from "@/lib/intake";
 
 export async function POST(req: Request) {
@@ -12,17 +13,28 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid urgency" }, { status: 400 });
   }
 
-  const checkoutSession = await createCheckoutSession({
-    sessionId,
-    urgency,
-    returnUrlBase: process.env.NEXT_PUBLIC_URL ?? "",
-  });
-
   try {
-    await updateIntake(sessionId, { bpointTxnNumber: checkoutSession.id });
-  } catch (err) {
-    console.error("[checkout] failed to persist bpointTxnNumber to intake", err);
-  }
+    const authKey = await createAuthKey({
+      sessionId,
+      urgency,
+      redirectionUrlBase: process.env.NEXT_PUBLIC_URL ?? "",
+    });
 
-  return NextResponse.json({ clientSecret: checkoutSession.client_secret });
+    try {
+      await updateIntake(sessionId, { bpointTxnNumber: authKey });
+    } catch (err) {
+      console.error(
+        "[checkout] failed to persist bpointTxnNumber to intake",
+        err
+      );
+    }
+
+    return NextResponse.json({ authKey });
+  } catch (err) {
+    console.error("[checkout] AuthKey creation failed", err);
+    return NextResponse.json(
+      { error: "Payment session could not be created" },
+      { status: 502 }
+    );
+  }
 }
