@@ -9,6 +9,7 @@ import {
   type AllowedContentType,
 } from "@/lib/allowed-types";
 import { getRecordByHash } from "@/lib/upload-tokens";
+import { touchMatterForSession } from "@/lib/session-matter-map";
 import type { UploadTokenRecord } from "@/types";
 import { BRANDING } from "@/lib/branding";
 
@@ -78,6 +79,19 @@ export async function handleUploadCompleted(
   const uploadedAt = new Date().toISOString();
   const fileName = blob.pathname.split("/").pop() ?? "file";
 
+  // Resolve the Smokeball matter ID captured by Zap #1's tail webhook.
+  // Missing mapping is not fatal — we still fire the Zap with matter_ref only
+  // so Zapier / the firm can reconcile manually, and we flag it in the firm
+  // notification email. Renews the 90d TTL if present.
+  const matterMapping = await touchMatterForSession(sessionId);
+  const smokeballMatterId = matterMapping?.smokeballMatterId ?? null;
+  if (!smokeballMatterId) {
+    console.warn("[late-upload] no Smokeball matter mapping for session", {
+      sessionId,
+      matterRef,
+    });
+  }
+
   // --- Smokeball attach Zap ---
   let attachZapStatus: "ok" | "failed" = "ok";
   try {
@@ -85,6 +99,8 @@ export async function handleUploadCompleted(
     if (!attachUrl) throw new Error("ZAPIER_ATTACH_WEBHOOK_URL not configured");
     await sendToZapier(attachUrl, {
       matter_ref: matterRef,
+      smokeball_matter_id: smokeballMatterId,
+      session_id: sessionId,
       client_email: record.clientEmail,
       client_name: record.clientName,
       file: {
@@ -108,6 +124,8 @@ export async function handleUploadCompleted(
     await sendToZapier(auditUrl, {
       event: "late_upload.completed",
       matter_ref: matterRef,
+      smokeball_matter_id: smokeballMatterId,
+      session_id: sessionId,
       client_email: record.clientEmail,
       client_name: record.clientName,
       file_name: fileName,
@@ -125,15 +143,20 @@ export async function handleUploadCompleted(
   // --- firm notification (plaintext) ---
   if (from && firmTo) {
     try {
+      const needsManual =
+        attachZapStatus === "failed" || !smokeballMatterId;
       await resend.emails.send({
         from,
         to: firmTo,
         subject: `[Upload${
-          attachZapStatus === "failed" ? " — MANUAL REQUIRED" : ""
+          needsManual ? " — MANUAL REQUIRED" : ""
         }] ${record.clientName || "Client"} — ${fileName}`,
         text: [
           `Client: ${record.clientName || "(no name)"} <${record.clientEmail}>`,
           `Matter ref: ${matterRef}`,
+          `Smokeball matter ID: ${
+            smokeballMatterId ?? "(not captured — attach manually)"
+          }`,
           `File: ${fileName} (${blob.contentType})`,
           `Size: ${sizeBytes ?? "?"} bytes`,
           `URL: ${blob.url}`,
