@@ -19,9 +19,9 @@ export async function POST(req: Request) {
   });
 
   try {
-    await updateIntake(sessionId, { stripeSessionId: checkoutSession.id });
+    await updateIntake(sessionId, { bpointTxnNumber: checkoutSession.id });
   } catch (err) {
-    console.error("[checkout] failed to persist stripeSessionId to intake", err);
+    console.error("[checkout] failed to persist bpointTxnNumber to intake", err);
   }
 
   return NextResponse.json({ clientSecret: checkoutSession.client_secret });
