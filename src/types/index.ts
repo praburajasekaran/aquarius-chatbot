@@ -14,7 +14,7 @@ export interface SessionData {
   urgency: "urgent" | "non-urgent" | null;
   paymentStatus: "pending" | "paid" | "failed";
   paymentAmount: number | null;
-  stripeSessionId: string | null;
+  bpointTxnNumber: string | null;
   uploadRefs: string[];
   calendlyEvent: string | null;
   createdAt: string;

@@ -25,7 +25,7 @@ export async function createSession(
     urgency: null,
     paymentStatus: "pending",
     paymentAmount: null,
-    stripeSessionId: null,
+    bpointTxnNumber: null,
     uploadRefs: [],
     calendlyEvent: null,
     createdAt: new Date().toISOString(),

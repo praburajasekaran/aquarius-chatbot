@@ -11,7 +11,7 @@ export async function sendTranscriptEmail({
   matterDescription,
   urgency,
   paymentAmount,
-  stripeSessionId,
+  bpointTxnNumber,
   transcript,
 }: {
   clientName: string;
@@ -20,7 +20,7 @@ export async function sendTranscriptEmail({
   matterDescription: string;
   urgency: string;
   paymentAmount: number;
-  stripeSessionId: string | null;
+  bpointTxnNumber: string | null;
   transcript?: string;
 }) {
   const to = process.env.FIRM_NOTIFICATION_EMAIL ?? "prabu@paretoid.com";
@@ -37,7 +37,7 @@ export async function sendTranscriptEmail({
         <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Matter</td><td style="padding:8px;border:1px solid #ddd">${matterDescription}</td></tr>
         <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Urgency</td><td style="padding:8px;border:1px solid #ddd">${urgency}</td></tr>
         <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Payment</td><td style="padding:8px;border:1px solid #ddd">$${(paymentAmount / 100).toFixed(2)} AUD</td></tr>
-        <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Stripe Session</td><td style="padding:8px;border:1px solid #ddd">${stripeSessionId ?? "N/A"}</td></tr>
+        <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">BPoint Transaction</td><td style="padding:8px;border:1px solid #ddd">${bpointTxnNumber ?? "N/A"}</td></tr>
       </table>
       ${transcript ? `<h3>Chat Transcript</h3>
       <div style="background:#f5f5f5;padding:16px;border-radius:8px;white-space:pre-wrap;font-family:sans-serif;font-size:14px">${transcript}</div>` : ""}
@@ -136,7 +136,7 @@ export async function sendBookingNotificationEmail({
   eventStartTime,
   eventUri,
   inviteeUri,
-  stripeSessionId,
+  bpointTxnNumber,
 }: {
   clientName: string;
   clientEmail: string;
@@ -145,7 +145,7 @@ export async function sendBookingNotificationEmail({
   eventStartTime: string;
   eventUri: string;
   inviteeUri: string;
-  stripeSessionId?: string | null;
+  bpointTxnNumber?: string | null;
 }) {
   const to = process.env.FIRM_NOTIFICATION_EMAIL ?? "prabu@paretoid.com";
 
@@ -180,7 +180,7 @@ export async function sendBookingNotificationEmail({
           <tr><td style="padding:8px;border:1px solid #e5e5e5;font-weight:600">Start time</td><td style="padding:8px;border:1px solid #e5e5e5">${startLocal}</td></tr>
           <tr><td style="padding:8px;border:1px solid #e5e5e5;font-weight:600">Calendly event</td><td style="padding:8px;border:1px solid #e5e5e5"><a href="${eventUri}">${eventUri}</a></td></tr>
           <tr><td style="padding:8px;border:1px solid #e5e5e5;font-weight:600">Calendly invitee</td><td style="padding:8px;border:1px solid #e5e5e5"><a href="${inviteeUri}">${inviteeUri}</a></td></tr>
-          ${stripeSessionId ? `<tr><td style="padding:8px;border:1px solid #e5e5e5;font-weight:600">Stripe session</td><td style="padding:8px;border:1px solid #e5e5e5">${stripeSessionId}</td></tr>` : ""}
+          ${bpointTxnNumber ? `<tr><td style="padding:8px;border:1px solid #e5e5e5;font-weight:600">BPoint transaction</td><td style="padding:8px;border:1px solid #e5e5e5">${bpointTxnNumber}</td></tr>` : ""}
         </table>
       </div>
     `,

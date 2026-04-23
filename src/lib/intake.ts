@@ -18,7 +18,7 @@ export interface IntakeRecord {
   urgency: IntakeUrgency;
   displayPrice: string;
   amountCents: number;
-  stripeSessionId: string | null;
+  bpointTxnNumber: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -28,14 +28,14 @@ export function intakeKey(sessionId: string): string {
 }
 
 export async function createIntake(
-  record: Omit<IntakeRecord, "createdAt" | "updatedAt" | "stripeSessionId"> & {
-    stripeSessionId?: string | null;
+  record: Omit<IntakeRecord, "createdAt" | "updatedAt" | "bpointTxnNumber"> & {
+    bpointTxnNumber?: string | null;
   }
 ): Promise<IntakeRecord> {
   const now = new Date().toISOString();
   const full: IntakeRecord = {
     ...record,
-    stripeSessionId: record.stripeSessionId ?? null,
+    bpointTxnNumber: record.bpointTxnNumber ?? null,
     createdAt: now,
     updatedAt: now,
   };

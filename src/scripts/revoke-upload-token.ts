@@ -2,7 +2,7 @@
  * Revoke an active late-upload token for a given Stripe session.
  *
  * Usage:
- *   npx tsx src/scripts/revoke-upload-token.ts --session <stripeSessionId>
+ *   npx tsx src/scripts/revoke-upload-token.ts --session <bpointTxnNumber>
  */
 import { redis } from "@/lib/kv";
 import { revokeTokenByHash } from "@/lib/upload-tokens";
@@ -11,7 +11,7 @@ async function main() {
   const idx = process.argv.indexOf("--session");
   const sessionId = idx >= 0 ? process.argv[idx + 1] : undefined;
   if (!sessionId) {
-    console.error("usage: --session <stripeSessionId>");
+    console.error("usage: --session <bpointTxnNumber>");
     process.exit(1);
   }
 
