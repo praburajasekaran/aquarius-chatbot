@@ -44,7 +44,7 @@ export async function POST(req: Request) {
       try {
         await updateSession(sessionId, {
           paymentStatus: "paid",
-          stripeSessionId: session.id,
+          bpointTxnNumber: session.id,
           paymentAmount: session.amount_total,
         });
       } catch {
@@ -113,12 +113,12 @@ export async function POST(req: Request) {
           matterDescription: intake?.matterDescription ?? "N/A",
           urgency: intake?.urgency ?? "N/A",
           paymentAmount: session.amount_total ?? 0,
-          stripeSessionId: session.id,
+          bpointTxnNumber: session.id,
         });
       } catch (err) {
         // Webhook MUST return 200 regardless — otherwise Stripe retries forever
         console.error("[stripe-webhook] token/email fan-out failed", {
-          stripeSessionId: session.id,
+          bpointTxnNumber: session.id,
           err: err instanceof Error ? err.message : String(err),
         });
       }

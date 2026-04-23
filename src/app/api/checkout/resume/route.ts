@@ -18,9 +18,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${appUrl}/?expired=1`);
   }
 
-  if (intake.stripeSessionId) {
+  if (intake.bpointTxnNumber) {
     try {
-      const existing = await getStripe().checkout.sessions.retrieve(intake.stripeSessionId);
+      const existing = await getStripe().checkout.sessions.retrieve(intake.bpointTxnNumber);
       if (existing.status === "complete") {
         return NextResponse.redirect(`${appUrl}/?paid=1`);
       }
@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
     uiMode: "hosted_page",
   });
 
-  await updateIntake(sessionId, { stripeSessionId: fresh.id });
+  await updateIntake(sessionId, { bpointTxnNumber: fresh.id });
 
   if (!fresh.url) {
     return NextResponse.redirect(`${appUrl}/?expired=1`);
