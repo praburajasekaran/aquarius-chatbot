@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 01-01-PLAN.md (PRICING extraction to pricing.ts)
-last_updated: "2026-04-23T17:31:56.014Z"
+stopped_at: Completed 01-02-PLAN.md (BPoint AuthKey client in src/lib/bpoint.ts)
+last_updated: "2026-04-23T17:35:37.505Z"
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 4
-  completed_plans: 1
+  completed_plans: 2
 ---
 
 # Project State
@@ -24,26 +24,26 @@ See: .planning/PROJECT.md (updated 2026-04-23)
 ## Current Position
 
 Phase: 01 (foundation) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 1
-- Average duration: 2min
-- Total execution time: ~2 min
+- Total plans completed: 2
+- Average duration: ~1.5min
+- Total execution time: ~3 min
 
 **By Phase:**
 
 | Phase          | Plans | Total | Avg/Plan |
 |----------------|-------|-------|----------|
-| 01-foundation  | 1     | 2min  | 2min     |
+| 01-foundation  | 2     | 3min  | ~1.5min  |
 
 **Recent Trend:**
 
-- Last 5 plans: Phase 01-foundation P01 (2min, 2 tasks, 2 files)
-- Trend: -
+- Last 5 plans: Phase 01-foundation P01 (2min, 2 tasks, 2 files), Phase 01-foundation P02 (1min, 1 task, 1 file)
+- Trend: stable/fast
 
 *Updated after each plan completion*
 
@@ -58,6 +58,8 @@ Recent decisions affecting current work:
 - Init: Maintain lineItem and tier structure — Smokeball invoice reconciliation depends on exact strings
 - Init: Keep session/webhook architecture — only swap provider logic, not the flow shape
 - [Phase 01-foundation]: Pricing moved to provider-neutral src/lib/pricing.ts; stripe.ts re-exports for back-compat
+- [Phase 01-foundation]: Plan 01-02: BPoint AuthKey client uses per-call BPOINT_ENV evaluation (not module-level) to avoid Vercel bundle-time pinning
+- [Phase 01-foundation]: Plan 01-02: Basic Auth header format is username|merchantNumber:password (pipe separator mandatory per BPoint v5, not standard user:pass)
 
 ### Pending Todos
 
@@ -71,6 +73,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-23T17:31:56.013Z
-Stopped at: Completed 01-01-PLAN.md (PRICING extraction to pricing.ts)
-Resume file: .planning/phases/01-foundation/01-02-PLAN.md
+Last session: 2026-04-23T17:35:37.503Z
+Stopped at: Completed 01-02-PLAN.md (BPoint AuthKey client in src/lib/bpoint.ts)
+Resume file: .planning/phases/01-foundation/01-03-PLAN.md
