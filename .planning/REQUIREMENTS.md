@@ -11,7 +11,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [ ] **SESS-01**: BPoint API client module (`src/lib/bpoint.ts`) authenticates with `username|merchantnumber:password` Basic Auth header format
 - [ ] **SESS-02**: AuthKey session endpoint creates one-time auth key with amount in integer cents, Crn1=sessionId, and RedirectionUrl
-- [ ] **SESS-03**: Existing two-tier pricing preserved (Urgent $1,320 AUD, Non-Urgent $726 AUD) with exact `lineItem` strings maintained for Smokeball reconciliation
+- [x] **SESS-03**: Existing two-tier pricing preserved (Urgent $1,320 AUD, Non-Urgent $726 AUD) with exact `lineItem` strings maintained for Smokeball reconciliation
 - [ ] **SESS-04**: `IsTestTxn` flag strictly controlled by environment — never leaks into production
 - [ ] **SESS-05**: AuthKey session expires after 30 minutes matching existing Stripe session TTL
 
@@ -41,7 +41,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [ ] **DATA-01**: Session schema field renamed from `stripeSessionId` to `bpointTxnNumber` across types, Redis session, intake, and email modules
 - [ ] **DATA-02**: Zapier-monitored transcript email fields updated to use BPoint transaction identifiers while preserving field structure
-- [ ] **DATA-03**: `paymentAmount` field stores integer cents matching existing schema
+- [x] **DATA-03**: `paymentAmount` field stores integer cents matching existing schema
 
 ### Stripe Removal
 
@@ -95,12 +95,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | SESS-01 | Phase 1 | Pending |
 | SESS-02 | Phase 1 | Pending |
-| SESS-03 | Phase 1 | Pending |
+| SESS-03 | Phase 1 | Complete |
 | SESS-04 | Phase 1 | Pending |
 | SESS-05 | Phase 1 | Pending |
 | DATA-01 | Phase 1 | Pending |
 | DATA-02 | Phase 1 | Pending |
-| DATA-03 | Phase 1 | Pending |
+| DATA-03 | Phase 1 | Complete |
 | CONF-01 | Phase 2 | Pending |
 | CONF-02 | Phase 2 | Pending |
 | CONF-03 | Phase 2 | Pending |

@@ -2,16 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-stopped_at: Phase 1 context gathered
-last_updated: "2026-04-23T17:04:47.831Z"
-last_activity: 2026-04-23 — Roadmap created, requirements mapped, STATE.md initialized
+status: unknown
+stopped_at: Completed 01-01-PLAN.md (PRICING extraction to pricing.ts)
+last_updated: "2026-04-23T17:31:56.014Z"
 progress:
   total_phases: 4
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_plans: 4
+  completed_plans: 1
 ---
 
 # Project State
@@ -21,34 +19,30 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-23)
 
 **Core value:** Lawyers can accept BPoint payments from clients directly in the chat, with payment status triggering downstream workflows to Smokeball CRM via Zapier.
-**Current focus:** Phase 1 — Foundation
+**Current focus:** Phase 01 — foundation
 
 ## Current Position
 
-Phase: 1 of 4 (Foundation)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-04-23 — Roadmap created, requirements mapped, STATE.md initialized
-
-Progress: [░░░░░░░░░░] 0%
+Phase: 01 (foundation) — EXECUTING
+Plan: 2 of 4
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 0
-- Average duration: -
-- Total execution time: 0 hours
+- Total plans completed: 1
+- Average duration: 2min
+- Total execution time: ~2 min
 
 **By Phase:**
 
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| - | - | - | - |
+| Phase          | Plans | Total | Avg/Plan |
+|----------------|-------|-------|----------|
+| 01-foundation  | 1     | 2min  | 2min     |
 
 **Recent Trend:**
 
-- Last 5 plans: -
+- Last 5 plans: Phase 01-foundation P01 (2min, 2 tasks, 2 files)
 - Trend: -
 
 *Updated after each plan completion*
@@ -63,6 +57,7 @@ Recent decisions affecting current work:
 - Init: Replace Stripe with BPoint iframe (single-page mode) — matches existing embedded UX
 - Init: Maintain lineItem and tier structure — Smokeball invoice reconciliation depends on exact strings
 - Init: Keep session/webhook architecture — only swap provider logic, not the flow shape
+- [Phase 01-foundation]: Pricing moved to provider-neutral src/lib/pricing.ts; stripe.ts re-exports for back-compat
 
 ### Pending Todos
 
@@ -76,6 +71,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-23T17:04:47.829Z
-Stopped at: Phase 1 context gathered
-Resume file: .planning/phases/01-foundation/01-CONTEXT.md
+Last session: 2026-04-23T17:31:56.013Z
+Stopped at: Completed 01-01-PLAN.md (PRICING extraction to pricing.ts)
+Resume file: .planning/phases/01-foundation/01-02-PLAN.md
