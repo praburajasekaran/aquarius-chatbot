@@ -49,6 +49,14 @@ export interface CreateAuthKeyArgs {
   sessionId: string;
   urgency: CheckoutUrgency;
   redirectionUrlBase: string;
+  /**
+   * Base URL for the BPoint server-to-server webhook. When provided,
+   * serialized to `WebHookUrl: ${webhookUrlBase}/api/webhooks/bpoint`
+   * inside ProcessTxnData. When omitted (legacy callers, tests), BPoint
+   * does NOT register a webhook for this AuthKey — the confirm-route
+   * redirect is the sole delivery path.
+   */
+  webhookUrlBase?: string;
 }
 
 export async function createAuthKey(
@@ -81,6 +89,9 @@ export async function createAuthKey(
         CurrencyCode: "AUD",
         MerchantReference: pricing.lineItem,
         RedirectionUrl: `${args.redirectionUrlBase}/api/checkout/confirm`,
+        WebHookUrl: args.webhookUrlBase
+          ? `${args.webhookUrlBase}/api/webhooks/bpoint`
+          : undefined,
         IsTestTxn: cfg.isTestTxn,
         ExpiryInMinutes: 30,
       },

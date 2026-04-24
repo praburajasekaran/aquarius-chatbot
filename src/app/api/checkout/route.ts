@@ -18,6 +18,7 @@ export async function POST(req: Request) {
       sessionId,
       urgency,
       redirectionUrlBase: process.env.NEXT_PUBLIC_URL ?? "",
+      webhookUrlBase: process.env.NEXT_PUBLIC_URL ?? "",
     });
 
     try {
