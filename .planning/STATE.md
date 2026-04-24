@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Phase 2 context gathered
-last_updated: "2026-04-24T00:20:46.728Z"
+stopped_at: Completed 02-00-PLAN.md
+last_updated: "2026-04-24T04:12:32.129Z"
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 4
-  completed_plans: 4
+  total_plans: 9
+  completed_plans: 5
 ---
 
 # Project State
@@ -19,20 +19,20 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-23)
 
 **Core value:** Lawyers can accept BPoint payments from clients directly in the chat, with payment status triggering downstream workflows to Smokeball CRM via Zapier.
-**Current focus:** Phase 01 — foundation
+**Current focus:** Phase 02 — confirmation-ui
 
 ## Current Position
 
-Phase: 01 (foundation) — COMPLETED
-Plan: 4 of 4 (all plans complete; ready for Phase 02)
+Phase: 02 (confirmation-ui) — EXECUTING
+Plan: 2 of 5
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 4
-- Average duration: ~1.5min
-- Total execution time: ~6 min
+- Total plans completed: 5
+- Average duration: ~2min
+- Total execution time: ~10 min
 
 **By Phase:**
 
@@ -47,6 +47,7 @@ Plan: 4 of 4 (all plans complete; ready for Phase 02)
 
 *Updated after each plan completion*
 | Phase 01-foundation P04 | 1min | 1 tasks | 1 files |
+| Phase 02-confirmation-ui P00 | 4min | 4 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -67,6 +68,9 @@ Recent decisions affecting current work:
 - [Phase 01-foundation]: Plan 01-04: POST /api/checkout now returns { authKey } — no clientSecret alias (PaymentCard UI breakage expected; Phase 2 swaps in BPoint iframe)
 - [Phase 01-foundation]: Plan 01-04: Nested try/catch isolates Redis persistence failures from BPoint 502s — AuthKey creation success must not be gated on Upstash health
 - [Phase 01-foundation]: Plan 01-04: BPoint upstream failures return 502 (not 500) with sanitized client-facing error; provider-specific detail stays in server logs
+- [Phase 02-confirmation-ui]: Plan 02-00: vitest.config must be .mts — vite-tsconfig-paths is ESM-only
+- [Phase 02-confirmation-ui]: Plan 02-00: scrollIntoView polyfill added to tests/setup.ts — jsdom does not implement it and chat-widget uses it in useEffect
+- [Phase 02-confirmation-ui]: Plan 02-00: environmentMatchGlobs wiring — .tsx to jsdom, .ts to node default — keeps lib tests fast and DOM tests in jsdom
 
 ### Pending Todos
 
@@ -80,6 +84,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-24T00:20:46.726Z
-Stopped at: Phase 2 context gathered
-Resume file: .planning/phases/02-confirmation-ui/02-CONTEXT.md
+Last session: 2026-04-24T04:12:32.127Z
+Stopped at: Completed 02-00-PLAN.md
+Resume file: None

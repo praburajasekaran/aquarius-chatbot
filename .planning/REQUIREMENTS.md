@@ -17,18 +17,18 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Payment UI (Client)
 
-- [ ] **UI-01**: PaymentCard component replaces Stripe Embedded Checkout with BPoint iframe/JS payment form
-- [ ] **UI-02**: User sees clear failure messages mapped from BPoint response codes (declined card, invalid card, system error)
-- [ ] **UI-03**: CSP headers allow BPoint iframe/JS origins
-- [ ] **UI-04**: Payment UI handles AuthKey expiry gracefully (user can retry)
+- [x] **UI-01**: PaymentCard component replaces Stripe Embedded Checkout with BPoint iframe/JS payment form
+- [x] **UI-02**: User sees clear failure messages mapped from BPoint response codes (declined card, invalid card, system error)
+- [x] **UI-03**: CSP headers allow BPoint iframe/JS origins
+- [x] **UI-04**: Payment UI handles AuthKey expiry gracefully (user can retry)
 
 ### Payment Confirmation
 
-- [ ] **CONF-01**: GET `/api/checkout/confirm` route handles browser redirect with ResultKey query parameter
-- [ ] **CONF-02**: Server-side call to BPoint "Retrieve Transaction Result" API verifies authoritative payment status
-- [ ] **CONF-03**: Dual verification required — both `ResponseCode === "0"` AND `Approved === true` must be true to mark paid
-- [ ] **CONF-04**: On successful verification, triggers existing fan-out: session update → upload token → receipt email → firm transcript email (Zapier)
-- [ ] **CONF-05**: Redis deduplication prevents duplicate email/token creation on redirect replay
+- [x] **CONF-01**: GET `/api/checkout/confirm` route handles browser redirect with ResultKey query parameter
+- [x] **CONF-02**: Server-side call to BPoint "Retrieve Transaction Result" API verifies authoritative payment status
+- [x] **CONF-03**: Dual verification required — both `ResponseCode === "0"` AND `Approved === true` must be true to mark paid
+- [x] **CONF-04**: On successful verification, triggers existing fan-out: session update → upload token → receipt email → firm transcript email (Zapier)
+- [x] **CONF-05**: Redis deduplication prevents duplicate email/token creation on redirect replay
 
 ### Webhook (Server-to-Server Callback)
 
@@ -101,15 +101,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DATA-01 | Phase 1 | Complete |
 | DATA-02 | Phase 1 | Complete |
 | DATA-03 | Phase 1 | Complete |
-| CONF-01 | Phase 2 | Pending |
-| CONF-02 | Phase 2 | Pending |
-| CONF-03 | Phase 2 | Pending |
-| CONF-04 | Phase 2 | Pending |
-| CONF-05 | Phase 2 | Pending |
-| UI-01 | Phase 2 | Pending |
-| UI-02 | Phase 2 | Pending |
-| UI-03 | Phase 2 | Pending |
-| UI-04 | Phase 2 | Pending |
+| CONF-01 | Phase 2 | Complete |
+| CONF-02 | Phase 2 | Complete |
+| CONF-03 | Phase 2 | Complete |
+| CONF-04 | Phase 2 | Complete |
+| CONF-05 | Phase 2 | Complete |
+| UI-01 | Phase 2 | Complete |
+| UI-02 | Phase 2 | Complete |
+| UI-03 | Phase 2 | Complete |
+| UI-04 | Phase 2 | Complete |
 | WEBH-01 | Phase 3 | Pending |
 | WEBH-02 | Phase 3 | Pending |
 | WEBH-03 | Phase 3 | Pending |
