@@ -12,7 +12,7 @@ Replace Stripe with BPoint as the payment processor for the lawyers' chat. The m
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation** - BPoint API client, type renames, session endpoint, pricing constants
+- [x] **Phase 1: Foundation** - BPoint API client, type renames, session endpoint, pricing constants _(completed 2026-04-24; runtime verification blocked on BPoint HPP product activation — see 01-VERIFICATION.md)_
 - [ ] **Phase 2: Confirmation & UI** - Confirm route, PaymentCard iframe, failure messaging
 - [ ] **Phase 3: Webhook & Cleanup** - Webhook handler, shared helper, Stripe removal
 - [ ] **Phase 4: Validation** - UAT E2E tests, Zapier/Smokeball verification, failure path testing
@@ -75,7 +75,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/4 | Not started | - |
+| 1. Foundation | 4/4 | Complete (runtime blocked on BPoint product activation) | 2026-04-24 |
 | 2. Confirmation & UI | 0/TBD | Not started | - |
 | 3. Webhook & Cleanup | 0/TBD | Not started | - |
 | 4. Validation | 0/TBD | Not started | - |
