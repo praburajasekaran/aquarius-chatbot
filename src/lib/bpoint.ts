@@ -111,3 +111,51 @@ export async function createAuthKey(
   }
   return data.AuthKey;
 }
+
+// ---------------------------------------------------------------------------
+// Retrieve Transaction (CONF-02)
+// ---------------------------------------------------------------------------
+// Called by the confirm route after the BPoint iframe redirects the browser
+// to /api/checkout/confirm?ResultKey=<uuid>. The URL-borne ResponseCode is
+// client-visible and forgeable; this server-side call is the source of truth.
+//
+// Endpoint: GET {baseUrl}/txns/{resultKey}
+// Auth: same Basic header used by createAuthKey (username|merchant:password)
+//
+// Response decoding follows the same APIResponse.ResponseCode-as-number
+// contract verified in Phase 1 (see 01-VERIFICATION.md). TxnResp may be null
+// when APIResponse.ResponseCode != 0 (e.g. AuthKey expired before submit).
+
+export interface BPointTxnResp {
+  TxnNumber: string;
+  Approved: boolean;
+  Crn1: string;
+  Amount: number;
+  BankResponseCode: string;
+  ResponseText: string;
+}
+
+export interface BPointTxnResponse {
+  APIResponse: { ResponseCode: number; ResponseText: string };
+  TxnResp: BPointTxnResp | null;
+}
+
+export async function retrieveTransaction(
+  resultKey: string
+): Promise<BPointTxnResponse> {
+  const cfg = getBpointConfig();
+  const authHeader = buildBpointAuthHeader(
+    cfg.username,
+    cfg.merchantNumber,
+    cfg.password
+  );
+  const res = await fetch(`${cfg.baseUrl}/txns/${resultKey}`, {
+    headers: { Authorization: authHeader },
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    console.error("[bpoint] retrieveTransaction failed", res.status, body);
+    throw new Error(`BPoint retrieve failed: ${res.status}`);
+  }
+  return (await res.json()) as BPointTxnResponse;
+}
