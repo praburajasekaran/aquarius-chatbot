@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 02-00-PLAN.md
-last_updated: "2026-04-24T04:12:32.129Z"
+stopped_at: Completed 02-02-PLAN.md
+last_updated: "2026-04-24T04:16:34.201Z"
 progress:
   total_phases: 4
   completed_phases: 1
   total_plans: 9
-  completed_plans: 5
+  completed_plans: 7
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-04-23)
 ## Current Position
 
 Phase: 02 (confirmation-ui) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 
 ## Performance Metrics
 
@@ -48,6 +48,8 @@ Plan: 2 of 5
 *Updated after each plan completion*
 | Phase 01-foundation P04 | 1min | 1 tasks | 1 files |
 | Phase 02-confirmation-ui P00 | 4min | 4 tasks | 9 files |
+| Phase 02-confirmation-ui P02 | 1min | 1 tasks | 1 files |
+| Phase 02 P01 | 1min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -71,6 +73,10 @@ Recent decisions affecting current work:
 - [Phase 02-confirmation-ui]: Plan 02-00: vitest.config must be .mts — vite-tsconfig-paths is ESM-only
 - [Phase 02-confirmation-ui]: Plan 02-00: scrollIntoView polyfill added to tests/setup.ts — jsdom does not implement it and chat-widget uses it in useEffect
 - [Phase 02-confirmation-ui]: Plan 02-00: environmentMatchGlobs wiring — .tsx to jsdom, .ts to node default — keeps lib tests fast and DOM tests in jsdom
+- [Phase 02-confirmation-ui]: Plan 02-01: retrieveTransaction reuses existing getBpointConfig + buildBpointAuthHeader — single source of truth for BPoint auth
+- [Phase 02-confirmation-ui]: Plan 02-01: Unknown/empty BankResponseCode defaults to 'system' bucket — avoids leaking raw codes and degrades gracefully
+- [Phase 02-confirmation-ui]: Plan 02-01: Error text 'BPoint retrieve failed: {status}' pinned by test regex — stable contract for downstream confirm-route handling
+- [Phase 02-confirmation-ui]: Plan 02-02: Shared fan-out helper extracted to src/lib/payments/handleConfirmedPayment.ts — consumed by Phase 2 confirm route AND Phase 3 BPoint webhook (no duplication); throws on null intake so caller owns user-facing outcome; dedup key prefix bpoint-txn:{TxnNumber} with pending→hashToken upgrade
 
 ### Pending Todos
 
@@ -84,6 +90,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-24T04:12:32.127Z
-Stopped at: Completed 02-00-PLAN.md
+Last session: 2026-04-24T04:16:34.200Z
+Stopped at: Completed 02-02-PLAN.md
 Resume file: None
