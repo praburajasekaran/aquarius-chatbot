@@ -26,9 +26,10 @@ function getBpointConfig(): BpointConfig {
     username,
     password,
     merchantNumber,
-    baseUrl: isProd
-      ? "https://www.bpoint.com.au/webapi/v2"
-      : "https://bpoint.uat.linkly.com.au/webapi/v2",
+    // Aquarius's BPoint facility is production-only; the separate UAT facility
+    // on bpoint.uat.linkly.com.au doesn't know this merchant. Sandbox/dev mode
+    // is signalled via IsTestTxn, not via hostname.
+    baseUrl: "https://www.bpoint.com.au/webapi/v2",
     isTestTxn: !isProd,
   };
 }
@@ -38,8 +39,8 @@ function buildBpointAuthHeader(
   merchantNumber: string,
   password: string
 ): string {
-  // NON-STANDARD: BPoint requires the pipe separator between username and
-  // merchantNumber. Standard Basic Auth `user:pass` will silently 401.
+  // BPoint v2: Authorization header uses standard "Basic <b64>" format, but
+  // the composite credential is non-standard: `username|merchantNumber:password`.
   const raw = `${username}|${merchantNumber}:${password}`;
   return "Basic " + Buffer.from(raw).toString("base64");
 }
@@ -73,7 +74,7 @@ export async function createAuthKey(
       Authorization: authHeader,
     },
     body: JSON.stringify({
-      TxnReq: {
+      ProcessTxnData: {
         Action: "payment",
         Amount: pricing.amount,
         Crn1: args.sessionId,
@@ -88,17 +89,25 @@ export async function createAuthKey(
 
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    console.error(
-      "[bpoint] AuthKey creation failed",
-      res.status,
-      body
-    );
+    console.error("[bpoint] AuthKey creation failed", res.status, body);
     throw new Error(`BPoint AuthKey creation failed: ${res.status}`);
   }
 
-  const data = (await res.json()) as { AuthKey?: string };
-  if (!data.AuthKey) {
-    throw new Error("BPoint response missing AuthKey field");
+  // BPoint v2 always returns HTTP 200 — success vs failure is signalled by
+  // APIResponse.ResponseCode (0 = success, non-zero = error with ResponseText).
+  const data = (await res.json()) as {
+    AuthKey: string | null;
+    APIResponse: { ResponseCode: number; ResponseText: string };
+  };
+  if (data.APIResponse.ResponseCode !== 0 || !data.AuthKey) {
+    console.error(
+      "[bpoint] AuthKey creation rejected",
+      data.APIResponse.ResponseCode,
+      data.APIResponse.ResponseText
+    );
+    throw new Error(
+      `BPoint AuthKey rejected: ${data.APIResponse.ResponseText} (code ${data.APIResponse.ResponseCode})`
+    );
   }
   return data.AuthKey;
 }
