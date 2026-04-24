@@ -75,7 +75,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   1. A real test transaction completes end-to-end against BPoint UAT — client enters card, payment is confirmed, receipt email arrives, upload token is created
   2. Zapier picks up the transcript email and the Smokeball invoice line items reconcile correctly with BPoint receipt data — correct amounts and exact lineItem strings
   3. A declined card, an expired AuthKey, a replayed redirect, and a webhook retry all behave correctly — no duplicate emails, no false confirmations, no unhandled errors
-**Plans**: TBD
+**Plans** (5 plans in 3 waves):
+- [ ] 04-01-PLAN.md — Wave 0 scaffolding: vitest UAT gate, tests/uat/ dir + README + setup helpers + test-PAN fixtures, 04-RUNBOOK.md + 04-UAT-EVIDENCE.md templates, .env.example cleanup [Wave 0]
+- [ ] 04-02-PLAN.md — TEST-01 happy-path UAT smoke: tests/uat/retrieve-transaction.test.ts + tests/uat/happy-path.test.ts + live-run evidence capture (sc1-happy-path.png, sc1-receipt-email.png) [Wave 1]
+- [ ] 04-03-PLAN.md — TEST-03 failure paths: tests/uat/confirm-replay.test.ts + webhook-retry.test.ts + declined-card.test.ts + manual 31min expired-AuthKey run + evidence capture (sc3-*.png/log) [Wave 1]
+- [ ] 04-04-PLAN.md — TEST-02 Smokeball reconciliation: firm Smokeball screenshot + byte-compare vs PRICING.lineItem strings (MATCH/TRUNCATED/DRIFTED verdict) [Wave 2]
+- [ ] 04-05-PLAN.md — Cutover gate: consolidate evidence bundle + expand RUNBOOK §9 rollback procedure + capture firm sign-off quote [Wave 2]
 
 ## Progress
 
@@ -87,4 +92,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. Foundation | 4/4 | Complete (runtime blocked on BPoint product activation) | 2026-04-24 |
 | 2. Confirmation & UI | 0/5 | Not started | - |
 | 3. Webhook & Cleanup | 4/4 | Complete | 2026-04-24 |
-| 4. Validation | 0/TBD | Not started | - |
+| 4. Validation | 0/5 | Not started | - |
