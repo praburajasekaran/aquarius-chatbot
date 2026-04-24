@@ -7,6 +7,7 @@ import { DisclaimerBanner } from "./disclaimer-banner";
 import { MessageList } from "./message-list";
 import { MessageInput } from "./message-input";
 import type { ChatMessage } from "@/lib/tools";
+import type { PaymentFailureReason } from "@/components/payment/payment-card";
 
 function generateSessionId() {
   return `s_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
@@ -25,11 +26,58 @@ export function ChatWidget() {
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
   });
 
+  const [paymentFailureReason, setPaymentFailureReason] =
+    useState<PaymentFailureReason | undefined>(undefined);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Read ?payment= URL param once on mount. The confirm route redirects back
+  // to /?payment=success or /?payment=failed&reason=... after BPoint posts
+  // ResultKey server-to-server. We translate that into chat state and then
+  // clear the URL so a refresh doesn't re-trigger.
+  //
+  // Strategy B toolCallId resolution: handlePaymentComplete calls
+  // addToolOutput({ tool, toolCallId, output }) from @ai-sdk/react — passing
+  // an empty toolCallId would silently fail to advance the chat because the
+  // AI never receives the tool result. We scan `messages` for the most
+  // recent tool-initiatePayment part and use its toolCallId. If none is
+  // found, fall back to "" (Strategy A behaviour) — never crash.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const payment = params.get("payment");
+    const reason = params.get("reason");
+
+    if (payment === "success") {
+      let latestPaymentToolCallId = "";
+      for (let mi = messages.length - 1; mi >= 0; mi--) {
+        const parts = messages[mi]?.parts ?? [];
+        for (let pi = parts.length - 1; pi >= 0; pi--) {
+          const part = parts[pi] as { type?: string; toolCallId?: string };
+          if (part?.type === "tool-initiatePayment" && part.toolCallId) {
+            latestPaymentToolCallId = part.toolCallId;
+            break;
+          }
+        }
+        if (latestPaymentToolCallId) break;
+      }
+      handlePaymentComplete(latestPaymentToolCallId);
+      window.history.replaceState({}, "", window.location.pathname);
+    } else if (payment === "failed") {
+      const validReasons: PaymentFailureReason[] = ["declined", "invalid", "system", "expired"];
+      const r = (reason ?? "system") as PaymentFailureReason;
+      setPaymentFailureReason(validReasons.includes(r) ? r : "system");
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+    // Run only on first mount — URL is processed once per page load.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleRetryRequested = () => setPaymentFailureReason(undefined);
 
   const isLoading = status === "streaming" || status === "submitted";
 
@@ -99,6 +147,8 @@ export function ChatWidget() {
         onUploadSkip={handleUploadSkip}
         onScheduleBooked={handleScheduleBooked}
         onUrgentAcknowledged={handleUrgentAcknowledged}
+        failureReason={paymentFailureReason}
+        onRetryRequested={handleRetryRequested}
       />
       <div ref={messagesEndRef} />
       {/* aria-live region announces typing state to screen readers */}
