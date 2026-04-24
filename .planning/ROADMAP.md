@@ -45,7 +45,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. A successful payment triggers the existing fan-out: upload token created, receipt email sent to client, transcript email sent to firm
   4. A declined or invalid card shows a human-readable failure message in the chat UI (not a raw BPoint response code)
   5. An expired AuthKey allows the user to retry — the UI handles expiry gracefully without an unrecoverable error state
-**Plans**: TBD
+**Plans** (5 plans in 3 waves):
+- [ ] 02-00-PLAN.md — Install vitest framework + RED test scaffolds for all Phase 2 unit-testable requirements [Wave 1]
+- [ ] 02-01-PLAN.md — Add retrieveTransaction + BPointTxnResp types to src/lib/bpoint.ts; create src/lib/payments/bucket-bank-code.ts (CONF-02, UI-02) [Wave 2]
+- [ ] 02-02-PLAN.md — Extract fan-out into src/lib/payments/handleConfirmedPayment.ts (CONF-04) [Wave 2]
+- [ ] 02-03-PLAN.md — Create GET /api/checkout/confirm route with dual verification + Redis SETNX dedup + fan-out (CONF-01, CONF-02, CONF-03, CONF-04, CONF-05) [Wave 3]
+- [ ] 02-04-PLAN.md — Replace PaymentCard Stripe iframe with BPoint iframe; wire chat-widget URL-param signalling; CSP frame-src for BPoint (UI-01, UI-02, UI-03, UI-04) [Wave 3]
 
 ### Phase 3: Webhook & Cleanup
 **Goal**: BPoint server-to-server callbacks are handled safely and all Stripe code is removed from the codebase
@@ -76,6 +81,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 4/4 | Complete (runtime blocked on BPoint product activation) | 2026-04-24 |
-| 2. Confirmation & UI | 0/TBD | Not started | - |
+| 2. Confirmation & UI | 0/5 | Not started | - |
 | 3. Webhook & Cleanup | 0/TBD | Not started | - |
 | 4. Validation | 0/TBD | Not started | - |
