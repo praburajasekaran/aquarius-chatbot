@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 03-02-PLAN.md (webhook route GREEN, WEBH-01..04 complete, 9 RED tests flipped, full suite 49/49)
-last_updated: "2026-04-24T06:09:28.183Z"
+stopped_at: Completed 03-03-PLAN.md (resume route ported to BPoint; selectUrgency PRICING import redirected off @/lib/stripe; Plan 04 unblocked; 49/49 tests green)
+last_updated: "2026-04-24T06:12:30Z"
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 13
-  completed_plans: 11
+  completed_plans: 12
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-04-23)
 ## Current Position
 
 Phase: 03 (webhook-cleanup) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 
 ## Performance Metrics
 
@@ -54,6 +54,7 @@ Plan: 3 of 4
 | Phase 02-confirmation-ui P04 | ~4h | 4 tasks | 4 files |
 | Phase 03-webhook-cleanup P01 | 1min | 1 tasks | 1 files |
 | Phase 03 P02 | 2min | 2 tasks | 3 files |
+| Phase 03 P03 | ~2min | 1 tasks (+1 Rule-3 deviation) | 2 files |
 
 ## Accumulated Context
 
@@ -94,6 +95,10 @@ Recent decisions affecting current work:
 - [Phase 03-webhook-cleanup]: Plan 03-02: Reused NEXT_PUBLIC_URL for webhookUrlBase (no new env var) — POST /api/checkout passes it through symmetrically with the existing redirectionUrlBase plumbing
 - [Phase 03-webhook-cleanup]: Plan 03-02: Webhook route is a carbon-copy of confirm route minus browser redirects — same retrieveTransaction+dual-verify+SETNX+handleConfirmedPayment pipeline, shared bpoint-txn:{TxnNumber} namespace with 7-day TTL; whichever path wins SETNX owns fan-out
 - [Phase 03-webhook-cleanup]: Plan 03-02: WEBH-04 enforced — every branch returns 200 {received:true} (retrieveTransaction throws, Approved=false, ResponseCode!==0, SETNX collision, fan-out throws); BPoint treats non-2xx as retry so failures are logged with [bpoint-webhook] tag but never propagate
+- [Phase 03-webhook-cleanup]: Plan 03-03: Resume route always issues fresh AuthKey — BPoint v2 has no retrieve-by-AuthKey API, so TTL-reuse branch intentionally omitted; redirects to /?payment=resume so chat-widget re-mounts PaymentCard with the new AuthKey from intake
+- [Phase 03-webhook-cleanup]: Plan 03-03: createAuthKey failures in resume route degrade to /?expired=1 (never 5xx) — matches locked CONTEXT decision and keeps the half-finished-payment recovery UX resilient
+- [Phase 03-webhook-cleanup]: Plan 03-03: webhookUrlBase threaded through on resume — refreshed AuthKey still registers BPoint server-to-server callback, keeping initial and resumed flows symmetric
+- [Phase 03-webhook-cleanup]: Plan 03-03: selectUrgency PRICING import redirected from @/lib/stripe to @/lib/pricing (Rule-3 deviation) — closes overlooked Phase 01 back-compat residue that would have blocked Plan 04's stripe.ts deletion
 
 ### Pending Todos
 
@@ -107,6 +112,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-24T06:09:28.181Z
-Stopped at: Completed 03-02-PLAN.md (webhook route GREEN, WEBH-01..04 complete, 9 RED tests flipped, full suite 49/49)
+Last session: 2026-04-24T06:12:30Z
+Stopped at: Completed 03-03-PLAN.md (resume route ported to BPoint; selectUrgency PRICING import redirected off @/lib/stripe; Plan 04 unblocked; 49/49 tests green)
 Resume file: None
