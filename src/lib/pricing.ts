@@ -1,5 +1,5 @@
 // `lineItem` is the firm-prescribed payment description (do not paraphrase) --
-// it flows to the BPoint/Stripe receipt and the Smokeball invoice line item
+// it flows to the BPoint receipt and the Smokeball invoice line item
 // for reconciliation. `tier` is the visitor-facing tier heading.
 export const PRICING = {
   urgent: {

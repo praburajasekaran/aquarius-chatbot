@@ -7,7 +7,7 @@ import { redis } from "@/lib/kv";
  * POSTs back after Smokeball creates a matter. Read by the late-upload flow so
  * Zap #2 knows which Smokeball matter to attach the file to.
  *
- * Keyed by our internal sessionId (from Stripe/BPoint checkout). Value holds
+ * Keyed by our internal sessionId (from BPoint checkout). Value holds
  * the Smokeball matter ID plus capture timestamp.
  *
  * TTL = 90 days. Covers realistic late-upload window for criminal matters;
