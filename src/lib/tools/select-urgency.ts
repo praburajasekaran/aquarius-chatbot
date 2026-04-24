@@ -1,6 +1,6 @@
 import { tool } from "ai";
 import { z } from "zod";
-import { PRICING } from "@/lib/stripe";
+import { PRICING } from "@/lib/pricing";
 import { createIntake } from "@/lib/intake";
 import { sendClientInquiryEmail } from "@/lib/resend";
 
