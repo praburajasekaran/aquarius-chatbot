@@ -13,15 +13,7 @@
   - Usage: Chat endpoint at `src/app/api/chat/route.ts` calls geminiFlash with tools
 
 **Payment Processing:**
-- Stripe (DEPRECATED, migration in progress)
-  - SDK: `stripe` v22.0.1
-  - Auth: `STRIPE_SECRET_KEY` (required for checkout), `STRIPE_WEBHOOK_SECRET` (webhook verification)
-  - Webhook: `POST /api/webhooks/stripe` (signature verified via `stripe.webhooks.constructEvent()`)
-  - Pricing: Two tiers defined in `src/lib/stripe.ts` - Urgent ($1,320 AUD) and Non-Urgent ($726 AUD)
-  - Usage: Checkout creation in `src/app/api/checkout/route.ts`, payment verification in stripe webhook
-  - Note: Being replaced by BPoint; Stripe config retained during soak period
-
-- BPoint (Commonwealth Bank) - New payment processor
+- BPoint (Commonwealth Bank) - Primary payment processor
   - No SDK; integration via Zapier
   - Auth: `BPOINT_API_USERNAME`, `BPOINT_API_PASSWORD`, `BPOINT_MERCHANT_NUMBER`, `BPOINT_BILLER_CODE`
   - Env: `BPOINT_ENV` (sandbox or prod; facility is prod-only)
@@ -99,7 +91,7 @@
     - Chat sessions: `session:${sessionId}` with 1hr TTL
     - Intake records: `intake:${sessionId}` with 7d TTL
     - Session-matter mapping: `session-matter:${sessionId}` with 90d TTL
-    - Stripe deduplication: `stripe-session:${sessionId}` with 7d TTL (prevents double-processing)
+    - BPoint payment dedup: `bpoint-txn:${TxnNumber}` with 7d TTL (shared by confirm route + webhook; prevents double fan-out)
   - Rate limit storage (same Redis instance):
     - Token creation limiter: `upload-rl:token` (20 per hour)
     - Global upload limiter: `upload-rl:global` (500 per hour)
@@ -138,7 +130,7 @@
 
 **Logs:**
 - Console logging throughout codebase
-  - Prefixed with service name (e.g., "[stripe-webhook]", "[upload]", "[smokeball-capture]")
+  - Prefixed with service name (e.g., "[bpoint-webhook]", "[bpoint-confirm]", "[upload]", "[smokeball-capture]")
   - Error details logged at webhook endpoints for debugging
   - No external log aggregation service
 
@@ -166,8 +158,8 @@
 
 **Required env vars:**
 - `OPENROUTER_API_KEY` - Gemini 2.5 Flash LLM
-- `STRIPE_SECRET_KEY` - Payment processing (deprecated but required during migration)
-- `STRIPE_WEBHOOK_SECRET` - Webhook verification
+- `BPOINT_API_USERNAME`, `BPOINT_API_PASSWORD`, `BPOINT_MERCHANT_NUMBER` - BPoint payment processing
+- `BPOINT_ENV` - BPoint environment flag ("prod" for live; anything else sets IsTestTxn=true)
 - `UPSTASH_REDIS_REST_URL` - Session store, rate limiting
 - `UPSTASH_REDIS_REST_TOKEN` - Session store auth
 - `ZAPIER_WEBHOOK_URL` - Primary intake→Smokeball automation
@@ -186,8 +178,7 @@
 - `CRON_SECRET` - Vercel Cron authorization
 
 **Optional env vars:**
-- `BPOINT_API_USERNAME`, `BPOINT_API_PASSWORD`, `BPOINT_MERCHANT_NUMBER`, `BPOINT_BILLER_CODE` - BPoint payment (migration in progress)
-- `BPOINT_ENV` - BPoint environment (sandbox or prod; defaults to sandbox)
+- `BPOINT_BILLER_CODE` - BPoint biller code (only required for BPAY flows; optional for card-only)
 - `ZAPIER_DEV_WEBHOOK_URL` - Dev-only safe Zap (emails, doesn't touch Smokeball)
 - `CLICKSEND_USERNAME`, `CLICKSEND_API_KEY`, `CLICKSEND_SENDER_ID` - SMS notifications (not yet integrated)
 - `URGENT_SMS_RECIPIENT` - Who receives urgent SMS (E.164 format)
@@ -203,10 +194,10 @@
 ## Webhooks & Callbacks
 
 **Incoming Webhooks (Received by App):**
-1. Stripe checkout completion - `POST /api/webhooks/stripe`
-   - Verified via: `stripe.webhooks.constructEvent(body, signature, secret)`
-   - Event type: `checkout.session.completed`
-   - Payload: Session ID, customer email, payment amount
+1. BPoint server-to-server payment callback - `POST /api/webhooks/bpoint`
+   - Verified via: server-side `retrieveTransaction(ResultKey)` call (callback body NOT trusted; BPoint v2 callbacks are unsigned)
+   - Trigger: Transaction completion; safety net for missed browser redirect
+   - Payload: `ResultKey` from URL query string — body intentionally ignored
 
 2. Calendly invitee created - `POST /api/webhooks/calendly`
    - Verified via: HMAC-SHA256 signature in `calendly-webhook-signature` header
