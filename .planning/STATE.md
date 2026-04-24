@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Plan 04-02 automated tasks complete (d4480fa, 4186692); Task 3 checkpoint awaits HPP activation + operator iframe transaction
-last_updated: "2026-04-24T11:33:17.793Z"
+stopped_at: Completed 04-01-PLAN.md
+last_updated: "2026-04-24T11:34:15.238Z"
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 18
-  completed_plans: 14
+  completed_plans: 15
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-04-23)
 ## Current Position
 
 Phase: 04 (validation) — EXECUTING
-Plan: 1 of 5
+Plan: 2 of 5 (04-01 Wave 0 scaffolding complete; 04-02 Wave 1 partial with Task 3 pending HPP activation)
 
 ## Performance Metrics
 
@@ -57,6 +57,7 @@ Plan: 1 of 5
 | Phase 03 P03 | ~2min | 1 tasks (+1 Rule-3 deviation) | 2 files |
 | Phase 03 P04 | ~5min | 3 tasks | 7 files |
 | Phase 04-validation P02 | 3min | 2 automated tasks (1 checkpoint pending) tasks | 2 files files |
+| Phase 04 P01 | 5min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -107,6 +108,9 @@ Recent decisions affecting current work:
 - [Phase 04-validation]: Plan 04-02: retrieveTransaction returns BPointTxnResponse envelope (APIResponse + TxnResp|null), NOT flattened BPointTxnResp — reconciled plan interface drift against src/lib/bpoint.ts real types at write time
 - [Phase 04-validation]: Plan 04-02: MerchantReference probed via runtime cast ((txn.TxnResp as unknown as {MerchantReference?: string})) — BPointTxnResp TS type intentionally narrows the field out; absence surfaces Pitfall 5 (BPoint truncation/omission) rather than a compile error
 - [Phase 04-validation]: Plan 04-02: UAT smoke skeleton established (describe.skipIf + beforeAll assertUatGate + loadPreviewEnv + redirect:'manual' live fetch) — Plans 04-03/04/05 copy verbatim
+- [Phase 04-validation]: Plan 04-01: UAT gate is two-layer (vitest exclude + per-test describe.skipIf) — single mistake never exposes CI to live BPoint
+- [Phase 04-validation]: Plan 04-01: PRICING amounts stay pinned at $132000 / $72600 for UAT — scenarios use magic expiry 99XX instead of amount mutation (preserves TEST-02 byte-compare)
+- [Phase 04-validation]: Plan 04-01: .env.example BPOINT_ENV corrected from sandbox -> uat (sandbox never a recognised value per 01-VERIFICATION.md d2faa18); added UAT_DECLINED_RESULT_KEY for Plan 04-03 declined test input contract
 
 ### Pending Todos
 
@@ -121,6 +125,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-24T11:33:07.114Z
-Stopped at: Plan 04-02 automated tasks complete (d4480fa, 4186692); Task 3 checkpoint awaits HPP activation + operator iframe transaction
+Last session: 2026-04-24T11:34:15.236Z
+Stopped at: Completed 04-01-PLAN.md
 Resume file: None

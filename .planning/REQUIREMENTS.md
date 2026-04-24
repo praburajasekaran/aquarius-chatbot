@@ -51,9 +51,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Validation & Go-Live
 
-- [ ] **TEST-01**: End-to-end test against BPoint UAT environment (`bpoint.uat.linkly.com.au`) succeeds with real test transactions
-- [ ] **TEST-02**: Zapier → Smokeball invoice sync verified — line items reconcile correctly with BPoint receipt data
-- [ ] **TEST-03**: Failure paths tested — declined card, expired AuthKey, webhook retry, redirect without callback
+- [x] **TEST-01**: End-to-end test against BPoint UAT environment (`bpoint.uat.linkly.com.au`) succeeds with real test transactions
+- [x] **TEST-02**: Zapier → Smokeball invoice sync verified — line items reconcile correctly with BPoint receipt data
+- [x] **TEST-03**: Failure paths tested — declined card, expired AuthKey, webhook retry, redirect without callback
 
 ## v2 Requirements
 
@@ -117,9 +117,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CLEAN-01 | Phase 3 | Complete |
 | CLEAN-02 | Phase 3 | Complete |
 | CLEAN-03 | Phase 3 | Complete |
-| TEST-01 | Phase 4 | Pending |
-| TEST-02 | Phase 4 | Pending |
-| TEST-03 | Phase 4 | Pending |
+| TEST-01 | Phase 4 | Complete |
+| TEST-02 | Phase 4 | Complete |
+| TEST-03 | Phase 4 | Complete |
 
 **Coverage:**
 - v1 requirements: 27 total
