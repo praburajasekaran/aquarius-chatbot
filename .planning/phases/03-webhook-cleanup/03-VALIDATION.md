@@ -38,14 +38,13 @@ created: 2026-04-24
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 3-01-01 | 01 | 1 | WEBH-01, WEBH-02 | unit | `npx vitest run src/app/api/webhooks/bpoint/route.test.ts` | ❌ W0 | ⬜ pending |
-| 3-01-02 | 01 | 1 | WEBH-03 | unit | `npx vitest run -t "idempotency"` | ❌ W0 | ⬜ pending |
-| 3-01-03 | 01 | 1 | WEBH-04 | unit | `npx vitest run -t "retrieve verification"` | ❌ W0 | ⬜ pending |
-| 3-02-01 | 02 | 1 | WEBH-02 | refactor | `npx vitest run src/lib/payments/handleConfirmedPayment.test.ts` | ❌ W0 | ⬜ pending |
-| 3-03-01 | 03 | 2 | CLEAN-03 | port | `npx vitest run src/app/api/checkout/resume` | ✅ | ⬜ pending |
-| 3-04-01 | 04 | 3 | CLEAN-01 | integration | `grep -r "stripe" package.json \| wc -l` → 0 | ✅ | ⬜ pending |
-| 3-04-02 | 04 | 3 | CLEAN-02 | integration | `test ! -f src/lib/stripe.ts && test ! -f src/app/api/webhooks/stripe/route.ts` | ✅ | ⬜ pending |
-| 3-04-03 | 04 | 3 | CLEAN-01 | build | `npm run build` exits 0 | ✅ | ⬜ pending |
+| 3-01-01 | 01 | 1 | WEBH-01..04 | unit (RED) | `npx vitest run tests/webhook-bpoint.test.ts --reporter=verbose` | ❌ W0 | ⬜ pending |
+| 3-02-01 | 02 | 2 | WEBH-01 | unit | `npm test -- tests/bpoint.test.ts && npm run build` | ✅ | ⬜ pending |
+| 3-02-02 | 02 | 2 | WEBH-01..04 | unit (GREEN) | `npx vitest run tests/webhook-bpoint.test.ts --reporter=verbose` | ✅ | ⬜ pending |
+| 3-03-01 | 03 | 3 | CLEAN-02 | port | `npm run build && npm run lint && npm test` | ✅ | ⬜ pending |
+| 3-04-01 | 04 | 4 | CLEAN-02 | delete+rename | `npm run build && npm run lint && npm test` | ✅ | ⬜ pending |
+| 3-04-02 | 04 | 4 | CLEAN-03 | docs scrub | `test $(grep -c "STRIPE_" .env.example) -eq 0 && test $(grep -ciE "stripe" .planning/codebase/INTEGRATIONS.md) -eq 0` | ✅ | ⬜ pending |
+| 3-04-03 | 04 | 4 | CLEAN-01 | uninstall+build | `npm run build && npm run lint && npm test && test $(grep -cE '"stripe"\|"@stripe/' package.json) -eq 0` | ✅ | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -53,9 +52,9 @@ created: 2026-04-24
 
 ## Wave 0 Requirements
 
-- [ ] `src/app/api/webhooks/bpoint/route.test.ts` — stubs for WEBH-01, WEBH-02, WEBH-03, WEBH-04
-- [ ] `src/lib/payments/handleConfirmedPayment.test.ts` — stubs for shared helper
-- [ ] `vitest` already configured (confirm route tests exist) — no install needed
+- [ ] `tests/webhook-bpoint.test.ts` — 9 RED test cases covering WEBH-01, WEBH-02, WEBH-03, WEBH-04 (incl. defensive `resultkey` casing probe)
+- [ ] `tests/fixtures/bpoint-responses.ts` — shared sandbox fixtures for retrieveTransaction replies
+- [ ] `vitest` already configured (Phase 2 confirm-route tests exist) — no install needed
 
 ---
 
