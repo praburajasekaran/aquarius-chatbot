@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Phase 4 context gathered
-last_updated: "2026-04-24T09:58:38.955Z"
+stopped_at: Plan 04-02 automated tasks complete (d4480fa, 4186692); Task 3 checkpoint awaits HPP activation + operator iframe transaction
+last_updated: "2026-04-24T11:33:17.793Z"
 progress:
   total_phases: 4
   completed_phases: 3
-  total_plans: 13
-  completed_plans: 13
+  total_plans: 18
+  completed_plans: 14
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-23)
 
 **Core value:** Lawyers can accept BPoint payments from clients directly in the chat, with payment status triggering downstream workflows to Smokeball CRM via Zapier.
-**Current focus:** Phase 03 — webhook-cleanup
+**Current focus:** Phase 04 — validation
 
 ## Current Position
 
-Phase: 03 (webhook-cleanup) — COMPLETE
-Plan: 4 of 4 (all plans complete)
+Phase: 04 (validation) — EXECUTING
+Plan: 1 of 5
 
 ## Performance Metrics
 
@@ -56,6 +56,7 @@ Plan: 4 of 4 (all plans complete)
 | Phase 03 P02 | 2min | 2 tasks | 3 files |
 | Phase 03 P03 | ~2min | 1 tasks (+1 Rule-3 deviation) | 2 files |
 | Phase 03 P04 | ~5min | 3 tasks | 7 files |
+| Phase 04-validation P02 | 3min | 2 automated tasks (1 checkpoint pending) tasks | 2 files files |
 
 ## Accumulated Context
 
@@ -103,6 +104,9 @@ Recent decisions affecting current work:
 - [Phase 03-webhook-cleanup]: Plan 03-04: Fixed late-upload lookupRecordBySessionId dead Redis read as Rule-1 deviation — function silently read stripe-session:{sessionId} after Phase 02 migrated writer to bpoint-txn:{TxnNumber}, now resolves sessionId -> getSession.bpointTxnNumber -> bpoint-txn:{bpointTxnNumber}
 - [Phase 03-webhook-cleanup]: Plan 03-04: Split BPOINT_BILLER_CODE from the Required env var promotion — only needed for BPAY flows (not card-only), kept in Optional; username/password/merchant-number/env are genuinely required
 - [Phase 03-webhook-cleanup]: Plan 03-04: Zero Stripe surface area achieved — 2 source files deleted, 3 npm packages uninstalled, .env.example + INTEGRATIONS.md case-insensitive-stripe-grep-clean, Redis dedup namespace bpoint-txn:* end-to-end, 49/49 tests green
+- [Phase 04-validation]: Plan 04-02: retrieveTransaction returns BPointTxnResponse envelope (APIResponse + TxnResp|null), NOT flattened BPointTxnResp — reconciled plan interface drift against src/lib/bpoint.ts real types at write time
+- [Phase 04-validation]: Plan 04-02: MerchantReference probed via runtime cast ((txn.TxnResp as unknown as {MerchantReference?: string})) — BPointTxnResp TS type intentionally narrows the field out; absence surfaces Pitfall 5 (BPoint truncation/omission) rather than a compile error
+- [Phase 04-validation]: Plan 04-02: UAT smoke skeleton established (describe.skipIf + beforeAll assertUatGate + loadPreviewEnv + redirect:'manual' live fetch) — Plans 04-03/04/05 copy verbatim
 
 ### Pending Todos
 
@@ -113,9 +117,10 @@ None yet.
 - UAT credentials required before Phase 1 can be tested — must be obtained from the firm (BPoint issues UAT creds separately from production)
 - BPoint v5 webhook payload schema is not publicly accessible — must capture raw POST body from a UAT test transaction in Phase 3 before finalising Zod schema
 - BPoint Merchant Back Office access needed to configure server-to-server callback URL — firm must provide this for Phase 3
+- Plan 04-02 Task 3 awaits BPoint HPP product activation (1300 766 031, Support Code 273 516, merchant 5353109297032146) + operator-executed iframe transaction to capture UAT_RESULT_KEY; TEST-01 evidence bundle population deferred until activation clears
 
 ## Session Continuity
 
-Last session: 2026-04-24T09:58:38.946Z
-Stopped at: Phase 4 context gathered
-Resume file: .planning/phases/04-validation/04-CONTEXT.md
+Last session: 2026-04-24T11:33:07.114Z
+Stopped at: Plan 04-02 automated tasks complete (d4480fa, 4186692); Task 3 checkpoint awaits HPP activation + operator iframe transaction
+Resume file: None
