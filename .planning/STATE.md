@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 02-03-PLAN.md
-last_updated: "2026-04-24T04:31:11.408Z"
+stopped_at: Completed 02-04-PLAN.md (Phase 02 complete — ready for Phase 03 plan-phase)
+last_updated: "2026-04-24T04:44:33.539Z"
 progress:
   total_phases: 4
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 9
-  completed_plans: 8
+  completed_plans: 9
 ---
 
 # Project State
@@ -23,8 +23,8 @@ See: .planning/PROJECT.md (updated 2026-04-23)
 
 ## Current Position
 
-Phase: 02 (confirmation-ui) — EXECUTING
-Plan: 4 of 5
+Phase: 02 (confirmation-ui) — COMPLETE
+Plan: 5 of 5 (all plans complete; next: Phase 03 — webhooks)
 
 ## Performance Metrics
 
@@ -51,6 +51,7 @@ Plan: 4 of 5
 | Phase 02-confirmation-ui P02 | 1min | 1 tasks | 1 files |
 | Phase 02 P01 | 1min | 2 tasks | 2 files |
 | Phase 02-confirmation-ui P03 | ~12min | 2 tasks | 1 files |
+| Phase 02-confirmation-ui P04 | ~4h | 4 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -82,6 +83,10 @@ Recent decisions affecting current work:
 - [Phase 02-confirmation-ui]: Plan 02-03: Fan-out exceptions caught and logged with bpointTxnNumber but route still returns success redirect — payment is real (BPoint captured), support reconciles from logs rather than showing user a failure for already-captured money
 - [Phase 02-confirmation-ui]: Plan 02-03: Defensive ResultKey/resultkey casing parse closes 02-RESEARCH.md Open Question 2
 - [Phase 02-confirmation-ui]: Plan 02-03: Smoke test approved — four curl probes returned 307 redirects with expected Location query params
+- [Phase 02-confirmation-ui]: Plan 02-04: toolCallId Strategy A — handlePaymentComplete('') relies on MessageList isLatest guard; handlePaymentComplete does not consume toolCallId for AI tool-result bookkeeping so empty-string is safe
+- [Phase 02-confirmation-ui]: Plan 02-04: Single CSP header combines frame-ancestors * and frame-src https://www.bpoint.com.au with semicolon separator to avoid browser most-restrictive intersection of multiple headers
+- [Phase 02-confirmation-ui]: Plan 02-04: Iframe-render sub-check deferred to Phase-01 external BPoint HPP activation blocker (ResponseCode 2 "Invalid permissions" until BPoint support 1300 766 031 / Support Code 273 516 enables HPP at facility level) — NOT a Phase-02 issue
+- [Phase 02-confirmation-ui]: Plan 02-04: Pre-existing urgency-default bug in message-list.tsx:204 (introduced in 427456f, predates Phase 02) triaged separately — Phase 02 renders whatever urgency the tool input contains
 
 ### Pending Todos
 
@@ -95,6 +100,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-24T04:31:11.405Z
-Stopped at: Completed 02-03-PLAN.md
+Last session: 2026-04-24T04:42:04Z
+Stopped at: Completed 02-04-PLAN.md (Phase 02 complete — ready for Phase 03 plan-phase)
 Resume file: None
