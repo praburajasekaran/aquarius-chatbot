@@ -3,7 +3,7 @@ import type { PutBlobResult } from "@vercel/blob";
 import { fileTypeFromBuffer } from "file-type";
 import { resend } from "@/lib/resend";
 import { sendToZapier } from "@/lib/zapier";
-import { redis } from "@/lib/kv";
+import { getSession, redis } from "@/lib/kv";
 import {
   ALLOWED_CONTENT_TYPES,
   type AllowedContentType,
@@ -198,7 +198,13 @@ export async function handleUploadCompleted(
 async function lookupRecordBySessionId(
   sessionId: string
 ): Promise<UploadTokenRecord | null> {
-  const tokenHash = await redis.get<string>(`stripe-session:${sessionId}`);
+  // The dedup key is namespaced by BPoint TxnNumber (written in
+  // handleConfirmedPayment), so resolve sessionId -> bpointTxnNumber
+  // via the session record before reading the token hash.
+  const session = await getSession(sessionId);
+  const bpointTxnNumber = session?.bpointTxnNumber;
+  if (!bpointTxnNumber) return null;
+  const tokenHash = await redis.get<string>(`bpoint-txn:${bpointTxnNumber}`);
   if (!tokenHash || tokenHash === "pending") return null;
   return getRecordByHash(tokenHash);
 }

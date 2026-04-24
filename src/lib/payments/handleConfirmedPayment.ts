@@ -6,9 +6,9 @@ import { assertNoResendTracking } from "@/lib/email/assert-no-tracking";
 import PaymentReceipt from "@/lib/email/payment-receipt";
 import { BRANDING } from "@/lib/branding";
 
-// Matches the existing stripe-session:* dedup TTL (7 days). The confirm
-// route sets bpoint-txn:{TxnNumber} = "pending" via SETNX BEFORE calling
-// this helper; here we UPGRADE the value to hashToken(rawToken) so a later
+// Shared bpoint-txn:* dedup TTL (7 days). The confirm route sets
+// bpoint-txn:{TxnNumber} = "pending" via SETNX BEFORE calling this
+// helper; here we UPGRADE the value to hashToken(rawToken) so a later
 // upload-link verification can correlate the upload with the txn.
 const DEDUPE_TTL_SECONDS = 60 * 60 * 24 * 7;
 

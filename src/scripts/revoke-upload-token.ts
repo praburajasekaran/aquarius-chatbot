@@ -1,5 +1,5 @@
 /**
- * Revoke an active late-upload token for a given Stripe session.
+ * Revoke an active late-upload token for a given BPoint transaction.
  *
  * Usage:
  *   npx tsx src/scripts/revoke-upload-token.ts --session <bpointTxnNumber>
@@ -15,7 +15,7 @@ async function main() {
     process.exit(1);
   }
 
-  const dedupeKey = `stripe-session:${sessionId}`;
+  const dedupeKey = `bpoint-txn:${sessionId}`;
   const tokenHash = await redis.get<string>(dedupeKey);
   if (!tokenHash || tokenHash === "pending") {
     console.error(`no active token for session ${sessionId}`);

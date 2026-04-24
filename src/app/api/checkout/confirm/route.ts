@@ -5,7 +5,7 @@ import { redis } from "@/lib/kv";
 import { handleConfirmedPayment } from "@/lib/payments/handleConfirmedPayment";
 import { bucketBankCode } from "@/lib/payments/bucket-bank-code";
 
-// Matches stripe-session:* TTL — see 02-CONTEXT.md fan-out trigger boundary.
+// Matches bpoint-txn:* TTL — see 02-CONTEXT.md fan-out trigger boundary.
 const DEDUPE_TTL_SECONDS = 60 * 60 * 24 * 7;
 
 function appUrl(): string {
