@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation** - BPoint API client, type renames, session endpoint, pricing constants _(completed 2026-04-24; runtime verification blocked on BPoint HPP product activation — see 01-VERIFICATION.md)_
 - [ ] **Phase 2: Confirmation & UI** - Confirm route, PaymentCard iframe, failure messaging
-- [ ] **Phase 3: Webhook & Cleanup** - Webhook handler, shared helper, Stripe removal
+- [x] **Phase 3: Webhook & Cleanup** - Webhook handler, shared helper, Stripe removal _(completed 2026-04-24; Stripe fully removed from code, config, docs, and dependencies; 49/49 tests green)_
 - [ ] **Phase 4: Validation** - UAT E2E tests, Zapier/Smokeball verification, failure path testing
 
 ## Phase Details
@@ -86,5 +86,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. Foundation | 4/4 | Complete (runtime blocked on BPoint product activation) | 2026-04-24 |
 | 2. Confirmation & UI | 0/5 | Not started | - |
-| 3. Webhook & Cleanup | 0/4 | Not started | - |
+| 3. Webhook & Cleanup | 4/4 | Complete | 2026-04-24 |
 | 4. Validation | 0/TBD | Not started | - |

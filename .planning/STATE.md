@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 03-03-PLAN.md (resume route ported to BPoint; selectUrgency PRICING import redirected off @/lib/stripe; Plan 04 unblocked; 49/49 tests green)
-last_updated: "2026-04-24T06:12:30Z"
+stopped_at: "Completed 03-04-PLAN.md (Stripe fully removed: 2 source files deleted, 3 npm packages uninstalled, env/docs scrubbed, Redis namespace fully migrated, late-upload read bug fixed; 49/49 tests green)"
+last_updated: "2026-04-24T06:23:56.376Z"
 progress:
   total_phases: 4
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 13
-  completed_plans: 12
+  completed_plans: 13
 ---
 
 # Project State
@@ -23,8 +23,8 @@ See: .planning/PROJECT.md (updated 2026-04-23)
 
 ## Current Position
 
-Phase: 03 (webhook-cleanup) — EXECUTING
-Plan: 4 of 4
+Phase: 03 (webhook-cleanup) — COMPLETE
+Plan: 4 of 4 (all plans complete)
 
 ## Performance Metrics
 
@@ -55,6 +55,7 @@ Plan: 4 of 4
 | Phase 03-webhook-cleanup P01 | 1min | 1 tasks | 1 files |
 | Phase 03 P02 | 2min | 2 tasks | 3 files |
 | Phase 03 P03 | ~2min | 1 tasks (+1 Rule-3 deviation) | 2 files |
+| Phase 03 P04 | ~5min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -99,6 +100,9 @@ Recent decisions affecting current work:
 - [Phase 03-webhook-cleanup]: Plan 03-03: createAuthKey failures in resume route degrade to /?expired=1 (never 5xx) — matches locked CONTEXT decision and keeps the half-finished-payment recovery UX resilient
 - [Phase 03-webhook-cleanup]: Plan 03-03: webhookUrlBase threaded through on resume — refreshed AuthKey still registers BPoint server-to-server callback, keeping initial and resumed flows symmetric
 - [Phase 03-webhook-cleanup]: Plan 03-03: selectUrgency PRICING import redirected from @/lib/stripe to @/lib/pricing (Rule-3 deviation) — closes overlooked Phase 01 back-compat residue that would have blocked Plan 04's stripe.ts deletion
+- [Phase 03-webhook-cleanup]: Plan 03-04: Fixed late-upload lookupRecordBySessionId dead Redis read as Rule-1 deviation — function silently read stripe-session:{sessionId} after Phase 02 migrated writer to bpoint-txn:{TxnNumber}, now resolves sessionId -> getSession.bpointTxnNumber -> bpoint-txn:{bpointTxnNumber}
+- [Phase 03-webhook-cleanup]: Plan 03-04: Split BPOINT_BILLER_CODE from the Required env var promotion — only needed for BPAY flows (not card-only), kept in Optional; username/password/merchant-number/env are genuinely required
+- [Phase 03-webhook-cleanup]: Plan 03-04: Zero Stripe surface area achieved — 2 source files deleted, 3 npm packages uninstalled, .env.example + INTEGRATIONS.md case-insensitive-stripe-grep-clean, Redis dedup namespace bpoint-txn:* end-to-end, 49/49 tests green
 
 ### Pending Todos
 
@@ -112,6 +116,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-24T06:12:30Z
-Stopped at: Completed 03-03-PLAN.md (resume route ported to BPoint; selectUrgency PRICING import redirected off @/lib/stripe; Plan 04 unblocked; 49/49 tests green)
+Last session: 2026-04-24T06:23:56.374Z
+Stopped at: Completed 03-04-PLAN.md (Stripe fully removed: 2 source files deleted, 3 npm packages uninstalled, env/docs scrubbed, Redis namespace fully migrated, late-upload read bug fixed; 49/49 tests green)
 Resume file: None

@@ -45,9 +45,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Stripe Removal
 
-- [ ] **CLEAN-01**: Stripe npm packages (`stripe`, `@stripe/stripe-js`, `@stripe/react-stripe-js`) removed from dependencies
+- [x] **CLEAN-01**: Stripe npm packages (`stripe`, `@stripe/stripe-js`, `@stripe/react-stripe-js`) removed from dependencies
 - [x] **CLEAN-02**: Stripe code deleted (`src/lib/stripe.ts`, `src/app/api/webhooks/stripe/route.ts`, Stripe-specific env vars)
-- [ ] **CLEAN-03**: Stripe environment variables removed from documentation and deployment config
+- [x] **CLEAN-03**: Stripe environment variables removed from documentation and deployment config
 
 ### Validation & Go-Live
 
@@ -114,9 +114,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | WEBH-02 | Phase 3 | Complete |
 | WEBH-03 | Phase 3 | Complete |
 | WEBH-04 | Phase 3 | Complete |
-| CLEAN-01 | Phase 3 | Pending |
+| CLEAN-01 | Phase 3 | Complete |
 | CLEAN-02 | Phase 3 | Complete |
-| CLEAN-03 | Phase 3 | Pending |
+| CLEAN-03 | Phase 3 | Complete |
 | TEST-01 | Phase 4 | Pending |
 | TEST-02 | Phase 4 | Pending |
 | TEST-03 | Phase 4 | Pending |
