@@ -1,15 +1,25 @@
 import { NextResponse } from "next/server";
 import { createCheckoutSession, PRICING } from "@/lib/stripe";
-import { updateIntake } from "@/lib/intake";
+import { getIntake, updateIntake } from "@/lib/intake";
 
 export async function POST(req: Request) {
-  const { sessionId, urgency } = (await req.json()) as {
-    sessionId: string;
-    urgency: "urgent" | "non-urgent";
-  };
+  const { sessionId } = (await req.json()) as { sessionId: string };
 
+  if (!sessionId) {
+    return NextResponse.json({ error: "Missing sessionId" }, { status: 400 });
+  }
+
+  const intake = await getIntake(sessionId);
+  if (!intake) {
+    return NextResponse.json(
+      { error: "No intake record found. Please complete the urgency selection step." },
+      { status: 409 }
+    );
+  }
+
+  const urgency = intake.urgency;
   if (!PRICING[urgency]) {
-    return NextResponse.json({ error: "Invalid urgency" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid urgency in intake" }, { status: 500 });
   }
 
   const checkoutSession = await createCheckoutSession({

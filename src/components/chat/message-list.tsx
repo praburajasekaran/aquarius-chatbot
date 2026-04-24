@@ -159,14 +159,12 @@ export function MessageList({
 
             // Payment tool
             if (part.type === "tool-initiatePayment") {
-              if (part.state === "input-available" || part.state === "input-streaming") {
+              if (part.state === "input-available") {
                 const isLatest = msgIndex === lastMsgIndex;
                 return (
                   <PaymentCard
                     key={part.toolCallId}
                     sessionId={part.input?.sessionId ?? sessionId}
-                    urgency={part.input?.urgency ?? "non-urgent"}
-                    displayPrice={part.input?.displayPrice ?? ""}
                     onComplete={isLatest ? () => onPaymentComplete(part.toolCallId) : () => {}}
                   />
                 );
