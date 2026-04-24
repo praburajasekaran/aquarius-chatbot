@@ -100,11 +100,49 @@
 
 ## §9. Rollback procedure (cutover safety)
 
-- [ ] Identify last known-good commit on `main` (before the Phase 4 cutover commit).
-- [ ] In Vercel dashboard → Project → Deployments, find that commit's Production deployment.
-- [ ] Click "Redeploy" on the old deployment. Confirm. (≤5 min procedure.)
-- [ ] **Stripe is fully removed in Phase 3** — rollback means reverting to an earlier BPoint commit, NOT reverting to Stripe.
-- [ ] For manual fan-out replay (if Resend or Zapier flaps post-cutover): use the `bpointTxnNumber` from the failed transaction's log to re-invoke `handleConfirmedPayment` via a one-off script or manual support action. Do NOT delete the `bpoint-txn:<txn>` dedup key — just rerun the downstream step directly.
+**Trigger:** Post-cutover incident (checkout broken, webhook fan-out silent, receipt emails failing, Smokeball ingest stopped). Decision owner: firm ops lead. Target RTO: ≤5 minutes.
+
+### §9.1 Vercel redeploy to last known-good
+
+- [ ] Identify last known-good commit on `main` (BEFORE the Phase 4 cutover merge). Check `git log --oneline main` — pick the commit that was in production immediately before Phase 4 went live.
+- [ ] Option A (dashboard, ≤3 min): Vercel Dashboard → Project → Deployments → find the Production deployment for that commit SHA → click ⋯ → "Promote to Production" (or "Redeploy"). Confirm. Vercel rolls the alias in <60s.
+- [ ] Option B (CLI, ≤2 min): `vercel rollback <deployment-url>` where `<deployment-url>` is the last-known-good deployment URL from `vercel list`. Example: `vercel rollback https://aquarius-chatbot-abc123.vercel.app --scope=<team>`.
+- [ ] Verify: `curl -s https://aquariuslawyers.com.au/api/checkout -H 'Content-Type: application/json' -d '{"sessionId":"rollback-probe","urgency":"urgent"}' | jq .` returns a valid BPoint authKey shape (rollback is effective when checkout works end-to-end, not just when the deploy changes).
+- [ ] Sanity: visit `https://aquariuslawyers.com.au` in an incognito window, trigger chat to payment step, confirm iframe renders.
+
+### §9.2 Reminder: Stripe is gone
+
+Rollback means reverting to an **earlier BPoint commit** — NOT reverting to Stripe.
+- `src/lib/stripe.ts` was deleted in Phase 3-04
+- `src/app/api/webhooks/stripe/route.ts` was deleted in Phase 3-04
+- `stripe`, `@stripe/stripe-js`, `@stripe/react-stripe-js` were uninstalled
+- Any commit that still has Stripe code is pre-Phase-3 and will not build cleanly against current env vars (STRIPE_* variables are removed from Vercel prod env)
+
+If a true "fully back to Stripe" rollback becomes necessary (unexpected), it requires a separate restoration PR + Stripe package reinstall + Vercel env var restoration. Not part of this runbook.
+
+### §9.3 Manual fan-out replay (for partial failures)
+
+Use when: Cutover succeeded but a downstream step failed for a specific transaction (e.g. Resend 5xx blocked a receipt email, Zapier filter rejected the transcript, Upstash Redis was briefly unavailable when upload-token was being created).
+
+The shared fan-out helper `src/lib/payments/handleConfirmedPayment.ts` executes five sequential steps. Each can fail independently; re-run only the failed step(s):
+- `"session-update"` — Redis session mark-as-paid (step 1, `updateSession` in kv.ts)
+- `"upload-token"` — upload-token creation + dedup key upgrade (steps 2–3, `createUploadToken` + `redis.set`)
+- `"receipt-email"` — Resend receipt to client (step 4, `resend.emails.send` with `PaymentReceipt`)
+- `"transcript-email"` — Zapier transcript → Smokeball Create Matter (step 5, `sendTranscriptEmail` in resend.ts)
+
+- [ ] **Locate the failure:** `vercel logs <production-url> | grep "\[payments\]" | tail -20`. Copy the `bpointTxnNumber` + `sessionId` + the step that threw from the error line. Note: current code logs errors with `[payments]` prefix but does not include a structured `phase` field — identify the failed step from the error message text or stack trace.
+- [ ] **Decide replay step(s):** fan-out steps are independent — replay only the failed phase(s), not all five.
+- [ ] **Replay via one-off script** (preferred): create a scratch file `scripts/replay-fanout.ts` that imports `handleConfirmedPayment` + the phase-specific helper, and invokes ONLY the failed step against the stored intake for that `bpointTxnNumber`. Run with `npx tsx scripts/replay-fanout.ts <bpointTxnNumber> <phase>`. Remove the script after use (do not commit).
+- [ ] **Replay via direct helper invocation** (fallback, for `receipt-email` only): open a Node REPL on the production env (`vercel dev --prod-env`) and call `sendReceiptEmail({...intake})` directly after fetching the intake from Redis.
+- [ ] **Do NOT delete the `bpoint-txn:{TxnNumber}` dedup key** — the dedup namespace protects against accidental double-fan-out from webhook retries. Replay the specific phase directly; don't reset the lock.
+- [ ] **Confirm remediation:** Resend dashboard shows the re-sent email; Zapier Task History shows the re-fired transcript task; Redis `bpoint-txn:{TxnNumber}` key still present.
+
+### §9.4 Escalation
+
+If rollback fails OR the incident is >15 minutes old without resolution:
+- Contact BPoint support (1300 766 031) — could be BPoint-side outage
+- Contact Vercel support (dashboard → Help)
+- Page firm ops lead — they own the decision to hold/resume the chat's payment step (can disable the payment-card feature flag if one exists, or render a "payments temporarily unavailable" message)
 
 ## §10. Warnings (do NOT violate)
 
