@@ -40,7 +40,7 @@ Out of scope (other phases):
 - **Phase 3 webhook is a safety net**: fires the same fan-out if the browser redirect never lands (user closes tab, intermittent connection).
 - **Dedup key: `bpointTxnNumber`**. Redis key pattern `bpoint-txn:{txnNumber}`, TTL 7 days (matches existing `stripe-session:*` pattern from `.planning/research/ARCHITECTURE.md`). Dedup scope = the final settled transaction ID, not the AuthKey or sessionId — a single session can legitimately retry multiple times before one settles.
 - **Shared helper location**: `src/lib/payments/handleConfirmedPayment.ts`. Both `GET /api/checkout/confirm` and (Phase 3) `POST /api/webhooks/bpoint` import it. Matches ROADMAP.md Phase 3 SC#2 language.
-- **Dual verification before fan-out** (CONF-03): both `APIResponse.ResponseCode === "0"` AND `Approved === true` must be true. Either false → treat as declined.
+- **Dual verification before fan-out** (CONF-03): both `APIResponse.ResponseCode === 0` (numeric — verified in Phase 1; the field is a JSON number, NOT a string `"0"`) AND `Approved === true` must be true. Either false → treat as declined.
 
 ### AuthKey expiry UX
 - **Detection is reactive** — no client-side timer. When BPoint returns the expired-AuthKey response code on submit, catch it and show the expiry UI.

@@ -31,7 +31,7 @@
 - Confirm route is primary: `GET /api/checkout/confirm` runs fan-out first for instant user confirmation.
 - Phase 3 webhook is safety net.
 - Dedup key: `bpoint-txn:{txnNumber}`, TTL 7 days. Shared helper: `src/lib/payments/handleConfirmedPayment.ts`.
-- Dual verification: both `APIResponse.ResponseCode === "0"` AND `Approved === true` required. Either false → treat as declined.
+- Dual verification: both `APIResponse.ResponseCode === 0` (numeric — verified in Phase 1) AND `Approved === true` required. Either false → treat as declined.
 
 **AuthKey expiry UX**
 - Detection is reactive — no client-side timer.
@@ -64,7 +64,7 @@
 |----|-------------|-----------------|
 | CONF-01 | GET `/api/checkout/confirm` route handles browser redirect with ResultKey query parameter | New route at `src/app/api/checkout/confirm/route.ts`; GET handler reads `ResultKey` from `req.nextUrl.searchParams` |
 | CONF-02 | Server-side call to BPoint "Retrieve Transaction Result" API verifies authoritative payment status | Add `retrieveTransaction(resultKey)` to `src/lib/bpoint.ts`; calls `GET /webapi/v2/txns/{resultKey}` with Basic Auth |
-| CONF-03 | Dual verification: both `ResponseCode === "0"` AND `Approved === true` | Guard in confirm route + handleConfirmedPayment: `data.APIResponse.ResponseCode === "0" && data.TxnResp.Approved === true` |
+| CONF-03 | Dual verification: both `ResponseCode === 0` (numeric) AND `Approved === true` | Guard in confirm route + handleConfirmedPayment: `data.APIResponse.ResponseCode === 0 && data.TxnResp.Approved === true` |
 | CONF-04 | On success, triggers fan-out: session update → upload token → receipt email → firm transcript email | Extract from `src/app/api/webhooks/stripe/route.ts:L85–L130` into `src/lib/payments/handleConfirmedPayment.ts` |
 | CONF-05 | Redis dedup prevents duplicate email/token creation on redirect replay | `redis.set("bpoint-txn:{TxnNumber}", "pending", { nx: true, ex: 604800 })` before fan-out |
 | UI-01 | PaymentCard replaces Stripe EmbeddedCheckout with BPoint iframe | Replace `EmbeddedCheckoutProvider`/`EmbeddedCheckout` with single `<iframe src="…/iframe/{authKey}">` |
@@ -142,7 +142,8 @@ src/
 ```typescript
 interface BPointTxnResponse {
   APIResponse: {
-    ResponseCode: string;   // "0" = API success; non-zero = API error
+    ResponseCode: number;   // 0 = API success; non-zero = API error
+                            // (Phase 1 verified this is a NUMBER, not a string — see 01-VERIFICATION.md)
     ResponseText: string;
   };
   TxnResp: {
@@ -156,7 +157,7 @@ interface BPointTxnResponse {
     IsTestTxn: boolean;
     MerchantReference: string;
     ReceiptNumber: string;
-    ResponseCode: string;     // same as APIResponse.ResponseCode
+    ResponseCode: number;     // same as APIResponse.ResponseCode (numeric, matches Phase 1 contract)
     ResponseText: string;
     TxnNumber: string;        // unique transaction identifier — the dedup key
     Approved: boolean;        // TRUE = bank authorised; FALSE = declined
@@ -178,7 +179,7 @@ export interface BPointTxnResp {
 }
 
 export interface BPointTxnResponse {
-  APIResponse: { ResponseCode: string; ResponseText: string };
+  APIResponse: { ResponseCode: number; ResponseText: string };
   TxnResp: BPointTxnResp | null;
 }
 
@@ -232,9 +233,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${APP_URL()}/?payment=failed&reason=system`);
   }
 
-  // CONF-03: dual verification
+  // CONF-03: dual verification (numeric ResponseCode per Phase 1 contract — see 01-VERIFICATION.md)
   const approved =
-    txn.APIResponse?.ResponseCode === "0" && txn.TxnResp?.Approved === true;
+    txn.APIResponse?.ResponseCode === 0 && txn.TxnResp?.Approved === true;
 
   if (!approved || !txn.TxnResp) {
     const bankCode = txn.TxnResp?.BankResponseCode ?? "unknown";
@@ -373,7 +374,7 @@ function bucketBankCode(code: string): "declined" | "invalid" | "system" {
 - **Put `onComplete` on iframe:** BPoint iframe redirects the top frame, not the parent React component. There is no postMessage or onComplete callback.
 - **Fan-out inside PaymentCard:** PaymentCard is a client component with no server access. Fan-out lives entirely in the confirm route and handleConfirmedPayment.
 - **Re-create AuthKey on every retry:** Re-render the existing iframe within the 30min TTL. Only create a new AuthKey when the user explicitly clicks "Start again" after expiry.
-- **Single verification field:** `Approved === true` alone is not sufficient — check both `APIResponse.ResponseCode === "0"` AND `TxnResp.Approved === true`.
+- **Single verification field:** `Approved === true` alone is not sufficient — check both `APIResponse.ResponseCode === 0` (numeric, NOT string `"0"` — see Phase 1) AND `TxnResp.Approved === true`.
 
 ---
 
