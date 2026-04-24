@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 04-01-PLAN.md
-last_updated: "2026-04-24T11:34:15.238Z"
+stopped_at: Completed 04-03-PLAN.md (Tasks 1-2 automation; Task 3 checkpoint pending HPP activation)
+last_updated: "2026-04-24T11:33:29Z"
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 18
-  completed_plans: 15
+  completed_plans: 16
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-04-23)
 ## Current Position
 
 Phase: 04 (validation) — EXECUTING
-Plan: 2 of 5 (04-01 Wave 0 scaffolding complete; 04-02 Wave 1 partial with Task 3 pending HPP activation)
+Plan: 3 of 5 (04-01 Wave 0 scaffolding complete; 04-02/04-03 Wave 1 automation complete with Task 3 checkpoints pending HPP activation)
 
 ## Performance Metrics
 
@@ -58,6 +58,7 @@ Plan: 2 of 5 (04-01 Wave 0 scaffolding complete; 04-02 Wave 1 partial with Task 
 | Phase 03 P04 | ~5min | 3 tasks | 7 files |
 | Phase 04-validation P02 | 3min | 2 automated tasks (1 checkpoint pending) tasks | 2 files files |
 | Phase 04 P01 | 5min | 3 tasks | 8 files |
+| Phase 04-validation P03 | 3min | 2 automated tasks (1 checkpoint pending HPP activation) | 3 files |
 
 ## Accumulated Context
 
@@ -111,6 +112,11 @@ Recent decisions affecting current work:
 - [Phase 04-validation]: Plan 04-01: UAT gate is two-layer (vitest exclude + per-test describe.skipIf) — single mistake never exposes CI to live BPoint
 - [Phase 04-validation]: Plan 04-01: PRICING amounts stay pinned at $132000 / $72600 for UAT — scenarios use magic expiry 99XX instead of amount mutation (preserves TEST-02 byte-compare)
 - [Phase 04-validation]: Plan 04-01: .env.example BPOINT_ENV corrected from sandbox -> uat (sandbox never a recognised value per 01-VERIFICATION.md d2faa18); added UAT_DECLINED_RESULT_KEY for Plan 04-03 declined test input contract
+- [Phase 04-validation]: Plan 04-03: webhook retry test uses curl-replay (Method B) over natural retry (Method A) — BPoint retry cadence undocumented per RESEARCH.md Pitfall 4; curl replay hits the same SETNX namespace deterministically with zero timing dependency
+- [Phase 04-validation]: Plan 04-03: declined-card assertion at retrieveTransaction level (APIResponse.ResponseCode===0 + TxnResp.Approved===false + BankResponseCode==="05") — UI bucket ("/?payment=failed&reason=declined") stays operator-screenshot per RUNBOOK §4.1
+- [Phase 04-validation]: Plan 04-03: Separate UAT_DECLINED_RESULT_KEY env var (not reusing UAT_RESULT_KEY) — approved and declined ResultKeys come from different BPoint transactions; mixing them violates the SETNX dedup narrative (declined never fires fan-out, key never set)
+- [Phase 04-validation]: Plan 04-03: Both replay tests include intentionally-sparse second it() blocks (expect(true).toBe(true)) — the real cross-route SETNX dedup assertion is Vercel-log-grep-visible + dashboard-visible (Resend/Zapier), neither programmatically queryable from vitest; sparse block documents operator verification path
+- [Phase 04-validation]: Plan 04-03: Parallel-agent coordination race — my planned README.md + .env.example edits for UAT_DECLINED_RESULT_KEY were swept into 04-01's final runbook commit (77456c7) because 04-01's agent staged after my edits hit disk but before my git add; content correct in both places, no conflicts
 
 ### Pending Todos
 
@@ -122,9 +128,10 @@ None yet.
 - BPoint v5 webhook payload schema is not publicly accessible — must capture raw POST body from a UAT test transaction in Phase 3 before finalising Zod schema
 - BPoint Merchant Back Office access needed to configure server-to-server callback URL — firm must provide this for Phase 3
 - Plan 04-02 Task 3 awaits BPoint HPP product activation (1300 766 031, Support Code 273 516, merchant 5353109297032146) + operator-executed iframe transaction to capture UAT_RESULT_KEY; TEST-01 evidence bundle population deferred until activation clears
+- Plan 04-03 Task 3 awaits the SAME BPoint HPP activation + four failure-path runs (§4.1 declined card with magic expiry 99/05, §4.2 31-minute wall-clock AuthKey-expiry wait, §4.3 replayed-redirect curl test, §4.4 webhook-retry curl test) + operator evidence capture (sc3-declined.png, sc3-expired-authkey.png, sc3-replayed-redirect.log, sc3-webhook-retry.log) + Resend/Zapier dashboard counts; TEST-03 evidence bundle population deferred until activation clears
 
 ## Session Continuity
 
-Last session: 2026-04-24T11:34:15.236Z
-Stopped at: Completed 04-01-PLAN.md
-Resume file: None
+Last session: 2026-04-24T11:33:29Z
+Stopped at: Completed 04-03-PLAN.md (Tasks 1-2 automation; Task 3 checkpoint pending HPP activation)
+Resume file: .planning/phases/04-validation/04-RUNBOOK.md §4
