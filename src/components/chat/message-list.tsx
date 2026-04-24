@@ -22,6 +22,8 @@ interface MessageListProps {
     result: { eventStartTime: string; eventUri: string; inviteeUri: string }
   ) => void;
   onUrgentAcknowledged: (toolCallId: string) => void;
+  failureReason?: "declined" | "invalid" | "system" | "expired";
+  onRetryRequested?: () => void;
 }
 
 export function MessageList({
@@ -33,6 +35,8 @@ export function MessageList({
   onUploadSkip,
   onScheduleBooked,
   onUrgentAcknowledged,
+  failureReason,
+  onRetryRequested,
 }: MessageListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -200,6 +204,8 @@ export function MessageList({
                     urgency={part.input?.urgency ?? "non-urgent"}
                     displayPrice={part.input?.displayPrice ?? ""}
                     onComplete={isLatest ? () => onPaymentComplete(part.toolCallId) : () => {}}
+                    failureReason={isLatest ? failureReason : undefined}
+                    onRetryRequested={isLatest ? onRetryRequested : undefined}
                   />
                 );
               }
