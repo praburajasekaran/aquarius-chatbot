@@ -34,6 +34,7 @@ export $(grep -v '^#' .env.uat.local | xargs)
 export UAT_SMOKE=1
 export UAT_PREVIEW_URL=https://aquarius-chatbot-git-<branch>-<team>.vercel.app
 export UAT_RESULT_KEY=<uuid-from-vercel-log>
+export UAT_DECLINED_RESULT_KEY=<uuid-from-declined-run>  # captured from RUNBOOK §4.1
 npx vitest run tests/uat
 ```
 
