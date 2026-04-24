@@ -23,11 +23,12 @@ Lawyers can accept BPoint payments from clients directly in the chat, with payme
 - ✓ `/api/checkout` BPoint session endpoint (returns `{ authKey }`, 502 on BPoint failure) — Validated in Phase 1 + 2
 - ✓ Store BPoint transaction IDs in session data (replace `stripeSessionId`) — Validated in Phase 2 (confirm route persists `bpointTxnNumber` via shared fan-out helper)
 - ✓ Handle BPoint payment failures (4 sanitized buckets: declined/invalid/system/expired) — Validated in Phase 2: confirmation-ui
+- ✓ BPoint webhook handler for payment verification (safety-net `POST /api/webhooks/bpoint` with SETNX dedup, WebHookUrl registration, resume route ported to BPoint) — Validated in Phase 3: webhook-cleanup
+- ✓ Stripe fully removed from code, config, docs, and dependencies — Validated in Phase 3: webhook-cleanup
 
 ### Active
 
-- [ ] Add BPoint webhook handler for payment verification (Phase 3 — webhook & cleanup)
-- [ ] Update payment receipt email templates to reflect BPoint (not Stripe) (partially phase 1; full validation in Phase 3 + UAT)
+- [ ] Update payment receipt email templates to reflect BPoint (not Stripe) (partially phase 1; full validation in Phase 4 UAT)
 - [ ] Ensure lineItem and tier data flow correctly to BPoint receipt and Smokeball invoice (Phase 4 UAT)
 
 ### External Dependencies (blocks live verification)
@@ -87,7 +88,8 @@ Lawyers can accept BPoint payments from clients directly in the chat, with payme
 
 - **Phase 1: foundation** — ✓ Complete (BPoint AuthKey client, PRICING, intake data, Stripe removal). External blocker: BPoint HPP product activation at facility level.
 - **Phase 2: confirmation-ui** — ✓ Complete (2026-04-24). BPoint iframe PaymentCard, confirm route, failure buckets, chat-widget URL-param wiring. Iframe-render live smoke test deferred to external blocker resolution.
-- **Phase 3: webhook-&-cleanup** — Next.
+- **Phase 3: webhook-cleanup** — ✓ Complete (2026-04-24). BPoint webhook safety-net route + WebHookUrl registration, resume route ported from Stripe to BPoint, Stripe fully removed (files, env vars, docs, npm packages). 49/49 tests green.
+- **Phase 4: validation** — Next.
 
 ---
-*Last updated: 2026-04-24 after Phase 2 completion*
+*Last updated: 2026-04-24 after Phase 3 completion*
