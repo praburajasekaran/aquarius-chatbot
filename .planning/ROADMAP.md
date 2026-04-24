@@ -61,7 +61,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. The confirm route and webhook handler share the same handleConfirmedPayment() helper — fan-out logic is not duplicated across the two paths
   3. The Stripe packages (stripe, @stripe/stripe-js, @stripe/react-stripe-js) are absent from package.json and the build completes without errors
   4. Stripe source files (src/lib/stripe.ts, src/app/api/webhooks/stripe/route.ts) no longer exist in the codebase
-**Plans**: TBD
+**Plans** (4 plans in 4 waves):
+- [ ] 03-01-PLAN.md — Wave 0 RED test scaffold: tests/webhook-bpoint.test.ts with 9 cases (WEBH-01..04 + dedup + defensive casing) [Wave 1]
+- [ ] 03-02-PLAN.md — Add WebHookUrl/webhookUrlBase to createAuthKey; wire /api/checkout; build POST /api/webhooks/bpoint mirror of confirm route [Wave 2]
+- [ ] 03-03-PLAN.md — Port /api/checkout/resume from Stripe session reuse to BPoint AuthKey refresh (removes last non-deletion @/lib/stripe caller) [Wave 3]
+- [ ] 03-04-PLAN.md — Delete Stripe source files, rename stripe-session: → bpoint-txn: in revoke script, scrub .env.example + INTEGRATIONS.md, npm uninstall three Stripe packages [Wave 4]
 
 ### Phase 4: Validation
 **Goal**: The complete BPoint payment flow is verified end-to-end against UAT before production cutover
@@ -82,5 +86,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. Foundation | 4/4 | Complete (runtime blocked on BPoint product activation) | 2026-04-24 |
 | 2. Confirmation & UI | 0/5 | Not started | - |
-| 3. Webhook & Cleanup | 0/TBD | Not started | - |
+| 3. Webhook & Cleanup | 0/4 | Not started | - |
 | 4. Validation | 0/TBD | Not started | - |
