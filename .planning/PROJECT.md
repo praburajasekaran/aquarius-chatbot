@@ -19,16 +19,20 @@ Lawyers can accept BPoint payments from clients directly in the chat, with payme
 - ✓ Transcript emails sent to firm after payment — existing
 - ✓ Upload tokens created for client document upload — existing
 - ✓ Session data stored in Upstash Redis — existing
+- ✓ Replace Stripe Embedded Checkout with BPoint iframe in PaymentCard — Validated in Phase 2: confirmation-ui
+- ✓ `/api/checkout` BPoint session endpoint (returns `{ authKey }`, 502 on BPoint failure) — Validated in Phase 1 + 2
+- ✓ Store BPoint transaction IDs in session data (replace `stripeSessionId`) — Validated in Phase 2 (confirm route persists `bpointTxnNumber` via shared fan-out helper)
+- ✓ Handle BPoint payment failures (4 sanitized buckets: declined/invalid/system/expired) — Validated in Phase 2: confirmation-ui
 
 ### Active
 
-- [ ] Replace Stripe Embedded Checkout with BPoint embedded form/iframe in PaymentCard component
-- [ ] Create BPoint session endpoint (replaces `/api/checkout` Stripe logic)
-- [ ] Add BPoint webhook handler for payment verification
-- [ ] Update payment receipt email templates to reflect BPoint (not Stripe)
-- [ ] Store BPoint transaction IDs in session data (replace stripeSessionId)
-- [ ] Handle BPoint payment failures and refund scenarios
-- [ ] Ensure lineItem and tier data flow correctly to BPoint receipt and Smokeball invoice
+- [ ] Add BPoint webhook handler for payment verification (Phase 3 — webhook & cleanup)
+- [ ] Update payment receipt email templates to reflect BPoint (not Stripe) (partially phase 1; full validation in Phase 3 + UAT)
+- [ ] Ensure lineItem and tier data flow correctly to BPoint receipt and Smokeball invoice (Phase 4 UAT)
+
+### External Dependencies (blocks live verification)
+
+- BPoint Hosted Payment Page product activation at merchant facility level (merchant 5353109297032146) — action: call BPoint support 1300 766 031, Support Code 273 516. Blocks end-to-end iframe render verification for Phases 2+.
 
 ### Out of Scope
 
@@ -73,9 +77,17 @@ Lawyers can accept BPoint payments from clients directly in the chat, with payme
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Replace Stripe with BPoint (embedded iframe) | Client requirement; embedded approach matches existing UX | — Pending |
-| Maintain lineItem and tier structure | Smokeball invoice reconciliation depends on exact descriptions | — Pending |
-| Keep session/webhook architecture | Existing architecture is sound; only swap provider logic | — Pending |
+| Replace Stripe with BPoint (embedded iframe) | Client requirement; embedded approach matches existing UX | ✓ Shipped (Phase 2) |
+| Maintain lineItem and tier structure | Smokeball invoice reconciliation depends on exact descriptions | — Pending Phase 4 UAT |
+| Keep session/webhook architecture | Existing architecture is sound; only swap provider logic | ✓ Confirmed (Phase 2 — `handleConfirmedPayment` shared between confirm route + upcoming Phase 3 webhook) |
+| 4 sanitized failure buckets (declined/invalid/system/expired) | Bank codes must not leak to UI; expired AuthKey needs retry path | ✓ Shipped (Phase 2-04) |
+| GET /api/checkout/confirm for BPoint browser redirect | BPoint iframe redirects the top frame; requires a server-side landing route with dual verification + Redis SETNX dedup | ✓ Shipped (Phase 2-03) |
+
+## Current State
+
+- **Phase 1: foundation** — ✓ Complete (BPoint AuthKey client, PRICING, intake data, Stripe removal). External blocker: BPoint HPP product activation at facility level.
+- **Phase 2: confirmation-ui** — ✓ Complete (2026-04-24). BPoint iframe PaymentCard, confirm route, failure buckets, chat-widget URL-param wiring. Iframe-render live smoke test deferred to external blocker resolution.
+- **Phase 3: webhook-&-cleanup** — Next.
 
 ---
-*Last updated: 2026-04-23 after initialization*
+*Last updated: 2026-04-24 after Phase 2 completion*
