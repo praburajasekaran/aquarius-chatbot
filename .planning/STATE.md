@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 03-01-PLAN.md (RED scaffold for webhook)
-last_updated: "2026-04-24T06:04:08.091Z"
+stopped_at: Completed 03-02-PLAN.md (webhook route GREEN, WEBH-01..04 complete, 9 RED tests flipped, full suite 49/49)
+last_updated: "2026-04-24T06:09:28.183Z"
 progress:
   total_phases: 4
   completed_phases: 2
   total_plans: 13
-  completed_plans: 10
+  completed_plans: 11
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-04-23)
 ## Current Position
 
 Phase: 03 (webhook-cleanup) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 
 ## Performance Metrics
 
@@ -53,6 +53,7 @@ Plan: 2 of 4
 | Phase 02-confirmation-ui P03 | ~12min | 2 tasks | 1 files |
 | Phase 02-confirmation-ui P04 | ~4h | 4 tasks | 4 files |
 | Phase 03-webhook-cleanup P01 | 1min | 1 tasks | 1 files |
+| Phase 03 P02 | 2min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -89,6 +90,10 @@ Recent decisions affecting current work:
 - [Phase 02-confirmation-ui]: Plan 02-04: Iframe-render sub-check deferred to Phase-01 external BPoint HPP activation blocker (ResponseCode 2 "Invalid permissions" until BPoint support 1300 766 031 / Support Code 273 516 enables HPP at facility level) — NOT a Phase-02 issue
 - [Phase 02-confirmation-ui]: Plan 02-04: Pre-existing urgency-default bug in message-list.tsx:204 (introduced in 427456f, predates Phase 02) triaged separately — Phase 02 renders whatever urgency the tool input contains
 - [Phase 03-webhook-cleanup]: Plan 03-01: RED scaffold locks behavior contract for webhook — 9 cases (8 from RESEARCH + 1 defensive casing from CONTEXT), fixture reuse (no new fixtures), mock symmetry with tests/confirm-route.test.ts verbatim
+- [Phase 03-webhook-cleanup]: Plan 03-02: WebHookUrl serialized conditionally (ternary to undefined) — JSON.stringify elides undefined keys, keeping ProcessTxnData byte-identical for legacy callers that don't pass webhookUrlBase
+- [Phase 03-webhook-cleanup]: Plan 03-02: Reused NEXT_PUBLIC_URL for webhookUrlBase (no new env var) — POST /api/checkout passes it through symmetrically with the existing redirectionUrlBase plumbing
+- [Phase 03-webhook-cleanup]: Plan 03-02: Webhook route is a carbon-copy of confirm route minus browser redirects — same retrieveTransaction+dual-verify+SETNX+handleConfirmedPayment pipeline, shared bpoint-txn:{TxnNumber} namespace with 7-day TTL; whichever path wins SETNX owns fan-out
+- [Phase 03-webhook-cleanup]: Plan 03-02: WEBH-04 enforced — every branch returns 200 {received:true} (retrieveTransaction throws, Approved=false, ResponseCode!==0, SETNX collision, fan-out throws); BPoint treats non-2xx as retry so failures are logged with [bpoint-webhook] tag but never propagate
 
 ### Pending Todos
 
@@ -102,6 +107,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-24T06:04:08.089Z
-Stopped at: Completed 03-01-PLAN.md (RED scaffold for webhook)
+Last session: 2026-04-24T06:09:28.181Z
+Stopped at: Completed 03-02-PLAN.md (webhook route GREEN, WEBH-01..04 complete, 9 RED tests flipped, full suite 49/49)
 Resume file: None

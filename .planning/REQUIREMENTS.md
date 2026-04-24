@@ -32,10 +32,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Webhook (Server-to-Server Callback)
 
-- [ ] **WEBH-01**: POST `/api/webhooks/bpoint` handler receives BPoint server-to-server callback
-- [ ] **WEBH-02**: Webhook calls Retrieve Transaction Result API — does NOT trust callback payload alone
-- [ ] **WEBH-03**: Shared `handleConfirmedPayment()` helper used by both redirect confirm route and webhook for consistent behavior
-- [ ] **WEBH-04**: Webhook always returns 200 (even on internal errors) to prevent retry storms, with errors logged
+- [x] **WEBH-01**: POST `/api/webhooks/bpoint` handler receives BPoint server-to-server callback
+- [x] **WEBH-02**: Webhook calls Retrieve Transaction Result API — does NOT trust callback payload alone
+- [x] **WEBH-03**: Shared `handleConfirmedPayment()` helper used by both redirect confirm route and webhook for consistent behavior
+- [x] **WEBH-04**: Webhook always returns 200 (even on internal errors) to prevent retry storms, with errors logged
 
 ### Data Schema
 
@@ -110,10 +110,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UI-02 | Phase 2 | Complete |
 | UI-03 | Phase 2 | Complete |
 | UI-04 | Phase 2 | Complete |
-| WEBH-01 | Phase 3 | Pending |
-| WEBH-02 | Phase 3 | Pending |
-| WEBH-03 | Phase 3 | Pending |
-| WEBH-04 | Phase 3 | Pending |
+| WEBH-01 | Phase 3 | Complete |
+| WEBH-02 | Phase 3 | Complete |
+| WEBH-03 | Phase 3 | Complete |
+| WEBH-04 | Phase 3 | Complete |
 | CLEAN-01 | Phase 3 | Pending |
 | CLEAN-02 | Phase 3 | Pending |
 | CLEAN-03 | Phase 3 | Pending |
