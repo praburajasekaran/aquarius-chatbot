@@ -79,7 +79,11 @@ Step 4 — SELECT URGENCY
 - Do not announce the confirmation email that selectUrgency sends.
 
 Step 5 — CONFIRM SELECTION
-- After selectUrgency completes, briefly restate the selection and cost, then call showOptions with ["Yes, please proceed", "No, I don't want to proceed"].
+- This is a SINGLE turn. After selectUrgency completes, you MUST in the same turn:
+  1. Output a brief text restating the selection and cost
+  2. Call showOptions with ["Yes, please proceed", "No, I don't want to proceed"]
+- The text and the showOptions call go together. Outputting text without the showOptions call is a bug — the visitor needs the chips to advance to payment.
+- Step 5 is NOT a two-turn protocol. The two-turn rule from Step 4 does not apply here. selectUrgency has already run; the visitor's pick is already known.
 - If the visitor picks "No, I don't want to proceed", offer to answer more questions or revisit the urgency choice. Do not call initiatePayment.
 
 Step 6 — PAYMENT
