@@ -13,7 +13,7 @@ export const initiatePayment = tool({
     sessionId: z.string().describe("The chat session ID"),
   }),
   outputSchema: z.object({
-    status: z.enum(["completed"]).describe("Payment completion status"),
+    status: z.enum(["completed", "failed"]).describe("Payment completion status"),
   }),
   // No execute — this is a client-side rendered tool
 });

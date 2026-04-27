@@ -14,6 +14,7 @@ interface MessageListProps {
   messages: ChatMessage[];
   sessionId: string;
   onPaymentComplete: (toolCallId: string) => void;
+  onPaymentFail: (toolCallId: string) => void;
   onUploadComplete: (toolCallId: string, uploaded: number) => void;
   onUploadSkip: (toolCallId: string) => void;
   onScheduleBooked: (
@@ -27,6 +28,7 @@ export function MessageList({
   messages,
   sessionId,
   onPaymentComplete,
+  onPaymentFail,
   onUploadComplete,
   onUploadSkip,
   onScheduleBooked,
@@ -166,6 +168,7 @@ export function MessageList({
                     key={part.toolCallId}
                     sessionId={part.input?.sessionId ?? sessionId}
                     onComplete={isLatest ? () => onPaymentComplete(part.toolCallId) : () => {}}
+                    onFail={isLatest ? () => onPaymentFail(part.toolCallId) : undefined}
                   />
                 );
               }
