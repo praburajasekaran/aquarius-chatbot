@@ -49,7 +49,7 @@
   4. A POST to `/api/webhooks/sms-reminder` with a valid signature and a session whose `uploadRefs` is non-empty returns `"skipped"` — no ClickSend API call is made.
   5. `cancelPendingReminder(sessionId)` reads the stored QStash message ID from Redis and calls `client.messages.cancel()` — verified by unit test with mocked QStash client.
 **Plans**: 2 plans
-  - [ ] 02-01-PLAN.md — Wave 0: install @upstash/qstash + 5 failing test stubs (RED)
+  - [x] 02-01-PLAN.md — Wave 0: install @upstash/qstash + 5 failing test stubs (RED) *(completed 2026-04-27)*
   - [ ] 02-02-PLAN.md — Wave 1: reminder.ts + sms-reminder route.ts implementation (GREEN)
 
 ### Phase 3: Provider-Agnostic Seam
@@ -79,7 +79,7 @@
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Dispatch Foundation | 2/2 | Complete | 2026-04-27 |
-| 2. QStash Scheduler | 0/2 | Not started | - |
+| 2. QStash Scheduler | 1/2 | Executing | - |
 | 3. Provider-Agnostic Seam | 0/1 | Not started | - |
 
 ---
@@ -116,4 +116,4 @@ All 22 v1 requirements mapped. No orphans.
 ---
 
 *Roadmap created: 2026-04-24*
-*Last updated: 2026-04-24 after initialization*
+*Last updated: 2026-04-27 after completing 02-01 (qstash install + RED test stubs)*

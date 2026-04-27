@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-04-27T16:13:35.350Z"
+last_updated: "2026-04-27T17:50:42Z"
 progress:
   total_phases: 3
   completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
+  total_plans: 4
+  completed_plans: 3
 ---
 
 # Project State: Aquarius Lawyers Chatbot — ClickSend SMS Integration
@@ -28,7 +28,7 @@ progress:
 
 ## Current Position
 
-Phase: 01 (dispatch-foundation) — COMPLETE
+Phase: 02 (qstash-scheduler) — EXECUTING
 Plan: 2 of 2
 
 ## Performance Metrics
@@ -47,6 +47,7 @@ Plan: 2 of 2
 |------|----------|-------|-------|
 | Phase 01-dispatch-foundation P01 | 2m | 3 tasks | 5 files |
 | Phase 01-dispatch-foundation P02 | 2m | 2 tasks | 2 files |
+| Phase 02-qstash-scheduler P01 | 10m | 2 tasks | 3 files |
 
 ---
 
@@ -67,6 +68,8 @@ Plan: 2 of 2
 | FIRM_NAME hardcoded as literal in copy.ts | BRANDING.firmName defaults to 'Demo Law Firm' when NEXT_PUBLIC_FIRM_NAME unset; DCEM-locked copy must be deterministic across all environments |
 | libphonenumber-js/min subpath resolves correctly | No fallback to plain libphonenumber-js was needed; /min subpath confirmed present under Next.js 16 bundler moduleResolution |
 | redact() preserves +61 prefix then masks middle digits | Produces +61*****5678 pattern matching /+61\*+5678/ regex in test 4 |
+| Two-key dedup design for SCHED-05 | sms-reminder:{sessionId} stores messageId for cancel-lookup; sms-reminder-sent:{sessionId} NX for handler delivery dedup — separate keys prevent cancel-lookup from being overwritten by dedup write |
+| @upstash/qstash installed as production dependency | Runtime import by reminder.ts and route.ts; same vendor as @upstash/redis already in project |
 
 ### Critical Constraints to Remember
 
@@ -118,4 +121,4 @@ Next action: Execute Phase 02 (QStash 24h reminder queue)
 ---
 
 *State initialized: 2026-04-24*
-*Last updated: 2026-04-27 after completing 01-02 (dispatch.ts + copy.ts — all 6 tests GREEN)*
+*Last updated: 2026-04-27 after completing 02-01 (@upstash/qstash installed + 5 RED test stubs for SCHED-01/03/04/05)*
