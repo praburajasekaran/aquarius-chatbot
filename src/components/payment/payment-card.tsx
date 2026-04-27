@@ -6,7 +6,7 @@ import {
   EmbeddedCheckoutProvider,
   EmbeddedCheckout,
 } from "@stripe/react-stripe-js";
-import { CheckCircle2, CreditCard } from "lucide-react";
+import { AlertCircle, CheckCircle2, CreditCard } from "lucide-react";
 
 // Demo bypass: while Bpoint Checkout is being enabled, allow client demos to
 // skip the real payment step. Remove this flag (and the bypass branch below)
@@ -23,6 +23,7 @@ const stripePromise = loadStripe(
 interface PaymentCardProps {
   sessionId: string;
   onComplete: () => void;
+  onFail?: () => void;
 }
 
 interface Pricing {
@@ -32,7 +33,7 @@ interface Pricing {
   lineItem: string;
 }
 
-export function PaymentCard({ sessionId, onComplete }: PaymentCardProps) {
+export function PaymentCard({ sessionId, onComplete, onFail }: PaymentCardProps) {
   const [pricing, setPricing] = useState<Pricing | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -98,7 +99,7 @@ export function PaymentCard({ sessionId, onComplete }: PaymentCardProps) {
   }
 
   if (DEMO_BYPASS_PAYMENT) {
-    return <DemoPaymentCard pricing={pricing} onComplete={onComplete} />;
+    return <DemoPaymentCard pricing={pricing} onComplete={onComplete} onFail={onFail} />;
   }
 
   return (
@@ -143,22 +144,34 @@ export function PaymentCard({ sessionId, onComplete }: PaymentCardProps) {
 function DemoPaymentCard({
   pricing,
   onComplete,
+  onFail,
 }: {
   pricing: Pricing;
   onComplete: () => void;
+  onFail?: () => void;
 }) {
-  const [status, setStatus] = useState<"idle" | "processing" | "succeeded">(
-    "idle"
-  );
+  const [status, setStatus] = useState<
+    "idle" | "processing-success" | "processing-failure" | "succeeded" | "failed"
+  >("idle");
 
-  function handlePay() {
-    setStatus("processing");
-    // Brief delay so the demo feels like a real checkout round-trip.
+  function handleSuccess() {
+    setStatus("processing-success");
     setTimeout(() => {
       setStatus("succeeded");
       onComplete();
     }, 800);
   }
+
+  function handleFailure() {
+    setStatus("processing-failure");
+    setTimeout(() => {
+      setStatus("failed");
+      onFail?.();
+    }, 800);
+  }
+
+  const isProcessing =
+    status === "processing-success" || status === "processing-failure";
 
   return (
     <section
@@ -185,7 +198,7 @@ function DemoPaymentCard({
       <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5">
         Demo mode — no real payment will be processed.
       </p>
-      {status === "succeeded" ? (
+      {status === "succeeded" && (
         <div
           role="status"
           className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2.5 text-sm text-green-900"
@@ -193,18 +206,36 @@ function DemoPaymentCard({
           <CheckCircle2 className="h-4 w-4 text-green-700" aria-hidden="true" />
           Payment successful.
         </div>
-      ) : (
-        <button
-          type="button"
-          onClick={handlePay}
-          disabled={status === "processing"}
-          className="w-full rounded-lg bg-brand px-4 py-2.5 text-base font-medium text-white shadow-sm transition hover:bg-brand/90 disabled:cursor-not-allowed disabled:opacity-70"
-        >
-          {status === "processing"
-            ? "Processing…"
-            : `Pay ${pricing.displayPrice} (Demo)`}
-        </button>
       )}
+      {status === "failed" && (
+        <div
+          role="alert"
+          className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-900"
+        >
+          <AlertCircle className="h-4 w-4 text-red-700" aria-hidden="true" />
+          Payment failed. Please try again.
+        </div>
+      )}
+      {status === "idle" || isProcessing ? (
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={handleSuccess}
+            disabled={isProcessing}
+            className="flex-1 rounded-lg bg-brand px-4 py-2.5 text-base font-medium text-white shadow-sm transition hover:bg-brand/90 disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            {status === "processing-success" ? "Processing…" : "Pay (Success)"}
+          </button>
+          <button
+            type="button"
+            onClick={handleFailure}
+            disabled={isProcessing}
+            className="flex-1 rounded-lg bg-white border border-red-300 px-4 py-2.5 text-base font-medium text-red-700 shadow-sm transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-70"
+          >
+            {status === "processing-failure" ? "Processing…" : "Pay (Fail)"}
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }

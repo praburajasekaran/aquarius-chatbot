@@ -143,6 +143,14 @@ export function ChatWidget() {
     });
   }
 
+  function handlePaymentFail(toolCallId: string) {
+    addToolOutput({
+      tool: "initiatePayment",
+      toolCallId,
+      output: { status: "failed" },
+    });
+  }
+
   function handleUploadComplete(toolCallId: string, uploaded: number) {
     addToolOutput({
       tool: "uploadDocuments",
@@ -190,6 +198,7 @@ export function ChatWidget() {
         messages={messages}
         sessionId={sessionId}
         onPaymentComplete={handlePaymentComplete}
+        onPaymentFail={handlePaymentFail}
         onUploadComplete={handleUploadComplete}
         onUploadSkip={handleUploadSkip}
         onScheduleBooked={handleScheduleBooked}
