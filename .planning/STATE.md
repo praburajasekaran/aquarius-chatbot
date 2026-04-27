@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-04-27T17:50:42Z"
+last_updated: "2026-04-27T17:56:45.984Z"
 progress:
   total_phases: 3
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 4
-  completed_plans: 3
+  completed_plans: 4
 ---
 
 # Project State: Aquarius Lawyers Chatbot — ClickSend SMS Integration
@@ -28,17 +28,17 @@ progress:
 
 ## Current Position
 
-Phase: 02 (qstash-scheduler) — EXECUTING
-Plan: 2 of 2
+Phase: 02 (qstash-scheduler) — COMPLETE
+Plan: 2 of 2 (complete)
 
 ## Performance Metrics
 
 | Metric | Value |
 |--------|-------|
 | Phases total | 3 |
-| Phases complete | 1 |
+| Phases complete | 2 |
 | Requirements total | 22 |
-| Requirements complete | 6 |
+| Requirements complete | 11 |
 | Session started | 2026-04-24 |
 
 ## Performance Metrics (Execution Log)
@@ -48,6 +48,7 @@ Plan: 2 of 2
 | Phase 01-dispatch-foundation P01 | 2m | 3 tasks | 5 files |
 | Phase 01-dispatch-foundation P02 | 2m | 2 tasks | 2 files |
 | Phase 02-qstash-scheduler P01 | 10m | 2 tasks | 3 files |
+| Phase 02-qstash-scheduler P02 | 2m | 2 tasks | 3 files |
 
 ---
 
@@ -70,6 +71,9 @@ Plan: 2 of 2
 | redact() preserves +61 prefix then masks middle digits | Produces +61*****5678 pattern matching /+61\*+5678/ regex in test 4 |
 | Two-key dedup design for SCHED-05 | sms-reminder:{sessionId} stores messageId for cancel-lookup; sms-reminder-sent:{sessionId} NX for handler delivery dedup — separate keys prevent cancel-lookup from being overwritten by dedup write |
 | @upstash/qstash installed as production dependency | Runtime import by reminder.ts and route.ts; same vendor as @upstash/redis already in project |
+| Upload guard uses uploaded:{sessionId} Redis key not getSession() | Session TTL=1h is too short for 24h reminder window; durable Redis key is the only reliable signal |
+| verifySignatureAppRouter wraps handleReminderDelivery as POST export | Structural SCHED-02 compliance; signing key reads happen at request time inside the HOC |
+| vitest v4 mock implementation must use regular function not arrow function | Arrow functions cannot be constructors; vi.fn().mockImplementation(function(){...}) required for new Client() mocks |
 
 ### Critical Constraints to Remember
 
@@ -116,9 +120,9 @@ To resume work, read:
 2. `ROADMAP.md` — phase goals and success criteria
 3. The current phase's plan file (`.planning/plans/phase-N-*.md`) when created
 
-Next action: Execute Phase 02 (QStash 24h reminder queue)
+Next action: Execute Phase 03 (handleIntakePaid orchestrator + late-upload integration)
 
 ---
 
 *State initialized: 2026-04-24*
-*Last updated: 2026-04-27 after completing 02-01 (@upstash/qstash installed + 5 RED test stubs for SCHED-01/03/04/05)*
+*Last updated: 2026-04-27 after completing 02-02 (reminder.ts + route.ts — 5/5 tests GREEN, Phase 2 complete)*

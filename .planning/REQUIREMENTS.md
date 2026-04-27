@@ -16,7 +16,7 @@
 ### Scheduler
 
 - [x] **SCHED-01**: A QStash delayed job is published at payment-success time with `delay: 86400` (24 hours), targeting the SMS-reminder webhook
-- [ ] **SCHED-02**: The reminder webhook verifies QStash signatures (`verifySignatureAppRouter`) and refuses unsigned requests
+- [x] **SCHED-02**: The reminder webhook verifies QStash signatures (`verifySignatureAppRouter`) and refuses unsigned requests
 - [x] **SCHED-03**: Before sending the reminder, the handler reads the authoritative upload state (upload-token or session `uploadRefs`) and short-circuits if the client already uploaded
 - [x] **SCHED-04**: On successful upload, the pending reminder is cancelled via `client.messages.cancel(messageId)`; the `messageId` is stored in Redis at scheduling time under `sms-reminder:{sessionId}` with a 26h TTL
 - [x] **SCHED-05**: `sms-reminder:{sessionId}` Redis NX key prevents duplicate reminder sends if QStash delivers more than once or the cancel races with delivery
@@ -88,7 +88,7 @@ Explicitly excluded. Documented to prevent scope creep.
 | OPS-03 | Phase 1 | Complete |
 | TEST-01 | Phase 1 | Complete |
 | SCHED-01 | Phase 2 | Complete |
-| SCHED-02 | Phase 2 | Pending |
+| SCHED-02 | Phase 2 | Complete |
 | SCHED-03 | Phase 2 | Complete |
 | SCHED-04 | Phase 2 | Complete |
 | SCHED-05 | Phase 2 | Complete |
