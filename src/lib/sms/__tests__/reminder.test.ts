@@ -21,10 +21,12 @@ vi.mock("@/lib/sms/copy", () => ({
 const publishJSONMock = vi.fn();
 const cancelMock = vi.fn();
 vi.mock("@upstash/qstash", () => ({
-  Client: vi.fn().mockImplementation(() => ({
-    publishJSON: publishJSONMock,
-    messages: { cancel: cancelMock },
-  })),
+  Client: vi.fn().mockImplementation(function () {
+    return {
+      publishJSON: publishJSONMock,
+      messages: { cancel: cancelMock },
+    };
+  }),
 }));
 
 // verifySignatureAppRouter is a HOC; its presence is structural — return a passthrough.
