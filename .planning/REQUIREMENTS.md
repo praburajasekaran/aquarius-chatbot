@@ -8,9 +8,9 @@
 ### Dispatch
 
 - [ ] **SMS-01**: Client receives an SMS immediately on payment-success containing the upload link
-- [ ] **SMS-02**: SMS dispatch module (`src/lib/sms/`) accepts a provider-agnostic `IntakePaidEvent`, never a Stripe- or Bpoint-specific payload
-- [ ] **SMS-03**: All outbound numbers are normalised to E.164 (`+61…`) via `libphonenumber-js/min` before hitting ClickSend
-- [ ] **SMS-04**: Landline-format phone numbers are silently skipped with a structured log event (`sms_skipped`, reason=`landline`), and never hit the ClickSend API
+- [x] **SMS-02**: SMS dispatch module (`src/lib/sms/`) accepts a provider-agnostic `IntakePaidEvent`, never a Stripe- or Bpoint-specific payload
+- [x] **SMS-03**: All outbound numbers are normalised to E.164 (`+61…`) via `libphonenumber-js/min` before hitting ClickSend
+- [x] **SMS-04**: Landline-format phone numbers are silently skipped with a structured log event (`sms_skipped`, reason=`landline`), and never hit the ClickSend API
 - [ ] **SMS-05**: `sms-immediate:{sessionId}` Redis NX key prevents duplicate immediate sends on webhook retry
 
 ### Scheduler
@@ -29,15 +29,15 @@
 
 ### Compliance
 
-- [ ] **COMP-01**: SMS body copy is defined as a locked named constant in `src/lib/sms/copy.ts` with a DCEM-classification comment warning against promotional edits
-- [ ] **COMP-02**: Copy contains the firm's identifying name and a human-readable contact phone for opt-out — and does NOT contain "Reply STOP" (incompatible with one-way alpha-tag sender IDs)
+- [x] **COMP-01**: SMS body copy is defined as a locked named constant in `src/lib/sms/copy.ts` with a DCEM-classification comment warning against promotional edits
+- [x] **COMP-02**: Copy contains the firm's identifying name and a human-readable contact phone for opt-out — and does NOT contain "Reply STOP" (incompatible with one-way alpha-tag sender IDs)
 - [ ] **COMP-03**: The sender ID is read from `CLICKSEND_SENDER_ID` env var at dispatch time; registration of that sender ID with ACMA via ClickSend is tracked as an operational task outside code
 
 ### Operations
 
 - [ ] **OPS-01**: App boots and all existing flows function when `CLICKSEND_USERNAME`, `CLICKSEND_API_KEY`, `CLICKSEND_SENDER_ID`, or `QSTASH_*` env vars are missing — `sendSms()` and `scheduleReminderSms()` log a structured warning and return without throwing
 - [ ] **OPS-02**: Every dispatch attempt emits a structured log line (`sms_sent`, `sms_skipped`, `sms_failed`) including `sessionId`, outcome, and ClickSend message ID where available
-- [ ] **OPS-03**: ClickSend API credentials are never logged; the E.164 phone number is logged only as the last-4-digits-masked form (e.g. `+61*****6789`)
+- [x] **OPS-03**: ClickSend API credentials are never logged; the E.164 phone number is logged only as the last-4-digits-masked form (e.g. `+61*****6789`)
 
 ### Testing
 
@@ -80,12 +80,12 @@ Explicitly excluded. Documented to prevent scope creep.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SMS-02 | Phase 1 | Pending |
-| SMS-03 | Phase 1 | Pending |
-| SMS-04 | Phase 1 | Pending |
-| COMP-01 | Phase 1 | Pending |
-| COMP-02 | Phase 1 | Pending |
-| OPS-03 | Phase 1 | Pending |
+| SMS-02 | Phase 1 | Complete |
+| SMS-03 | Phase 1 | Complete |
+| SMS-04 | Phase 1 | Complete |
+| COMP-01 | Phase 1 | Complete |
+| COMP-02 | Phase 1 | Complete |
+| OPS-03 | Phase 1 | Complete |
 | TEST-01 | Phase 1 | Complete |
 | SCHED-01 | Phase 2 | Pending |
 | SCHED-02 | Phase 2 | Pending |

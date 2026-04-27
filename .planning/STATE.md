@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-04-27T16:08:42.761Z"
+last_updated: "2026-04-27T16:13:35.350Z"
 progress:
   total_phases: 3
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
-  completed_plans: 1
+  completed_plans: 2
 ---
 
 # Project State: Aquarius Lawyers Chatbot — ClickSend SMS Integration
@@ -28,7 +28,7 @@ progress:
 
 ## Current Position
 
-Phase: 01 (dispatch-foundation) — EXECUTING
+Phase: 01 (dispatch-foundation) — COMPLETE
 Plan: 2 of 2
 
 ## Performance Metrics
@@ -36,9 +36,9 @@ Plan: 2 of 2
 | Metric | Value |
 |--------|-------|
 | Phases total | 3 |
-| Phases complete | 0 |
+| Phases complete | 1 |
 | Requirements total | 22 |
-| Requirements complete | 0 |
+| Requirements complete | 6 |
 | Session started | 2026-04-24 |
 
 ## Performance Metrics (Execution Log)
@@ -46,6 +46,7 @@ Plan: 2 of 2
 | Plan | Duration | Tasks | Files |
 |------|----------|-------|-------|
 | Phase 01-dispatch-foundation P01 | 2m | 3 tasks | 5 files |
+| Phase 01-dispatch-foundation P02 | 2m | 2 tasks | 2 files |
 
 ---
 
@@ -63,6 +64,9 @@ Plan: 2 of 2
 | Absent-safe env var pattern | App must boot and function without `CLICKSEND_*` or `QSTASH_*` vars for local dev and PR previews |
 | No @vitejs/plugin-react in plan 01 | Node-environment tests don't need the React plugin; avoids unnecessary dependency for plan 01 scope |
 | libphonenumber-js in dependencies not devDependencies | Will be imported at runtime by dispatch.ts in plan 02; it is a production dependency |
+| FIRM_NAME hardcoded as literal in copy.ts | BRANDING.firmName defaults to 'Demo Law Firm' when NEXT_PUBLIC_FIRM_NAME unset; DCEM-locked copy must be deterministic across all environments |
+| libphonenumber-js/min subpath resolves correctly | No fallback to plain libphonenumber-js was needed; /min subpath confirmed present under Next.js 16 bundler moduleResolution |
+| redact() preserves +61 prefix then masks middle digits | Produces +61*****5678 pattern matching /+61\*+5678/ regex in test 4 |
 
 ### Critical Constraints to Remember
 
@@ -109,9 +113,9 @@ To resume work, read:
 2. `ROADMAP.md` — phase goals and success criteria
 3. The current phase's plan file (`.planning/plans/phase-N-*.md`) when created
 
-Next action: Execute plan 01-02 (implement dispatch.ts and copy.ts to flip RED tests green)
+Next action: Execute Phase 02 (QStash 24h reminder queue)
 
 ---
 
 *State initialized: 2026-04-24*
-*Last updated: 2026-04-27 after completing 01-01 (Vitest scaffold + RED tests)*
+*Last updated: 2026-04-27 after completing 01-02 (dispatch.ts + copy.ts — all 6 tests GREEN)*
