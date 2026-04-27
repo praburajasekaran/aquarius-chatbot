@@ -31,7 +31,9 @@
   3. A number starting with `02`, `03`, `07`, or `08` is detected as a landline and emits a structured log event with `reason: "landline"` — verified by the unit test asserting `fetch` is never called.
   4. The SMS copy constant in `copy.ts` contains the firm name, the upload link placeholder, and a DCEM classification comment — and does NOT contain "Reply STOP" (alpha-tag incompatibility).
   5. Phone numbers are logged in masked form only (`+61*****XXXX`); the raw E.164 number never appears in any log output — verified by unit test spy on `console.info`.
-**Plans**: TBD
+**Plans**: 2 plans
+  - [ ] 01-01-PLAN.md — Wave 0: Vitest infra + 6 failing test stubs (RED)
+  - [ ] 01-02-PLAN.md — Wave 1: copy.ts and dispatch.ts implementation (GREEN)
 
 ### Phase 2: QStash Scheduler
 **Goal**: A cancellable 24h SMS reminder is scheduled at payment time and delivered exactly once — skipped if the client already uploaded, and cancelled when they upload before the window closes.
@@ -74,7 +76,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Dispatch Foundation | 0/1 | Not started | - |
+| 1. Dispatch Foundation | 0/2 | Not started | - |
 | 2. QStash Scheduler | 0/1 | Not started | - |
 | 3. Provider-Agnostic Seam | 0/1 | Not started | - |
 
