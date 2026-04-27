@@ -9,7 +9,7 @@
 
 ## Phases
 
-- [ ] **Phase 1: Dispatch Foundation** - Isolated SMS module: E.164 normalisation, landline detection, ClickSend client, compliance copy, unit tests — no existing files touched
+- [x] **Phase 1: Dispatch Foundation** - Isolated SMS module: E.164 normalisation, landline detection, ClickSend client, compliance copy, unit tests — no existing files touched *(completed 2026-04-27)*
 - [ ] **Phase 2: QStash Scheduler** - 24h delayed reminder: schedule on payment, signature-verified delivery webhook, upload-gate cancellation hook
 - [ ] **Phase 3: Provider-Agnostic Seam** - Wire everything into the app: `handleIntakePaid()` orchestrator, Stripe webhook refactor, upload-route cancel hooks, integration tests
 
@@ -32,8 +32,8 @@
   4. The SMS copy constant in `copy.ts` contains the firm name, the upload link placeholder, and a DCEM classification comment — and does NOT contain "Reply STOP" (alpha-tag incompatibility).
   5. Phone numbers are logged in masked form only (`+61*****XXXX`); the raw E.164 number never appears in any log output — verified by unit test spy on `console.info`.
 **Plans**: 2 plans
-  - [ ] 01-01-PLAN.md — Wave 0: Vitest infra + 6 failing test stubs (RED)
-  - [ ] 01-02-PLAN.md — Wave 1: copy.ts and dispatch.ts implementation (GREEN)
+  - [x] 01-01-PLAN.md — Wave 0: Vitest infra + 6 failing test stubs (RED)
+  - [x] 01-02-PLAN.md — Wave 1: copy.ts and dispatch.ts implementation (GREEN)
 
 ### Phase 2: QStash Scheduler
 **Goal**: A cancellable 24h SMS reminder is scheduled at payment time and delivered exactly once — skipped if the client already uploaded, and cancelled when they upload before the window closes.
@@ -76,7 +76,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Dispatch Foundation | 1/2 | In Progress|  |
+| 1. Dispatch Foundation | 2/2 | Complete | 2026-04-27 |
 | 2. QStash Scheduler | 0/1 | Not started | - |
 | 3. Provider-Agnostic Seam | 0/1 | Not started | - |
 
