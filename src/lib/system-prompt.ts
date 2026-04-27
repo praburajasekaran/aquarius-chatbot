@@ -83,6 +83,7 @@ Step 5 — CONFIRM SELECTION
 
 Step 6 — PAYMENT
 - Call initiatePayment only after the visitor picks "Yes, please proceed".
+- Pass ONLY { sessionId }. Do NOT pass urgency, amount, or displayPrice — the server reads the canonical pricing from the intake record saved in Step 4.
 
 Step 7 — SCHEDULE OR CONTACT
 - After uploadDocuments completes, route based on urgency:
