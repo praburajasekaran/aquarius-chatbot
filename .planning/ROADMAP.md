@@ -10,7 +10,7 @@
 ## Phases
 
 - [x] **Phase 1: Dispatch Foundation** - Isolated SMS module: E.164 normalisation, landline detection, ClickSend client, compliance copy, unit tests — no existing files touched *(completed 2026-04-27)*
-- [ ] **Phase 2: QStash Scheduler** - 24h delayed reminder: schedule on payment, signature-verified delivery webhook, upload-gate cancellation hook
+- [x] **Phase 2: QStash Scheduler** - 24h delayed reminder: schedule on payment, signature-verified delivery webhook, upload-gate cancellation hook *(completed 2026-04-27)*
 - [ ] **Phase 3: Provider-Agnostic Seam** - Wire everything into the app: `handleIntakePaid()` orchestrator, Stripe webhook refactor, upload-route cancel hooks, integration tests
 
 ---
@@ -50,7 +50,7 @@
   5. `cancelPendingReminder(sessionId)` reads the stored QStash message ID from Redis and calls `client.messages.cancel()` — verified by unit test with mocked QStash client.
 **Plans**: 2 plans
   - [x] 02-01-PLAN.md — Wave 0: install @upstash/qstash + 5 failing test stubs (RED) *(completed 2026-04-27)*
-  - [ ] 02-02-PLAN.md — Wave 1: reminder.ts + sms-reminder route.ts implementation (GREEN)
+  - [x] 02-02-PLAN.md — Wave 1: reminder.ts + sms-reminder route.ts implementation (GREEN) *(completed 2026-04-27)*
 
 ### Phase 3: Provider-Agnostic Seam
 **Goal**: The SMS feature is live end-to-end: payment success triggers immediate SMS and schedules the reminder, document upload cancels the reminder, and the Stripe webhook no longer contains any inline fan-out logic — all via a single `handleIntakePaid()` entry point that neither Stripe nor Bpoint types can leak through.
@@ -79,7 +79,7 @@
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Dispatch Foundation | 2/2 | Complete | 2026-04-27 |
-| 2. QStash Scheduler | 1/2 | Executing | - |
+| 2. QStash Scheduler | 2/2 | Complete | 2026-04-27 |
 | 3. Provider-Agnostic Seam | 0/1 | Not started | - |
 
 ---
@@ -116,4 +116,4 @@ All 22 v1 requirements mapped. No orphans.
 ---
 
 *Roadmap created: 2026-04-24*
-*Last updated: 2026-04-27 after completing 02-01 (qstash install + RED test stubs)*
+*Last updated: 2026-04-27 after completing phase 02 (qstash-scheduler — 5/5 tests GREEN, SCHED-01–05 verified)*
