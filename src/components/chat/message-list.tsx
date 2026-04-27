@@ -83,7 +83,7 @@ export function MessageList({
       {messages.map((message, msgIndex) => (
         <div key={message.id} className="space-y-2">
           {message.parts.map((part, i) => {
-            if (part.type === "text" && part.text) {
+            if (part.type === "text" && part.text && part.text.trim()) {
               const isUser = message.role === "user";
               return (
                 <div
