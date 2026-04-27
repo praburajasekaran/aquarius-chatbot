@@ -48,7 +48,9 @@
   3. A POST to `/api/webhooks/sms-reminder` without a valid QStash signature returns a non-200 response — the handler never reaches the upload-state check or SMS dispatch.
   4. A POST to `/api/webhooks/sms-reminder` with a valid signature and a session whose `uploadRefs` is non-empty returns `"skipped"` — no ClickSend API call is made.
   5. `cancelPendingReminder(sessionId)` reads the stored QStash message ID from Redis and calls `client.messages.cancel()` — verified by unit test with mocked QStash client.
-**Plans**: TBD
+**Plans**: 2 plans
+  - [ ] 02-01-PLAN.md — Wave 0: install @upstash/qstash + 5 failing test stubs (RED)
+  - [ ] 02-02-PLAN.md — Wave 1: reminder.ts + sms-reminder route.ts implementation (GREEN)
 
 ### Phase 3: Provider-Agnostic Seam
 **Goal**: The SMS feature is live end-to-end: payment success triggers immediate SMS and schedules the reminder, document upload cancels the reminder, and the Stripe webhook no longer contains any inline fan-out logic — all via a single `handleIntakePaid()` entry point that neither Stripe nor Bpoint types can leak through.
@@ -77,7 +79,7 @@
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Dispatch Foundation | 2/2 | Complete | 2026-04-27 |
-| 2. QStash Scheduler | 0/1 | Not started | - |
+| 2. QStash Scheduler | 0/2 | Not started | - |
 | 3. Provider-Agnostic Seam | 0/1 | Not started | - |
 
 ---
