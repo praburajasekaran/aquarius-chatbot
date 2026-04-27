@@ -41,7 +41,7 @@
 
 ### Testing
 
-- [ ] **TEST-01**: Unit tests cover E.164 normalisation, landline detection, and absent-env graceful degradation without hitting the real ClickSend API (mock `fetch`)
+- [x] **TEST-01**: Unit tests cover E.164 normalisation, landline detection, and absent-env graceful degradation without hitting the real ClickSend API (mock `fetch`)
 - [ ] **TEST-02**: Integration test simulates a Stripe webhook retry and asserts exactly one immediate SMS is dispatched
 - [ ] **TEST-03**: Integration test simulates a client uploading before the 24h reminder fires and asserts the reminder is cancelled (or at minimum skipped by the upload-state check)
 
@@ -86,7 +86,7 @@ Explicitly excluded. Documented to prevent scope creep.
 | COMP-01 | Phase 1 | Pending |
 | COMP-02 | Phase 1 | Pending |
 | OPS-03 | Phase 1 | Pending |
-| TEST-01 | Phase 1 | Pending |
+| TEST-01 | Phase 1 | Complete |
 | SCHED-01 | Phase 2 | Pending |
 | SCHED-02 | Phase 2 | Pending |
 | SCHED-03 | Phase 2 | Pending |

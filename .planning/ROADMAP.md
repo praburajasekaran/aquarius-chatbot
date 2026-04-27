@@ -76,7 +76,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Dispatch Foundation | 0/2 | Not started | - |
+| 1. Dispatch Foundation | 1/2 | In Progress|  |
 | 2. QStash Scheduler | 0/1 | Not started | - |
 | 3. Provider-Agnostic Seam | 0/1 | Not started | - |
 
