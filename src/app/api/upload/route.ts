@@ -2,6 +2,7 @@ import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { validateFileType, validateFileSize } from "@/lib/validators";
 import { createSession, getSession, updateSession } from "@/lib/kv";
+import { deliverInChatUploadsToZapier } from "@/lib/in-chat-upload/deliver-to-zapier";
 
 const MAX_FILES_PER_SESSION = 5;
 
@@ -42,7 +43,12 @@ export async function POST(req: Request) {
     const filesToProcess = files.slice(0, remainingSlots);
     const skipped = files.length - filesToProcess.length;
 
-    const uploadedRefs: string[] = [];
+    const successful: {
+      url: string;
+      name: string;
+      contentType: string;
+      sizeBytes: number;
+    }[] = [];
     const errors: { name: string; reason: string }[] = [];
 
     for (const file of filesToProcess) {
@@ -68,7 +74,12 @@ export async function POST(req: Request) {
           file,
           { access: "public", contentType: file.type }
         );
-        uploadedRefs.push(blob.url);
+        successful.push({
+          url: blob.url,
+          name: file.name,
+          contentType: file.type,
+          sizeBytes: file.size,
+        });
       } catch (err) {
         console.error("[upload] vercel blob put failed:", err);
         const message = err instanceof Error ? err.message : "Unknown error";
@@ -79,10 +90,26 @@ export async function POST(req: Request) {
       }
     }
 
+    const uploadedRefs = successful.map((s) => s.url);
+
     if (uploadedRefs.length > 0) {
       await updateSession(sessionId, {
         uploadRefs: [...session.uploadRefs, ...uploadedRefs],
       });
+
+      try {
+        await deliverInChatUploadsToZapier({
+          sessionId,
+          files: successful,
+        });
+      } catch (err) {
+        // Belt-and-braces — deliver helper already swallows its own errors.
+        console.error("[upload] zapier delivery threw past helper", {
+          event: "in_chat_zapier_unhandled",
+          sessionId,
+          err: err instanceof Error ? err.message : String(err),
+        });
+      }
     }
 
     if (errors.length > 0 && uploadedRefs.length === 0) {

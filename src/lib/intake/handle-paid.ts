@@ -1,4 +1,4 @@
-import { redis, updateSession } from "@/lib/kv";
+import { redis, getSession, createSession, updateSession } from "@/lib/kv";
 import { createUploadToken, hashToken } from "@/lib/upload-tokens";
 import { resend, sendTranscriptEmail } from "@/lib/resend";
 import { getIntake } from "@/lib/intake";
@@ -66,15 +66,24 @@ export async function handleIntakePaid(
     source,
   } = args;
 
-  // 1. Best-effort session marker — failure here must not block the fan-out
+  // 1. Best-effort session marker — failure here must not block the fan-out.
+  // The `session:` key has a 1h TTL and is only created by /api/upload, so on
+  // a fresh post-payment fan-out it usually doesn't exist yet. Upsert: create
+  // if missing, otherwise update. Either failure path is logged + degraded.
   try {
-    await updateSession(sessionId, {
-      paymentStatus: "paid",
+    const sessionData = {
+      paymentStatus: "paid" as const,
       stripeSessionId: paymentRef,
       paymentAmount,
-    });
+    };
+    const existing = await getSession(sessionId);
+    if (existing) {
+      await updateSession(sessionId, sessionData);
+    } else {
+      await createSession(sessionId, sessionData);
+    }
   } catch (err) {
-    console.error("[intake] session update failed", {
+    console.error("[intake] session upsert failed", {
       event: "intake_session_update_failed",
       sessionId,
       paymentRef,
