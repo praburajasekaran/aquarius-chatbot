@@ -10,6 +10,7 @@ import {
 } from "@/lib/allowed-types";
 import { getRecordByHash } from "@/lib/upload-tokens";
 import { touchMatterForSession } from "@/lib/session-matter-map";
+import { cancelPendingReminder } from "@/lib/sms/reminder";
 import type { UploadTokenRecord } from "@/types";
 import { BRANDING } from "@/lib/branding";
 
@@ -192,6 +193,21 @@ export async function handleUploadCompleted(
     } catch (err) {
       console.error("[late-upload] client notify failed", err);
     }
+  }
+
+  // --- cancel the pending 24h reminder SMS (PHASE-03) ---
+  // The client uploaded — they don't need to be reminded. cancelPendingReminder
+  // is idempotent + absent-env-safe (no-op without QSTASH_TOKEN); only logs on
+  // hard failure. Wrap in catch defensively to keep the upload-completed
+  // handler from ever throwing past this point.
+  try {
+    await cancelPendingReminder(sessionId);
+  } catch (err) {
+    console.error("[late-upload] cancel reminder threw", {
+      event: "late_upload_cancel_reminder_failed",
+      sessionId,
+      err: err instanceof Error ? err.message : String(err),
+    });
   }
 }
 
