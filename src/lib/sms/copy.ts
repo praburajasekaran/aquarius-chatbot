@@ -26,3 +26,18 @@ export const IMMEDIATE_SMS_COPY = (uploadLink: string): string =>
 
 export const REMINDER_SMS_COPY = (uploadLink: string): string =>
   `${FIRM_NAME}: A reminder to upload your documents to complete your matter: ${uploadLink} — ${FIRM_NAME} ${FIRM_CONTACT.phone}`;
+
+/**
+ * Internal staff notification — firm-to-firm SMS sent to the on-call mobile
+ * (FIRM_NOTIFY_PHONE) when an URGENT intake completes payment. Not subject
+ * to DCEM: the firm is both sender and recipient. Kept factual + concise so
+ * it fits in a single 160-char SMS segment with the client's callback number
+ * front-and-centre.
+ */
+export const URGENT_FIRM_SMS_COPY = (
+  clientName: string,
+  clientPhone: string
+): string =>
+  `${FIRM_NAME}: URGENT paid matter — ${
+    clientName || "(name unknown)"
+  } (${clientPhone || "no phone"}). Check email for details.`;
