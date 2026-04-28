@@ -57,6 +57,7 @@ export async function GET(
     signCookie({
       matterRef: record.matterRef,
       sessionId: record.sessionId,
+      clientName: record.clientName,
       exp,
     }),
     {

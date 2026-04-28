@@ -39,7 +39,10 @@ export default async function Page() {
           </p>
         </header>
 
-        <LateUploadClient matterRef={session.matterRef} />
+        <LateUploadClient
+          matterRef={session.matterRef}
+          clientName={session.clientName}
+        />
       </div>
     </main>
   );
