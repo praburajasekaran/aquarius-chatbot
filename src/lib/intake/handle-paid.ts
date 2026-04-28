@@ -4,7 +4,7 @@ import { resend, sendTranscriptEmail } from "@/lib/resend";
 import { getIntake } from "@/lib/intake";
 import { sendSms } from "@/lib/sms/dispatch";
 import { scheduleReminderSms } from "@/lib/sms/reminder";
-import { IMMEDIATE_SMS_COPY } from "@/lib/sms/copy";
+import { IMMEDIATE_SMS_COPY, URGENT_FIRM_SMS_COPY } from "@/lib/sms/copy";
 import { assertNoResendTracking } from "@/lib/email/assert-no-tracking";
 import PaymentReceipt from "@/lib/email/payment-receipt";
 import { BRANDING } from "@/lib/branding";
@@ -173,7 +173,7 @@ export async function handleIntakePaid(
     });
   }
 
-  // 6 + 7. SMS dispatch — both functions are absent-env-safe and never throw
+  // 6 + 7. Client SMS dispatch — both functions are absent-env-safe and never throw
   const phone = intake?.clientPhone;
   if (phone) {
     await sendSms(phone, IMMEDIATE_SMS_COPY(uploadLink));
@@ -195,6 +195,32 @@ export async function handleIntakePaid(
       sessionId,
       source,
     });
+  }
+
+  // 8. Urgent-only firm staff SMS (PHASE-03)
+  // Fires to the on-call mobile when an URGENT matter completes payment.
+  // sendSms is absent-env-safe — missing FIRM_NOTIFY_PHONE or CLICKSEND_*
+  // simply skips the dispatch. Non-urgent matters stay email-only.
+  if (intake?.urgency === "urgent") {
+    const firmPhone = process.env.FIRM_NOTIFY_PHONE;
+    if (firmPhone) {
+      await sendSms(
+        firmPhone,
+        URGENT_FIRM_SMS_COPY(
+          intake.clientName ?? clientName,
+          intake.clientPhone ?? ""
+        )
+      );
+    } else {
+      console.warn(
+        "[intake] urgent matter but FIRM_NOTIFY_PHONE not set — firm SMS skipped",
+        {
+          event: "intake_firm_sms_skipped",
+          reason: "no_firm_phone",
+          sessionId,
+        }
+      );
+    }
   }
 
   console.info("[intake] paid fan-out complete", {
