@@ -9,8 +9,8 @@
 
 ## Phases
 
-- [ ] **Phase 1: Dispatch Foundation** - Isolated SMS module: E.164 normalisation, landline detection, ClickSend client, compliance copy, unit tests — no existing files touched
-- [ ] **Phase 2: QStash Scheduler** - 24h delayed reminder: schedule on payment, signature-verified delivery webhook, upload-gate cancellation hook
+- [x] **Phase 1: Dispatch Foundation** - Isolated SMS module: E.164 normalisation, landline detection, ClickSend client, compliance copy, unit tests — no existing files touched *(completed 2026-04-27)*
+- [x] **Phase 2: QStash Scheduler** - 24h delayed reminder: schedule on payment, signature-verified delivery webhook, upload-gate cancellation hook *(completed 2026-04-27)*
 - [ ] **Phase 3: Provider-Agnostic Seam** - Wire everything into the app: `handleIntakePaid()` orchestrator, Stripe webhook refactor, upload-route cancel hooks, integration tests
 
 ---
@@ -31,7 +31,9 @@
   3. A number starting with `02`, `03`, `07`, or `08` is detected as a landline and emits a structured log event with `reason: "landline"` — verified by the unit test asserting `fetch` is never called.
   4. The SMS copy constant in `copy.ts` contains the firm name, the upload link placeholder, and a DCEM classification comment — and does NOT contain "Reply STOP" (alpha-tag incompatibility).
   5. Phone numbers are logged in masked form only (`+61*****XXXX`); the raw E.164 number never appears in any log output — verified by unit test spy on `console.info`.
-**Plans**: TBD
+**Plans**: 2 plans
+  - [x] 01-01-PLAN.md — Wave 0: Vitest infra + 6 failing test stubs (RED)
+  - [x] 01-02-PLAN.md — Wave 1: copy.ts and dispatch.ts implementation (GREEN)
 
 ### Phase 2: QStash Scheduler
 **Goal**: A cancellable 24h SMS reminder is scheduled at payment time and delivered exactly once — skipped if the client already uploaded, and cancelled when they upload before the window closes.
@@ -46,7 +48,9 @@
   3. A POST to `/api/webhooks/sms-reminder` without a valid QStash signature returns a non-200 response — the handler never reaches the upload-state check or SMS dispatch.
   4. A POST to `/api/webhooks/sms-reminder` with a valid signature and a session whose `uploadRefs` is non-empty returns `"skipped"` — no ClickSend API call is made.
   5. `cancelPendingReminder(sessionId)` reads the stored QStash message ID from Redis and calls `client.messages.cancel()` — verified by unit test with mocked QStash client.
-**Plans**: TBD
+**Plans**: 2 plans
+  - [x] 02-01-PLAN.md — Wave 0: install @upstash/qstash + 5 failing test stubs (RED) *(completed 2026-04-27)*
+  - [x] 02-02-PLAN.md — Wave 1: reminder.ts + sms-reminder route.ts implementation (GREEN) *(completed 2026-04-27)*
 
 ### Phase 3: Provider-Agnostic Seam
 **Goal**: The SMS feature is live end-to-end: payment success triggers immediate SMS and schedules the reminder, document upload cancels the reminder, and the Stripe webhook no longer contains any inline fan-out logic — all via a single `handleIntakePaid()` entry point that neither Stripe nor Bpoint types can leak through.
@@ -74,8 +78,8 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Dispatch Foundation | 0/1 | Not started | - |
-| 2. QStash Scheduler | 0/1 | Not started | - |
+| 1. Dispatch Foundation | 2/2 | Complete | 2026-04-27 |
+| 2. QStash Scheduler | 2/2 | Complete | 2026-04-27 |
 | 3. Provider-Agnostic Seam | 0/1 | Not started | - |
 
 ---
@@ -112,4 +116,4 @@ All 22 v1 requirements mapped. No orphans.
 ---
 
 *Roadmap created: 2026-04-24*
-*Last updated: 2026-04-24 after initialization*
+*Last updated: 2026-04-27 after completing phase 02 (qstash-scheduler — 5/5 tests GREEN, SCHED-01–05 verified)*

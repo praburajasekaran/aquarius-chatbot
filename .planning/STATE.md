@@ -1,3 +1,16 @@
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: unknown
+last_updated: "2026-04-27T17:56:45.984Z"
+progress:
+  total_phases: 3
+  completed_phases: 2
+  total_plans: 4
+  completed_plans: 4
+---
+
 # Project State: Aquarius Lawyers Chatbot — ClickSend SMS Integration
 
 ---
@@ -15,28 +28,27 @@
 
 ## Current Position
 
-**Current Phase:** Not started
-**Current Plan:** None
-**Status:** Roadmap created; awaiting first plan
-**Progress:** 0/3 phases complete
-
-```
-[          ] Phase 1: Dispatch Foundation
-[          ] Phase 2: QStash Scheduler
-[          ] Phase 3: Provider-Agnostic Seam
-```
-
----
+Phase: 02 (qstash-scheduler) — COMPLETE
+Plan: 2 of 2 (complete)
 
 ## Performance Metrics
 
 | Metric | Value |
 |--------|-------|
 | Phases total | 3 |
-| Phases complete | 0 |
+| Phases complete | 2 |
 | Requirements total | 22 |
-| Requirements complete | 0 |
+| Requirements complete | 11 |
 | Session started | 2026-04-24 |
+
+## Performance Metrics (Execution Log)
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 01-dispatch-foundation P01 | 2m | 3 tasks | 5 files |
+| Phase 01-dispatch-foundation P02 | 2m | 2 tasks | 2 files |
+| Phase 02-qstash-scheduler P01 | 10m | 2 tasks | 3 files |
+| Phase 02-qstash-scheduler P02 | 2m | 2 tasks | 3 files |
 
 ---
 
@@ -52,6 +64,16 @@
 | `fetch` only for ClickSend, no SDK | Consistent with existing Zapier/Resend pattern; ClickSend REST surface for a single send is 3 fields |
 | Landline detection pre-API, not post-response | ClickSend does not return carrier type synchronously; AU mobile prefix check is sufficient and testable |
 | Absent-safe env var pattern | App must boot and function without `CLICKSEND_*` or `QSTASH_*` vars for local dev and PR previews |
+| No @vitejs/plugin-react in plan 01 | Node-environment tests don't need the React plugin; avoids unnecessary dependency for plan 01 scope |
+| libphonenumber-js in dependencies not devDependencies | Will be imported at runtime by dispatch.ts in plan 02; it is a production dependency |
+| FIRM_NAME hardcoded as literal in copy.ts | BRANDING.firmName defaults to 'Demo Law Firm' when NEXT_PUBLIC_FIRM_NAME unset; DCEM-locked copy must be deterministic across all environments |
+| libphonenumber-js/min subpath resolves correctly | No fallback to plain libphonenumber-js was needed; /min subpath confirmed present under Next.js 16 bundler moduleResolution |
+| redact() preserves +61 prefix then masks middle digits | Produces +61*****5678 pattern matching /+61\*+5678/ regex in test 4 |
+| Two-key dedup design for SCHED-05 | sms-reminder:{sessionId} stores messageId for cancel-lookup; sms-reminder-sent:{sessionId} NX for handler delivery dedup — separate keys prevent cancel-lookup from being overwritten by dedup write |
+| @upstash/qstash installed as production dependency | Runtime import by reminder.ts and route.ts; same vendor as @upstash/redis already in project |
+| Upload guard uses uploaded:{sessionId} Redis key not getSession() | Session TTL=1h is too short for 24h reminder window; durable Redis key is the only reliable signal |
+| verifySignatureAppRouter wraps handleReminderDelivery as POST export | Structural SCHED-02 compliance; signing key reads happen at request time inside the HOC |
+| vitest v4 mock implementation must use regular function not arrow function | Arrow functions cannot be constructors; vi.fn().mockImplementation(function(){...}) required for new Client() mocks |
 
 ### Critical Constraints to Remember
 
@@ -93,13 +115,14 @@ None currently.
 ## Session Continuity
 
 To resume work, read:
+
 1. This file (`STATE.md`) — current position and decisions
 2. `ROADMAP.md` — phase goals and success criteria
 3. The current phase's plan file (`.planning/plans/phase-N-*.md`) when created
 
-Next action: `/gsd:plan-phase 1`
+Next action: Execute Phase 03 (handleIntakePaid orchestrator + late-upload integration)
 
 ---
 
 *State initialized: 2026-04-24*
-*Last updated: 2026-04-24 after roadmap creation*
+*Last updated: 2026-04-27 after completing 02-02 (reminder.ts + route.ts — 5/5 tests GREEN, Phase 2 complete)*
