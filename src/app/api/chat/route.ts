@@ -8,8 +8,11 @@ import {
 import { geminiFlash } from "@/lib/openrouter";
 import { tools, type ChatMessage } from "@/lib/tools";
 import { systemPrompt } from "@/lib/system-prompt";
+import { redis } from "@/lib/kv";
 
 export const maxDuration = 30;
+
+const TRANSCRIPT_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days, matches intake TTL
 
 // showOptions is a pure-UI tool that auto-resolves server-side. If the model
 // emits text alongside it in step N, we don't want step N+1 to fire — Gemini
@@ -23,8 +26,38 @@ const stopAfterShowOptionsOnly: StopCondition<typeof tools> = ({ steps }) => {
   return toolCalls.every((tc) => tc.toolName === "showOptions");
 };
 
+function formatTranscript(messages: ChatMessage[]): string {
+  return messages
+    .filter((m) => m.role === "user" || m.role === "assistant")
+    .flatMap((m) => {
+      const label = m.role === "user" ? "Client" : "Chatbot";
+      const lines = m.parts
+        .filter((p): p is { type: "text"; text: string } => p.type === "text")
+        .map((p) => p.text.trim())
+        .filter(Boolean);
+      return lines.map((text) => `${label}: ${text}`);
+    })
+    .join("\n\n");
+}
+
 export async function POST(req: Request) {
-  const { messages }: { messages: ChatMessage[] } = await req.json();
+  const {
+    messages,
+    sessionId,
+  }: { messages: ChatMessage[]; sessionId?: string } = await req.json();
+
+  if (sessionId) {
+    const transcript = formatTranscript(messages);
+    if (transcript) {
+      redis
+        .set(`transcript:${sessionId}`, transcript, {
+          ex: TRANSCRIPT_TTL_SECONDS,
+        })
+        .catch((err) =>
+          console.error("[chat] transcript persist failed", { sessionId, err })
+        );
+    }
+  }
 
   const result = streamText({
     model: geminiFlash,

@@ -2,7 +2,17 @@ import { Resend } from "resend";
 import { FIRM_CONTACT } from "@/lib/contact";
 import { BRANDING } from "@/lib/branding";
 
-export const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazily initialized so that a missing RESEND_API_KEY at module load time
+// doesn't crash routes that import this file without ever sending email.
+let _resend: Resend | null = null;
+function getClient(): Resend {
+  return (_resend ??= new Resend(process.env.RESEND_API_KEY));
+}
+export const resend: Resend = new Proxy({} as Resend, {
+  get(_, prop) {
+    return Reflect.get(getClient(), prop);
+  },
+});
 
 export async function sendTranscriptEmail({
   clientName,
@@ -23,7 +33,7 @@ export async function sendTranscriptEmail({
   stripeSessionId: string | null;
   transcript?: string;
 }) {
-  const to = process.env.FIRM_NOTIFICATION_EMAIL ?? "prabu@paretoid.com";
+  const to = process.env.FIRM_NOTIFY_EMAIL ?? "prabu@paretoid.com";
   return resend.emails.send({
     from: `${BRANDING.emailSenderName} <chatbot@send.growthkiwi.com>`,
     to,
@@ -128,6 +138,48 @@ export async function sendClientInquiryEmail({
   });
 }
 
+export async function sendFirmLeadEmail({
+  clientName,
+  clientEmail,
+  clientPhone,
+  matterDescription,
+  urgency,
+  displayPrice,
+  resumeUrl,
+}: {
+  clientName: string;
+  clientEmail: string;
+  clientPhone: string;
+  matterDescription: string;
+  urgency: "urgent" | "non-urgent";
+  displayPrice: string;
+  resumeUrl: string;
+}) {
+  const to = process.env.FIRM_NOTIFY_EMAIL ?? "prabu@paretoid.com";
+  return resend.emails.send({
+    from: `${BRANDING.emailSenderName} <chatbot@send.growthkiwi.com>`,
+    to,
+    subject: `New ${urgency} inquiry — ${clientName} (awaiting payment)`,
+    html: `
+      <h2>New Client Inquiry (Awaiting Payment)</h2>
+      <table style="border-collapse:collapse;width:100%">
+        <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Name</td><td style="padding:8px;border:1px solid #ddd">${clientName}</td></tr>
+        <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Email</td><td style="padding:8px;border:1px solid #ddd">${clientEmail}</td></tr>
+        <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Phone</td><td style="padding:8px;border:1px solid #ddd">${clientPhone}</td></tr>
+        <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Matter</td><td style="padding:8px;border:1px solid #ddd">${matterDescription}</td></tr>
+        <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Urgency</td><td style="padding:8px;border:1px solid #ddd">${urgency}</td></tr>
+        <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Fee</td><td style="padding:8px;border:1px solid #ddd">${displayPrice}</td></tr>
+      </table>
+      <p style="margin:16px 0;font-size:13px;color:#555">
+        Payment has not yet been completed. You will receive a second notification with the chat transcript once payment is confirmed.
+      </p>
+      <p style="margin:16px 0">
+        <a href="${resumeUrl}" style="color:#085a66">View payment link</a>
+      </p>
+    `,
+  });
+}
+
 export async function sendBookingNotificationEmail({
   clientName,
   clientEmail,
@@ -147,7 +199,7 @@ export async function sendBookingNotificationEmail({
   inviteeUri: string;
   stripeSessionId?: string | null;
 }) {
-  const to = process.env.FIRM_NOTIFICATION_EMAIL ?? "prabu@paretoid.com";
+  const to = process.env.FIRM_NOTIFY_EMAIL ?? "prabu@paretoid.com";
 
   let startLocal = eventStartTime;
   try {

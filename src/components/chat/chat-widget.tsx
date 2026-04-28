@@ -91,8 +91,8 @@ export function ChatWidget() {
   const [dismissedForMessageId, setDismissedForMessageId] = useState<string | null>(null);
 
   const transport = useMemo(
-    () => new DefaultChatTransport({ api: "/api/chat" }),
-    []
+    () => new DefaultChatTransport({ api: "/api/chat", body: { sessionId } }),
+    [sessionId]
   );
 
   const { messages, sendMessage, addToolOutput, status } = useChat<ChatMessage>({

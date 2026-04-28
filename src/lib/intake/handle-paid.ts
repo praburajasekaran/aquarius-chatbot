@@ -149,6 +149,10 @@ export async function handleIntakePaid(
 
   // 5. Firm transcript — best-effort, requires intake record
   const intake = await getIntake(sessionId);
+  const storedTranscript = await redis
+    .get<string>(`transcript:${sessionId}`)
+    .catch(() => null);
+
   if (intake) {
     try {
       await sendTranscriptEmail({
@@ -159,6 +163,7 @@ export async function handleIntakePaid(
         urgency: intake.urgency ?? "N/A",
         paymentAmount,
         stripeSessionId: paymentRef,
+        transcript: storedTranscript ?? undefined,
       });
     } catch (err) {
       console.error("[intake] firm transcript email failed", {

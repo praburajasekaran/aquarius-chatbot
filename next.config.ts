@@ -1,8 +1,23 @@
 import type { NextConfig } from "next";
+import path from "path";
+import { existsSync } from "fs";
+
+// In a git worktree, node_modules lives in the main repo, not the worktree.
+// Walk up from __dirname to find the nearest ancestor that has node_modules/next,
+// so Turbopack's filesystem root covers both the source and its dependencies.
+function findTurbopackRoot(start: string): string {
+  let dir = start;
+  while (true) {
+    if (existsSync(path.join(dir, "node_modules", "next"))) return dir;
+    const parent = path.dirname(dir);
+    if (parent === dir) return start;
+    dir = parent;
+  }
+}
 
 const nextConfig: NextConfig = {
   turbopack: {
-    root: ".",
+    root: findTurbopackRoot(__dirname),
   },
   async headers() {
     return [
