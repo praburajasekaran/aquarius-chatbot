@@ -2,7 +2,7 @@ import { tool } from "ai";
 import { z } from "zod";
 import { PRICING } from "@/lib/stripe";
 import { createIntake } from "@/lib/intake";
-import { sendClientInquiryEmail } from "@/lib/resend";
+import { sendClientInquiryEmail, sendFirmLeadEmail } from "@/lib/resend";
 
 export const selectUrgency = tool({
   description:
@@ -55,6 +55,22 @@ export const selectUrgency = tool({
       });
     } catch (err) {
       console.error("[selectUrgency] failed to send client inquiry email", err);
+    }
+
+    const appUrl = process.env.NEXT_PUBLIC_URL ?? "";
+    const resumeUrl = `${appUrl}/api/checkout/resume?session=${encodeURIComponent(sessionId)}`;
+    try {
+      await sendFirmLeadEmail({
+        clientName,
+        clientEmail,
+        clientPhone,
+        matterDescription,
+        urgency,
+        displayPrice: pricing.displayPrice,
+        resumeUrl,
+      });
+    } catch (err) {
+      console.error("[selectUrgency] failed to send firm lead email", err);
     }
 
     const costDisclosure =
