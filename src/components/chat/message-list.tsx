@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import Image from "next/image";
 import ReactMarkdown from "react-markdown";
-import { Bot, User } from "lucide-react";
+import { User } from "lucide-react";
 import type { ChatMessage } from "@/lib/tools";
 import { PaymentCard } from "@/components/payment/payment-card";
 import { DocumentUpload } from "@/components/upload/document-upload";
@@ -62,9 +63,15 @@ export function MessageList({
         <div className="flex gap-3">
           <div
             aria-hidden="true"
-            className="shrink-0 h-8 w-8 rounded-full flex items-center justify-center bg-brand/10"
+            className="shrink-0 h-8 w-8 rounded-full overflow-hidden bg-brand/10"
           >
-            <Bot className="h-4 w-4 text-brand" />
+            <Image
+              src="/chat-profile-pic.png"
+              alt=""
+              width={64}
+              height={64}
+              className="h-full w-full object-cover"
+            />
           </div>
           <div
             aria-label={`Assistant: ${BRANDING.welcomeMessage}`}
@@ -95,14 +102,20 @@ export function MessageList({
                   {/* Avatar — decorative, hidden from AT */}
                   <div
                     aria-hidden="true"
-                    className={`shrink-0 h-8 w-8 rounded-full flex items-center justify-center ${
-                      isUser ? "bg-gray-200" : "bg-brand/10"
+                    className={`shrink-0 h-8 w-8 rounded-full overflow-hidden ${
+                      isUser ? "bg-gray-200 flex items-center justify-center" : "bg-brand/10"
                     }`}
                   >
                     {isUser ? (
                       <User className="h-4 w-4 text-gray-600" />
                     ) : (
-                      <Bot className="h-4 w-4 text-brand" />
+                      <Image
+                        src="/chat-profile-pic.png"
+                        alt=""
+                        width={64}
+                        height={64}
+                        className="h-full w-full object-cover"
+                      />
                     )}
                   </div>
                   <div
