@@ -38,5 +38,9 @@ export interface UploadTokenRecord {
 export interface UploadSessionCookie {
   matterRef: string;
   sessionId: string;
+  // Optional for backwards compatibility with cookies issued before
+  // clientName was added to the payload — verifyCookie may return a
+  // payload without it.
+  clientName?: string;
   exp: number;
 }

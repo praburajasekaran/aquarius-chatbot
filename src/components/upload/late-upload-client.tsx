@@ -30,7 +30,13 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function LateUploadClient({ matterRef }: { matterRef: string }) {
+export function LateUploadClient({
+  matterRef,
+  clientName,
+}: {
+  matterRef: string;
+  clientName?: string;
+}) {
   const inputRef = useRef<HTMLInputElement>(null);
   const fileObjectsRef = useRef<Map<string, File>>(new Map());
   const keyCounterRef = useRef(0);
@@ -146,6 +152,12 @@ export function LateUploadClient({ matterRef }: { matterRef: string }) {
       aria-label="Upload your documents"
       className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 space-y-4"
     >
+      {clientName && (
+        <div className="text-base text-gray-900">
+          Hi <span className="font-medium">{clientName}</span>, please upload
+          any documents for your matter below.
+        </div>
+      )}
       <div className="text-sm text-gray-600">
         Matter reference: <span className="font-mono text-gray-900">{matterRef}</span>
       </div>
