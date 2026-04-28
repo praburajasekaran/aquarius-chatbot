@@ -195,11 +195,29 @@ export async function handleUploadCompleted(
     }
   }
 
-  // --- cancel the pending 24h reminder SMS (PHASE-03) ---
-  // The client uploaded — they don't need to be reminded. cancelPendingReminder
-  // is idempotent + absent-env-safe (no-op without QSTASH_TOKEN); only logs on
-  // hard failure. Wrap in catch defensively to keep the upload-completed
-  // handler from ever throwing past this point.
+  // --- suppress the pending 24h reminder SMS (PHASE-03) ---
+  // Two layers of protection, in order:
+  //   1. Set `uploaded:{sessionId}` flag (26h TTL — outlives the 24h delay).
+  //      The reminder webhook reads this flag and short-circuits ("skipped —
+  //      already uploaded") even if the QStash message is still queued. This
+  //      is the durable guarantee — survives QStash cancel failures, network
+  //      blips, and races where the reminder fires concurrently with upload.
+  //   2. Cancel the QStash message so it never even attempts delivery
+  //      (saves a wasted callback + log line).
+  // Both wrapped in try/catch so the upload-completed handler never throws
+  // past this point — the upload itself has already succeeded.
+  const UPLOADED_FLAG_TTL_SECONDS = 26 * 3600; // 26h, matches reminder key TTL
+  try {
+    await redis.set(`uploaded:${sessionId}`, "1", {
+      ex: UPLOADED_FLAG_TTL_SECONDS,
+    });
+  } catch (err) {
+    console.error("[late-upload] uploaded-flag set threw", {
+      event: "late_upload_flag_set_failed",
+      sessionId,
+      err: err instanceof Error ? err.message : String(err),
+    });
+  }
   try {
     await cancelPendingReminder(sessionId);
   } catch (err) {
