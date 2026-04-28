@@ -53,5 +53,19 @@ export async function handleReminderDelivery(
 }
 
 // SCHED-02: every real POST is verified against QStash signing keys
-// (QSTASH_CURRENT_SIGNING_KEY + QSTASH_NEXT_SIGNING_KEY read from process.env at request time)
-export const POST = verifySignatureAppRouter(handleReminderDelivery);
+// (QSTASH_CURRENT_SIGNING_KEY + QSTASH_NEXT_SIGNING_KEY).
+//
+// LAZY WRAPPING (PHASE-03): verifySignatureAppRouter() reads the signing
+// keys synchronously and throws if either is missing. Calling it at module
+// load makes Next.js's "collect page data" build step crash on PR previews
+// and local dev when the keys aren't set, violating the project-wide
+// "absent-safe env var" principle (.planning/STATE.md → Critical Constraints).
+// We defer construction to first request and memoise the result.
+let cachedHandler: ((req: Request) => Promise<Response>) | null = null;
+
+export async function POST(req: Request): Promise<Response> {
+  if (!cachedHandler) {
+    cachedHandler = verifySignatureAppRouter(handleReminderDelivery);
+  }
+  return cachedHandler(req);
+}

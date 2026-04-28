@@ -99,7 +99,14 @@ export function PaymentCard({ sessionId, onComplete, onFail }: PaymentCardProps)
   }
 
   if (DEMO_BYPASS_PAYMENT) {
-    return <DemoPaymentCard pricing={pricing} onComplete={onComplete} onFail={onFail} />;
+    return (
+      <DemoPaymentCard
+        sessionId={sessionId}
+        pricing={pricing}
+        onComplete={onComplete}
+        onFail={onFail}
+      />
+    );
   }
 
   return (
@@ -142,10 +149,12 @@ export function PaymentCard({ sessionId, onComplete, onFail }: PaymentCardProps)
 }
 
 function DemoPaymentCard({
+  sessionId,
   pricing,
   onComplete,
   onFail,
 }: {
+  sessionId: string;
   pricing: Pricing;
   onComplete: () => void;
   onFail?: () => void;
@@ -154,12 +163,28 @@ function DemoPaymentCard({
     "idle" | "processing-success" | "processing-failure" | "succeeded" | "failed"
   >("idle");
 
-  function handleSuccess() {
+  async function handleSuccess() {
     setStatus("processing-success");
-    setTimeout(() => {
-      setStatus("succeeded");
-      onComplete();
-    }, 800);
+    // Fire the same post-payment fan-out (token mint, receipt email, SMS,
+    // 24h reminder) that the real payment webhook would. Failure here must
+    // NOT block the demo — the orchestrator already logs its own errors.
+    try {
+      const res = await fetch("/api/intake/bypass-paid", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId }),
+      });
+      if (!res.ok) {
+        console.error(
+          "[demo-bypass] orchestrator returned non-ok",
+          res.status
+        );
+      }
+    } catch (err) {
+      console.error("[demo-bypass] orchestrator call threw", err);
+    }
+    setStatus("succeeded");
+    onComplete();
   }
 
   function handleFailure() {
