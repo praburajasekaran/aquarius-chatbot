@@ -38,6 +38,15 @@ export function MessageInput({
     if (!disabled) textareaRef.current?.focus();
   }, [disabled]);
 
+  // Auto-resize: shrink to auto first so the element can contract, then
+  // expand to scrollHeight. The max-h cap in CSS handles very long pastes.
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [input]);
+
   // Stop any active recognition on unmount to avoid leaking audio capture
   useEffect(() => {
     return () => {
@@ -172,7 +181,7 @@ export function MessageInput({
             disabled={disabled}
             rows={1}
             /* text-base (16px) is the strict minimum to prevent iOS auto-zoom on focus */
-            className="flex-1 resize-none rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-base focus:border-[#085a66] focus:outline-none focus:ring-2 focus:ring-[#085a66] disabled:opacity-50"
+            className="flex-1 resize-none overflow-y-auto max-h-[9.375rem] rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-base focus:border-[#085a66] focus:outline-none focus:ring-2 focus:ring-[#085a66] disabled:opacity-50"
           />
 
           {speechSupported && (

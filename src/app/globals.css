@@ -81,6 +81,17 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: 4px;
 }
 
+/* Hide native scrollbar on the chat input — the textarea auto-resizes so
+   a scrollbar is never needed for normal use; at max-height the content
+   is still keyboard/touch scrollable without the visual noise. */
+#chat-input {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+#chat-input::-webkit-scrollbar {
+  display: none;
+}
+
 /* Reduced motion — WCAG 2.3.3 AAA */
 @media (prefers-reduced-motion: reduce) {
   *,
