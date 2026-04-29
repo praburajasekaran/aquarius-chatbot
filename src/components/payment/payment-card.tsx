@@ -78,7 +78,7 @@ export function PaymentCard({ sessionId, onComplete, onFail }: PaymentCardProps)
     return (
       <section
         aria-label="Payment unavailable"
-        className="-mx-2 p-4 bg-white border border-red-200 rounded-xl shadow-sm"
+        className="-mx-4 p-4 bg-white border border-red-200 rounded-xl shadow-sm"
       >
         <p role="alert" className="text-sm text-red-800">
           {error}
@@ -91,7 +91,7 @@ export function PaymentCard({ sessionId, onComplete, onFail }: PaymentCardProps)
     return (
       <section
         aria-label="Loading payment"
-        className="-mx-2 p-4 bg-white border border-gray-200 rounded-xl shadow-sm"
+        className="-mx-4 p-4 bg-white border border-gray-200 rounded-xl shadow-sm"
       >
         <p className="text-sm text-gray-600">Loading payment details…</p>
       </section>
@@ -112,7 +112,7 @@ export function PaymentCard({ sessionId, onComplete, onFail }: PaymentCardProps)
   return (
     <section
       aria-label="Payment required"
-      className="-mx-2 p-4 bg-white border border-gray-200 rounded-xl shadow-sm space-y-3"
+      className="-mx-4 p-4 bg-white border border-gray-200 rounded-xl shadow-sm space-y-3"
     >
       <div className="flex items-center gap-2 text-base font-medium text-gray-800">
         <CreditCard className="h-4 w-4 text-brand" aria-hidden="true" />
@@ -201,7 +201,7 @@ function DemoPaymentCard({
   return (
     <section
       aria-label="Payment required"
-      className="-mx-2 p-4 bg-white border border-gray-200 rounded-xl shadow-sm space-y-3"
+      className="-mx-4 p-4 bg-white border border-gray-200 rounded-xl shadow-sm space-y-3"
     >
       <div className="flex items-center gap-2 text-base font-medium text-gray-800">
         <CreditCard className="h-4 w-4 text-brand" aria-hidden="true" />
