@@ -223,7 +223,7 @@ export function DocumentUpload({
   const doneCount = files.filter((f) => f.status === "done").length;
 
   return (
-    <section aria-label="Upload supporting documents" className="mx-11 p-4 bg-white border border-gray-200 rounded-xl shadow-sm space-y-3">
+    <section aria-label="Upload supporting documents" className="-mx-2 p-4 bg-white border border-gray-200 rounded-xl shadow-sm space-y-3">
       <div className="flex items-center gap-2 text-base font-medium text-gray-800">
         <UploadCloud className="h-4 w-4 text-brand" aria-hidden="true" />
         Upload Supporting Documents
