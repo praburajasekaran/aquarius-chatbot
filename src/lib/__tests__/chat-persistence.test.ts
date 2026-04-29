@@ -99,6 +99,51 @@ describe("chat-persistence", () => {
       expect(localStorage.getItem(KEY)).toBeNull();
     });
 
+    it("mints fresh when expiresAt is non-finite", async () => {
+      const { loadChat } = await import("@/lib/chat-persistence");
+      const poisoned = {
+        schemaVersion: 1,
+        sessionId: "s_old",
+        messages: [
+          { id: "m1", role: "user", parts: [{ type: "text", text: "hi" }] },
+        ],
+        expiresAt: null, // JSON.stringify(NaN) === "null", same outcome
+      };
+      localStorage.setItem(KEY, JSON.stringify(poisoned));
+
+      const result = loadChat();
+      expect(result.sessionId).not.toBe("s_old");
+      expect(result.initialMessages).toEqual([]);
+      expect(localStorage.getItem(KEY)).toBeNull();
+    });
+
+    it("mints fresh when messages array contains non-message values", async () => {
+      const { loadChat } = await import("@/lib/chat-persistence");
+      const corrupted = {
+        schemaVersion: 1,
+        sessionId: "s_old",
+        messages: [null, 42, "haha"],
+        expiresAt: Date.now() + 60_000,
+      };
+      localStorage.setItem(KEY, JSON.stringify(corrupted));
+
+      const result = loadChat();
+      expect(result.sessionId).not.toBe("s_old");
+      expect(result.initialMessages).toEqual([]);
+      expect(localStorage.getItem(KEY)).toBeNull();
+    });
+
+    it("mints fresh after a saved entry's TTL elapses (round-trip)", async () => {
+      const { loadChat, saveChat } = await import("@/lib/chat-persistence");
+      saveChat("s_round_trip", sampleMessages);
+      // Advance fake clock past the 6h TTL.
+      vi.advanceTimersByTime(6 * 60 * 60 * 1000 + 1);
+
+      const result = loadChat();
+      expect(result.sessionId).not.toBe("s_round_trip");
+      expect(result.initialMessages).toEqual([]);
+    });
+
     it("mints fresh when localStorage throws on read", async () => {
       const { loadChat } = await import("@/lib/chat-persistence");
       vi.spyOn(localStorage, "getItem").mockImplementation(() => {

@@ -23,6 +23,12 @@ function safeRemove(): void {
   }
 }
 
+function isMessageLike(m: unknown): boolean {
+  if (typeof m !== "object" || m === null) return false;
+  const r = m as Record<string, unknown>;
+  return typeof r.id === "string" && Array.isArray(r.parts);
+}
+
 function isStored(value: unknown): value is Stored {
   if (typeof value !== "object" || value === null) return false;
   const v = value as Record<string, unknown>;
@@ -30,7 +36,8 @@ function isStored(value: unknown): value is Stored {
     v.schemaVersion === SCHEMA_VERSION &&
     typeof v.sessionId === "string" &&
     Array.isArray(v.messages) &&
-    typeof v.expiresAt === "number"
+    v.messages.every(isMessageLike) &&
+    Number.isFinite(v.expiresAt)
   );
 }
 
