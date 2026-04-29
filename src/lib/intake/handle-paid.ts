@@ -126,11 +126,19 @@ export async function handleIntakePaid(
   }
   const uploadLink = `${appUrl}/upload/${rawToken}`;
 
+  // Load intake early — needed for receipt urgency routing AND firm transcript.
+  // Best-effort: missing intake just means we send a receipt without an
+  // urgency-specific next-step block.
+  const intake = await getIntake(sessionId);
+
   // 4. Receipt email — best-effort
   const from = process.env.RESEND_FROM_EMAIL;
   if (from) {
     try {
       await assertNoResendTracking();
+      const calendlyUrl =
+        process.env.CALENDLY_BOOKING_URL ??
+        "https://calendly.com/ekalaivan/advising-meeting";
       await resend.emails.send({
         from,
         to: clientEmail,
@@ -140,6 +148,9 @@ export async function handleIntakePaid(
           matterRef: sessionId,
           amountCents: paymentAmount,
           uploadLink,
+          urgency: intake?.urgency ?? null,
+          calendlyUrl,
+          clientEmail,
         }),
       });
     } catch (err) {
@@ -157,7 +168,6 @@ export async function handleIntakePaid(
   }
 
   // 5. Firm transcript — best-effort, requires intake record
-  const intake = await getIntake(sessionId);
   const storedTranscript = await redis
     .get<string>(`transcript:${sessionId}`)
     .catch(() => null);

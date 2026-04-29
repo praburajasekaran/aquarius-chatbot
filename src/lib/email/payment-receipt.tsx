@@ -4,18 +4,24 @@ import {
   Container,
   Head,
   Heading,
+  Hr,
   Html,
+  Link,
   Preview,
   Section,
   Text,
 } from "@react-email/components";
 import { BRANDING } from "@/lib/branding";
+import { FIRM_CONTACT } from "@/lib/contact";
 
 export interface PaymentReceiptProps {
   name?: string;
   matterRef: string;
   amountCents: number;
   uploadLink: string;
+  urgency?: "urgent" | "non-urgent" | null;
+  calendlyUrl?: string;
+  clientEmail?: string;
 }
 
 function formatAud(cents: number): string {
@@ -30,6 +36,9 @@ export default function PaymentReceipt({
   matterRef,
   amountCents,
   uploadLink,
+  urgency,
+  calendlyUrl,
+  clientEmail,
 }: PaymentReceiptProps) {
   const greeting = name ? `Hi ${name},` : "Hello,";
   const amount = formatAud(amountCents);
@@ -62,6 +71,55 @@ export default function PaymentReceipt({
             </Button>
           </Section>
 
+          {urgency === "urgent" ? (
+            <>
+              <Hr style={divider} />
+              <Heading as="h2" style={subheading}>
+                Next step — please call us
+              </Heading>
+              <Text style={paragraph}>
+                Because you flagged your matter as urgent, the next step is to
+                call our office so we can begin work straight away. Please
+                phone us on{" "}
+                <Link href={FIRM_CONTACT.phoneHref} style={phoneLink}>
+                  {FIRM_CONTACT.phone}
+                </Link>{" "}
+                during our business hours
+                (<strong>{FIRM_CONTACT.businessHours}</strong>).
+              </Text>
+              <Section style={buttonWrap}>
+                <Button style={callButton} href={FIRM_CONTACT.phoneHref}>
+                  Call {FIRM_CONTACT.phone}
+                </Button>
+              </Section>
+              <Text style={paragraph}>
+                If you reach our voicemail outside business hours, leave your
+                name and matter reference and we&apos;ll return your call as
+                soon as we open.
+              </Text>
+            </>
+          ) : urgency === "non-urgent" && calendlyUrl ? (
+            <>
+              <Hr style={divider} />
+              <Heading as="h2" style={subheading}>
+                Next step — book your Legal Strategy Session
+              </Heading>
+              <Text style={paragraph}>
+                If you haven&apos;t already picked a slot in chat, please book
+                your Legal Strategy Session using the link below. We&apos;ll
+                walk you through your matter and next steps in detail.
+              </Text>
+              <Section style={buttonWrap}>
+                <Button
+                  style={button}
+                  href={buildCalendlyPrefillUrl(calendlyUrl, name, clientEmail)}
+                >
+                  Book your session
+                </Button>
+              </Section>
+            </>
+          ) : null}
+
           <Text style={footer}>
             This link stays valid for 7 days and can be used multiple times. If
             you didn&apos;t make this payment, please reply to this email right
@@ -71,6 +129,18 @@ export default function PaymentReceipt({
       </Body>
     </Html>
   );
+}
+
+function buildCalendlyPrefillUrl(
+  baseUrl: string,
+  name?: string,
+  email?: string
+): string {
+  const params = new URLSearchParams();
+  if (name) params.set("name", name);
+  if (email) params.set("email", email);
+  const query = params.toString();
+  return query ? `${baseUrl}?${query}` : baseUrl;
 }
 
 const body: React.CSSProperties = {
@@ -115,6 +185,35 @@ const button: React.CSSProperties = {
   borderRadius: "6px",
   textDecoration: "none",
   display: "inline-block",
+};
+
+const callButton: React.CSSProperties = {
+  backgroundColor: "#085a66",
+  color: "#ffffff",
+  fontSize: "16px",
+  fontWeight: 600,
+  padding: "12px 24px",
+  borderRadius: "6px",
+  textDecoration: "none",
+  display: "inline-block",
+};
+
+const divider: React.CSSProperties = {
+  borderColor: "#e5e5e5",
+  margin: "32px 0 24px",
+};
+
+const subheading: React.CSSProperties = {
+  color: "#1a1a1a",
+  fontSize: "18px",
+  fontWeight: 600,
+  margin: "0 0 12px",
+};
+
+const phoneLink: React.CSSProperties = {
+  color: "#085a66",
+  fontWeight: 600,
+  textDecoration: "none",
 };
 
 const footer: React.CSSProperties = {
