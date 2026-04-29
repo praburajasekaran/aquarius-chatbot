@@ -22,7 +22,7 @@ export function UrgentContactCard({ onAcknowledge, disabled = false }: UrgentCon
     <div
       role="region"
       aria-label="Call us for urgent matters"
-      className="-mx-2 p-4 rounded-2xl border border-brand/40 bg-brand/5"
+      className="-mx-4 p-4 rounded-2xl border border-brand/40 bg-brand/5"
     >
       <h3 className="text-lg font-semibold text-gray-900 mb-2">
         Call us for urgent matters

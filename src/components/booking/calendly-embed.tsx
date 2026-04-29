@@ -98,7 +98,7 @@ export function CalendlyEmbed({
   }
 
   return (
-    <div className="-mx-2 rounded-2xl overflow-hidden border border-brand/30">
+    <div className="-mx-4 rounded-2xl overflow-hidden border border-brand/30">
       <InlineWidget
         url={url}
         prefill={{
