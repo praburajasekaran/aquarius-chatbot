@@ -10,6 +10,8 @@ import { EndChatButton } from "./end-chat-button";
 import { EndChatDialog } from "./end-chat-dialog";
 import { loadChat, saveChat, clearChat } from "@/lib/chat-persistence";
 import type { ChatMessage } from "@/lib/tools";
+import { Scale } from "lucide-react";
+import { BRANDING } from "@/lib/branding";
 
 // Chips shown alongside the initial assistant greeting, before the visitor
 // has sent any message. These mirror the options the AI would emit itself if
@@ -253,9 +255,22 @@ export function ChatWidget() {
 
   return (
     <div className="relative flex flex-col h-full bg-white" aria-label="Criminal Law Assistant chat">
-      {messages.length > 0 && (
-        <EndChatButton onClick={() => setEndChatOpen(true)} />
-      )}
+      <header role="banner" className="bg-white border-b border-gray-200 px-4 py-3">
+        <div className="flex items-center gap-3">
+          <div className="h-9 w-9 rounded-lg bg-brand/10 flex items-center justify-center shrink-0">
+            <Scale className="h-5 w-5 text-brand" aria-hidden="true" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-base font-heading font-semibold text-gray-900 truncate">
+              {BRANDING.firmName}
+            </h1>
+            <p className="text-sm text-gray-500">Criminal Law Assistant</p>
+          </div>
+          {messages.length > 0 && (
+            <EndChatButton onClick={() => setEndChatOpen(true)} />
+          )}
+        </div>
+      </header>
       <DisclaimerBanner />
       <MessageList
         messages={messages}

@@ -12,10 +12,10 @@ export function EndChatButton({ onClick }: EndChatButtonProps) {
       type="button"
       onClick={onClick}
       aria-label="End chat"
-      title="End chat"
-      className="absolute top-2 right-2 z-10 inline-flex items-center justify-center h-8 w-8 rounded-full text-slate-500 hover:text-slate-700 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 transition-colors"
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 transition-colors"
     >
-      <RotateCcw className="h-4 w-4" strokeWidth={2.25} aria-hidden="true" />
+      <RotateCcw className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden="true" />
+      <span>End chat</span>
     </button>
   );
 }
