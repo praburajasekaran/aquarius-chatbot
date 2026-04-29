@@ -11,12 +11,9 @@ const TEASER_DELAY_MS = 3000;
 
 export function ChatWidgetEmbed({ src = "/" }: { src?: string }) {
   const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const [teaserVisible, setTeaserVisible] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-
     let alreadyShown = false;
     try {
       alreadyShown = sessionStorage.getItem(TEASER_FLAG_KEY) === "1";
@@ -43,7 +40,7 @@ export function ChatWidgetEmbed({ src = "/" }: { src?: string }) {
     dismissTeaser();
   }
 
-  if (!mounted) return null;
+  if (typeof window === "undefined") return null;
 
   const teaserShown = teaserVisible && !open;
 

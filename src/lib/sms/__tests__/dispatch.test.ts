@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { sendSms, toE164AU, isLandline, redact } from "../dispatch";
-import { IMMEDIATE_SMS_COPY, REMINDER_SMS_COPY } from "../copy";
+import { sendSms, toE164AU } from "../dispatch";
+import { IMMEDIATE_SMS_COPY } from "../copy";
 
 describe("toE164AU (SMS-03)", () => {
   it("converts a spaced AU mobile to E.164", () => {
