@@ -72,9 +72,10 @@ export async function sendClientInquiryEmail({
 }) {
   const appUrl = process.env.NEXT_PUBLIC_URL ?? "";
   const resumeUrl = `${appUrl}/api/checkout/resume?session=${encodeURIComponent(sessionId)}`;
-  const calendlyUrl =
-    process.env.CALENDLY_BOOKING_URL ??
-    "https://calendly.com/ekalaivan/advising-meeting";
+  const calendlyUrl = process.env.CALENDLY_BOOKING_URL;
+  if (!calendlyUrl) {
+    throw new Error("CALENDLY_BOOKING_URL not set");
+  }
   const calendlyPrefillUrl = `${calendlyUrl}?name=${encodeURIComponent(clientName)}&email=${encodeURIComponent(clientEmail)}`;
 
   const urgentBlock = `
