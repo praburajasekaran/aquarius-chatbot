@@ -6,7 +6,9 @@ import { useRef, useEffect, useMemo, useState } from "react";
 import { DisclaimerBanner } from "./disclaimer-banner";
 import { MessageList } from "./message-list";
 import { MessageInput } from "./message-input";
-import { loadChat, saveChat } from "@/lib/chat-persistence";
+import { EndChatButton } from "./end-chat-button";
+import { EndChatDialog } from "./end-chat-dialog";
+import { loadChat, saveChat, clearChat } from "@/lib/chat-persistence";
 import type { ChatMessage } from "@/lib/tools";
 
 // Chips shown alongside the initial assistant greeting, before the visitor
@@ -85,20 +87,19 @@ function extractSuggestions(messages: ChatMessage[]): string[] {
 }
 
 export function ChatWidget() {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- _setPersisted is used in Task 7 (End Chat)
-  const [persisted, _setPersisted] = useState(loadChat);
+  const [persisted, setPersisted] = useState(loadChat);
   const { sessionId, initialMessages } = persisted;
   // Track the assistant message ID for which suggestions were dismissed.
   // When a new assistant message arrives (different ID), suggestions reset
   // automatically — no effect needed, avoiding cascading-render lint errors.
   const [dismissedForMessageId, setDismissedForMessageId] = useState<string | null>(null);
+  const [endChatOpen, setEndChatOpen] = useState(false);
 
   const transport = useMemo(
     () => new DefaultChatTransport({ api: "/api/chat", body: { sessionId } }),
     [sessionId]
   );
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- setMessages and stop are used in Task 7 (End Chat)
   const { messages, sendMessage, addToolOutput, status, setMessages, stop } = useChat<ChatMessage>({
     transport,
     sendAutomaticallyWhen: shouldAutoContinue,
@@ -223,8 +224,38 @@ export function ChatWidget() {
     });
   }
 
+  function handleEndChatConfirm() {
+    // Stop any in-flight stream so partial assistant turns don't leak
+    // past the reset.
+    if (status === "streaming" || status === "submitted") {
+      stop();
+    }
+    // Wipe the localStorage entry first.
+    clearChat();
+    // Best-effort server cleanup. Never block the UI on this — the server
+    // session has its own TTL fallback.
+    fetch("/api/chat/session", {
+      method: "DELETE",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ sessionId }),
+    }).catch(() => {
+      // Network/server error is acceptable — server-side TTL will reap.
+    });
+    // Reset the in-memory chat state.
+    setMessages([]);
+    setDismissedForMessageId(null);
+    // Re-mint sessionId by re-running loadChat, which now sees an empty
+    // localStorage and returns a fresh sessionId + empty messages.
+    setPersisted(loadChat());
+    // Close the dialog.
+    setEndChatOpen(false);
+  }
+
   return (
-    <div className="flex flex-col h-full bg-white" aria-label="Criminal Law Assistant chat">
+    <div className="relative flex flex-col h-full bg-white" aria-label="Criminal Law Assistant chat">
+      {messages.length > 0 && (
+        <EndChatButton onClick={() => setEndChatOpen(true)} />
+      )}
       <DisclaimerBanner />
       <MessageList
         messages={messages}
@@ -257,6 +288,11 @@ export function ChatWidget() {
         disabled={isLoading}
         suggestions={suggestions}
         onSuggestionsDismissed={() => setDismissedForMessageId(suggestionsKey)}
+      />
+      <EndChatDialog
+        open={endChatOpen}
+        onConfirm={handleEndChatConfirm}
+        onCancel={() => setEndChatOpen(false)}
       />
     </div>
   );
