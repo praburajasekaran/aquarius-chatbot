@@ -95,9 +95,10 @@ export async function POST(req: Request) {
         // Load intake before the receipt so we can route the next-step block
         // (urgent → call us; non-urgent → Calendly link).
         const intake = await getIntake(sessionId);
-        const calendlyUrl =
-          process.env.CALENDLY_BOOKING_URL ??
-          "https://calendly.com/ekalaivan/advising-meeting";
+        const calendlyUrl = process.env.CALENDLY_BOOKING_URL;
+        if (!calendlyUrl) {
+          throw new Error("CALENDLY_BOOKING_URL not set");
+        }
 
         await resend.emails.send({
           from,

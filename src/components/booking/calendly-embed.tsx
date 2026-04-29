@@ -67,9 +67,18 @@ export function CalendlyEmbed({
     return () => window.removeEventListener("message", handler);
   }, [onBooked, disabled]);
 
-  const url =
-    process.env.NEXT_PUBLIC_CALENDLY_BOOKING_URL ??
-    "https://calendly.com/ekalaivan/advising-meeting";
+  const url = process.env.NEXT_PUBLIC_CALENDLY_BOOKING_URL;
+
+  if (!url) {
+    return (
+      <div
+        role="alert"
+        className="mx-11 p-4 rounded-2xl border border-amber-200 bg-amber-50 text-sm text-amber-900"
+      >
+        Booking is temporarily unavailable. Please contact us directly.
+      </div>
+    );
+  }
 
   if (booked) {
     return (
