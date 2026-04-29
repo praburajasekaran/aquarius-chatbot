@@ -117,6 +117,27 @@ export function ChatWidget() {
     saveChat(sessionId, messages);
   }, [messages, status, sessionId]);
 
+  // Resume continuation after hydration. The AI SDK's sendAutomaticallyWhen
+  // callback fires only on session-internal mutations (sendMessage,
+  // addToolOutput). When we hydrate via the `messages: initialMessages` prop
+  // after a page reload, the SDK doesn't re-evaluate that callback — so a
+  // rehydrated chat ending in a resolved client tool would sit idle. Calling
+  // sendMessage() with no arguments posts the current state to the transport
+  // without injecting a phantom user message, allowing the assistant to
+  // produce the next turn (e.g., reveal the urgent contact card after a
+  // resolved payment).
+  const hasResumedAfterHydration = useRef(false);
+  useEffect(() => {
+    if (hasResumedAfterHydration.current) return;
+    hasResumedAfterHydration.current = true;
+    if (shouldAutoContinue({ messages: initialMessages })) {
+      void sendMessage();
+    }
+    // We deliberately depend on nothing — this is a strict mount-only effect.
+    // initialMessages is captured at first render and never changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const lastAssistantMessageId = useMemo(() => {
     for (let i = messages.length - 1; i >= 0; i--) {
       if (messages[i].role === "assistant") return messages[i].id;
