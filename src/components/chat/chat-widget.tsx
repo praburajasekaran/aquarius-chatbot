@@ -6,11 +6,8 @@ import { useRef, useEffect, useMemo, useState } from "react";
 import { DisclaimerBanner } from "./disclaimer-banner";
 import { MessageList } from "./message-list";
 import { MessageInput } from "./message-input";
+import { loadChat, saveChat } from "@/lib/chat-persistence";
 import type { ChatMessage } from "@/lib/tools";
-
-function generateSessionId() {
-  return `s_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-}
 
 // Chips shown alongside the initial assistant greeting, before the visitor
 // has sent any message. These mirror the options the AI would emit itself if
@@ -84,7 +81,9 @@ function extractSuggestions(messages: ChatMessage[]): string[] {
 }
 
 export function ChatWidget() {
-  const [sessionId] = useState(generateSessionId);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- _setPersisted is used in Task 7 (End Chat)
+  const [persisted, _setPersisted] = useState(loadChat);
+  const { sessionId, initialMessages } = persisted;
   // Track the assistant message ID for which suggestions were dismissed.
   // When a new assistant message arrives (different ID), suggestions reset
   // automatically — no effect needed, avoiding cascading-render lint errors.
@@ -95,9 +94,11 @@ export function ChatWidget() {
     [sessionId]
   );
 
-  const { messages, sendMessage, addToolOutput, status } = useChat<ChatMessage>({
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- setMessages and stop are used in Task 7 (End Chat)
+  const { messages, sendMessage, addToolOutput, status, setMessages, stop } = useChat<ChatMessage>({
     transport,
     sendAutomaticallyWhen: shouldAutoContinue,
+    messages: initialMessages,
   });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -105,6 +106,12 @@ export function ChatWidget() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    if (status !== "ready") return;
+    if (messages.length === 0) return;
+    saveChat(sessionId, messages);
+  }, [messages, status, sessionId]);
 
   const lastAssistantMessageId = useMemo(() => {
     for (let i = messages.length - 1; i >= 0; i--) {
