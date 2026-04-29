@@ -6,7 +6,7 @@ export const redis = new Redis({
   token: process.env.UPSTASH_REDIS_REST_TOKEN!,
 });
 
-const SESSION_TTL = 3600; // 1 hour
+const SESSION_TTL = 6 * 60 * 60; // 6 hours
 
 export function sessionKey(sessionId: string) {
   return `session:${sessionId}`;
