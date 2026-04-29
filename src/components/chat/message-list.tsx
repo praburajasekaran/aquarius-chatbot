@@ -23,6 +23,31 @@ interface MessageListProps {
     result: { eventStartTime: string; eventUri: string; inviteeUri: string }
   ) => void;
   onUrgentAcknowledged: (toolCallId: string) => void;
+  onMandatoryOptionPick: (text: string) => void;
+}
+
+// Walk forward from the assistant turn at `fromIndex` to find the first
+// subsequent user message. If its concatenated text matches one of the
+// chip options exactly, return that option — chip clicks send the label
+// verbatim, so an exact match means "this option was chosen". Returns
+// null when the visitor hasn't replied yet, or replied with free-form
+// text that didn't match any chip.
+function findNextUserMessageMatching(
+  messages: ChatMessage[],
+  fromIndex: number,
+  options: string[]
+): string | null {
+  for (let i = fromIndex + 1; i < messages.length; i++) {
+    const m = messages[i];
+    if (m.role !== "user") continue;
+    const text = m.parts
+      .filter((p): p is { type: "text"; text: string } => p.type === "text")
+      .map((p) => p.text.trim())
+      .join(" ")
+      .trim();
+    return options.find((o) => o === text) ?? null;
+  }
+  return null;
 }
 
 export function MessageList({
@@ -34,6 +59,7 @@ export function MessageList({
   onUploadSkip,
   onScheduleBooked,
   onUrgentAcknowledged,
+  onMandatoryOptionPick,
 }: MessageListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -168,6 +194,59 @@ export function MessageList({
                       </div>
                     )}
                   </div>
+                </div>
+              );
+            }
+
+            // Mandatory quick-reply chips — rendered in-thread under the
+            // assistant bubble as large pill buttons. Three visual states:
+            //   • interactive (latest, unanswered)  → outlined teal, hoverable
+            //   • selected (next user message matched an option) → filled teal
+            //   • historical or not-latest          → muted, disabled
+            // Optional (mandatory !== true) showOptions calls fall through and
+            // render in the composer "Quick reply" row instead.
+            if (
+              part.type === "tool-showOptions" &&
+              part.input?.mandatory === true &&
+              (part.state === "input-available" || part.state === "output-available")
+            ) {
+              const options = part.input.options ?? [];
+              const selectedOption = findNextUserMessageMatching(
+                messages,
+                msgIndex,
+                options
+              );
+              const isLatest = msgIndex === lastMsgIndex;
+              const isAnswered = selectedOption !== null;
+              const canInteract = isLatest && !isAnswered;
+              return (
+                <div
+                  key={part.toolCallId}
+                  role="group"
+                  aria-label="Quick reply options"
+                  className="flex flex-wrap gap-2 pl-11"
+                >
+                  {options.map((option: string) => {
+                    const isSelected = option === selectedOption;
+                    const stateClasses = canInteract
+                      ? "border-[#085a66] text-[#085a66] hover:bg-[#085a66] hover:text-white cursor-pointer"
+                      : isSelected
+                      ? "border-[#085a66] bg-[#085a66] text-white cursor-default"
+                      : "border-gray-300 text-gray-500 cursor-default";
+                    return (
+                      <button
+                        key={option}
+                        type="button"
+                        onClick={() => canInteract && onMandatoryOptionPick(option)}
+                        disabled={!canInteract}
+                        aria-pressed={isSelected || undefined}
+                        /* min-h-[44px] satisfies WCAG 2.5.5 AAA 44×44px touch target */
+                        className={`px-4 min-h-[44px] rounded-full border text-base font-medium transition-colors ${stateClasses}`}
+                      >
+                        {option}
+                      </button>
+                    );
+                  })}
                 </div>
               );
             }

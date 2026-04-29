@@ -58,6 +58,9 @@ function shouldAutoContinue({
 // showOptions tool call, regardless of tool state. Because showOptions now
 // auto-executes on the server, the part's state will be "output-available"
 // by the time we render — checking for "input-available" would miss it.
+// Mandatory chip groups are skipped: those render in-thread via MessageList,
+// so surfacing them in the composer would duplicate the same choice in two
+// places.
 function extractSuggestions(messages: ChatMessage[]): string[] {
   for (let i = messages.length - 1; i >= 0; i--) {
     const msg = messages[i];
@@ -67,8 +70,9 @@ function extractSuggestions(messages: ChatMessage[]): string[] {
     for (let j = msg.parts.length - 1; j >= 0; j--) {
       const part = msg.parts[j];
       if (part.type === "tool-showOptions") {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const options = (part.input as any)?.options;
+        const input = part.input;
+        if (input?.mandatory === true) return [];
+        const options = input?.options;
         if (Array.isArray(options) && options.length > 0) {
           return (options as unknown[]).filter((o): o is string => typeof o === "string");
         }
@@ -210,6 +214,7 @@ export function ChatWidget() {
         onUploadSkip={handleUploadSkip}
         onScheduleBooked={handleScheduleBooked}
         onUrgentAcknowledged={handleUrgentAcknowledged}
+        onMandatoryOptionPick={handleSend}
       />
       <div ref={messagesEndRef} />
       {/* aria-live region announces typing state to screen readers */}

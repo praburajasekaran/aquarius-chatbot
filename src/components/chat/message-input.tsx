@@ -177,7 +177,7 @@ export function MessageInput({
             value={input}
             onChange={(e) => handleInputChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Feel free to type anything here..."
+            placeholder={isListening ? "Listening…" : "Feel free to type anything here..."}
             disabled={disabled}
             rows={1}
             /* text-base (16px) is the strict minimum to prevent iOS auto-zoom on focus */

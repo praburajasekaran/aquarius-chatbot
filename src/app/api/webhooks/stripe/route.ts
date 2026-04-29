@@ -92,6 +92,14 @@ export async function POST(req: Request) {
 
         await assertNoResendTracking();
 
+        // Load intake before the receipt so we can route the next-step block
+        // (urgent → call us; non-urgent → Calendly link).
+        const intake = await getIntake(sessionId);
+        const calendlyUrl = process.env.CALENDLY_BOOKING_URL;
+        if (!calendlyUrl) {
+          throw new Error("CALENDLY_BOOKING_URL not set");
+        }
+
         await resend.emails.send({
           from,
           to: clientEmail,
@@ -101,11 +109,13 @@ export async function POST(req: Request) {
             matterRef: sessionId,
             amountCents: session.amount_total ?? 0,
             uploadLink,
+            urgency: intake?.urgency ?? null,
+            calendlyUrl,
+            clientEmail,
           }),
         });
 
         // Notify firm about the paid inquiry
-        const intake = await getIntake(sessionId);
         await sendTranscriptEmail({
           clientName: intake?.clientName ?? clientName,
           clientEmail: intake?.clientEmail ?? clientEmail,
