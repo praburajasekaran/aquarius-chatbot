@@ -1,17 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { MessageCircle, X } from "lucide-react";
 
 export function ChatWidgetEmbed({ src = "/" }: { src?: string }) {
   const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) return null;
+  if (typeof window === "undefined") return null;
 
   return (
     <>
