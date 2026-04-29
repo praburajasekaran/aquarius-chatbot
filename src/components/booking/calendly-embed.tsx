@@ -98,7 +98,7 @@ export function CalendlyEmbed({
   }
 
   return (
-    <div className="mx-11 rounded-2xl overflow-hidden border border-brand/30">
+    <div className="-mx-2 rounded-2xl overflow-hidden border border-brand/30">
       <InlineWidget
         url={url}
         prefill={{
@@ -107,7 +107,7 @@ export function CalendlyEmbed({
           customAnswers: { a1: matterDescription },
         }}
         utm={{ utmContent: sessionId }}
-        styles={{ height: "650px" }}
+        styles={{ height: "650px", minWidth: "0" }}
       />
     </div>
   );
