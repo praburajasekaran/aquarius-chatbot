@@ -18,7 +18,7 @@ export async function handleReminderDelivery(
     (await req.json()) as ReminderPayload;
 
   // SCHED-03: durable upload-flag guard
-  // (session TTL=1h, reminder fires at 24h — getSession() would always be null)
+  // (session TTL=6h, reminder fires at 24h — getSession() would always be null)
   const uploaded = await redis.get<string>(`uploaded:${sessionId}`);
   if (uploaded) {
     console.info("[sms] reminder skipped — already uploaded", {
