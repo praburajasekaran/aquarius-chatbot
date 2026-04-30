@@ -33,9 +33,16 @@ export async function sendTranscriptEmail({
   stripeSessionId: string | null;
   transcript?: string;
 }) {
+  const from = process.env.RESEND_FROM_EMAIL;
+  if (!from) {
+    console.warn(
+      "[resend] RESEND_FROM_EMAIL not set — sendTranscriptEmail skipped"
+    );
+    return;
+  }
   const to = process.env.FIRM_NOTIFY_EMAIL ?? "prabu@paretoid.com";
   return resend.emails.send({
-    from: `${BRANDING.emailSenderName} <chatbot@send.growthkiwi.com>`,
+    from,
     to,
     subject: `New ${urgency} Criminal Law Inquiry — ${clientName}`,
     html: `
@@ -70,6 +77,13 @@ export async function sendClientInquiryEmail({
   urgency: "urgent" | "non-urgent";
   displayPrice: string;
 }) {
+  const from = process.env.RESEND_FROM_EMAIL;
+  if (!from) {
+    console.warn(
+      "[resend] RESEND_FROM_EMAIL not set — sendClientInquiryEmail skipped"
+    );
+    return;
+  }
   const appUrl = process.env.NEXT_PUBLIC_URL ?? "";
   const resumeUrl = `${appUrl}/api/checkout/resume?session=${encodeURIComponent(sessionId)}`;
   const calendlyUrl = process.env.CALENDLY_BOOKING_URL;
@@ -114,7 +128,7 @@ export async function sendClientInquiryEmail({
       : "Legal Strategy Session";
 
   return resend.emails.send({
-    from: `${BRANDING.emailSenderName} <chatbot@send.growthkiwi.com>`,
+    from,
     to: clientEmail,
     subject: `Your ${subjectMatterLabel} inquiry — ${BRANDING.firmName}`,
     html: `
@@ -156,9 +170,16 @@ export async function sendFirmLeadEmail({
   displayPrice: string;
   resumeUrl: string;
 }) {
+  const from = process.env.RESEND_FROM_EMAIL;
+  if (!from) {
+    console.warn(
+      "[resend] RESEND_FROM_EMAIL not set — sendFirmLeadEmail skipped"
+    );
+    return;
+  }
   const to = process.env.FIRM_NOTIFY_EMAIL ?? "prabu@paretoid.com";
   return resend.emails.send({
-    from: `${BRANDING.emailSenderName} <chatbot@send.growthkiwi.com>`,
+    from,
     to,
     subject: `New ${urgency} inquiry — ${clientName} (awaiting payment)`,
     html: `
@@ -200,6 +221,13 @@ export async function sendBookingNotificationEmail({
   inviteeUri: string;
   stripeSessionId?: string | null;
 }) {
+  const from = process.env.RESEND_FROM_EMAIL;
+  if (!from) {
+    console.warn(
+      "[resend] RESEND_FROM_EMAIL not set — sendBookingNotificationEmail skipped"
+    );
+    return;
+  }
   const to = process.env.FIRM_NOTIFY_EMAIL ?? "prabu@paretoid.com";
 
   let startLocal = eventStartTime;
@@ -219,7 +247,7 @@ export async function sendBookingNotificationEmail({
   }
 
   return resend.emails.send({
-    from: `${BRANDING.emailSenderName} <chatbot@send.growthkiwi.com>`,
+    from,
     to,
     subject: `Booking confirmed — ${clientName} — ${startLocal}`,
     html: `
