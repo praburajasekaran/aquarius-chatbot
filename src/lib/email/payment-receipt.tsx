@@ -22,6 +22,7 @@ export interface PaymentReceiptProps {
   urgency?: "urgent" | "non-urgent" | null;
   calendlyUrl?: string;
   clientEmail?: string;
+  transcript?: string;
 }
 
 function formatAud(cents: number): string {
@@ -39,6 +40,7 @@ export default function PaymentReceipt({
   urgency,
   calendlyUrl,
   clientEmail,
+  transcript,
 }: PaymentReceiptProps) {
   const greeting = name ? `Hi ${name},` : "Hello,";
   const amount = formatAud(amountCents);
@@ -119,6 +121,16 @@ export default function PaymentReceipt({
               </Section>
             </>
           ) : null}
+
+          {transcript && transcript.trim().length > 0 && (
+            <>
+              <Hr style={divider} />
+              <Heading as="h2" style={subheading}>
+                Conversation summary
+              </Heading>
+              <Text style={transcriptText}>{transcript}</Text>
+            </>
+          )}
 
           <Text style={footer}>
             This link stays valid for 7 days and can be used multiple times. If
@@ -221,4 +233,14 @@ const footer: React.CSSProperties = {
   fontSize: "13px",
   lineHeight: "20px",
   margin: "24px 0 0",
+};
+
+const transcriptText: React.CSSProperties = {
+  color: "#333333",
+  fontFamily:
+    "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+  fontSize: "13px",
+  lineHeight: "20px",
+  whiteSpace: "pre-wrap",
+  margin: "0 0 16px",
 };

@@ -6,8 +6,12 @@ import { useRef, useEffect, useMemo, useState } from "react";
 import { DisclaimerBanner } from "./disclaimer-banner";
 import { MessageList } from "./message-list";
 import { MessageInput } from "./message-input";
-import { loadChat, saveChat } from "@/lib/chat-persistence";
+import { EndChatButton } from "./end-chat-button";
+import { EndChatDialog } from "./end-chat-dialog";
+import { loadChat, saveChat, clearChat } from "@/lib/chat-persistence";
 import type { ChatMessage } from "@/lib/tools";
+import { Scale } from "lucide-react";
+import { BRANDING } from "@/lib/branding";
 
 // Chips shown alongside the initial assistant greeting, before the visitor
 // has sent any message. These mirror the options the AI would emit itself if
@@ -85,20 +89,19 @@ function extractSuggestions(messages: ChatMessage[]): string[] {
 }
 
 export function ChatWidget() {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- _setPersisted is used in Task 7 (End Chat)
-  const [persisted, _setPersisted] = useState(loadChat);
+  const [persisted, setPersisted] = useState(loadChat);
   const { sessionId, initialMessages } = persisted;
   // Track the assistant message ID for which suggestions were dismissed.
   // When a new assistant message arrives (different ID), suggestions reset
   // automatically — no effect needed, avoiding cascading-render lint errors.
   const [dismissedForMessageId, setDismissedForMessageId] = useState<string | null>(null);
+  const [endChatOpen, setEndChatOpen] = useState(false);
 
   const transport = useMemo(
     () => new DefaultChatTransport({ api: "/api/chat", body: { sessionId } }),
     [sessionId]
   );
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- setMessages and stop are used in Task 7 (End Chat)
   const { messages, sendMessage, addToolOutput, status, setMessages, stop } = useChat<ChatMessage>({
     transport,
     sendAutomaticallyWhen: shouldAutoContinue,
@@ -116,6 +119,27 @@ export function ChatWidget() {
     if (messages.length === 0) return;
     saveChat(sessionId, messages);
   }, [messages, status, sessionId]);
+
+  // Resume continuation after hydration. The AI SDK's sendAutomaticallyWhen
+  // callback fires only on session-internal mutations (sendMessage,
+  // addToolOutput). When we hydrate via the `messages: initialMessages` prop
+  // after a page reload, the SDK doesn't re-evaluate that callback — so a
+  // rehydrated chat ending in a resolved client tool would sit idle. Calling
+  // sendMessage() with no arguments posts the current state to the transport
+  // without injecting a phantom user message, allowing the assistant to
+  // produce the next turn (e.g., reveal the urgent contact card after a
+  // resolved payment).
+  const hasResumedAfterHydration = useRef(false);
+  useEffect(() => {
+    if (hasResumedAfterHydration.current) return;
+    hasResumedAfterHydration.current = true;
+    if (shouldAutoContinue({ messages: initialMessages })) {
+      void sendMessage();
+    }
+    // We deliberately depend on nothing — this is a strict mount-only effect.
+    // initialMessages is captured at first render and never changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const lastAssistantMessageId = useMemo(() => {
     for (let i = messages.length - 1; i >= 0; i--) {
@@ -202,8 +226,51 @@ export function ChatWidget() {
     });
   }
 
+  function handleEndChatConfirm() {
+    // Stop any in-flight stream so partial assistant turns don't leak
+    // past the reset.
+    if (status === "streaming" || status === "submitted") {
+      stop();
+    }
+    // Wipe the localStorage entry first.
+    clearChat();
+    // Best-effort server cleanup. Never block the UI on this — the server
+    // session has its own TTL fallback.
+    fetch("/api/chat/session", {
+      method: "DELETE",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ sessionId }),
+    }).catch(() => {
+      // Network/server error is acceptable — server-side TTL will reap.
+    });
+    // Reset the in-memory chat state.
+    setMessages([]);
+    setDismissedForMessageId(null);
+    // Re-mint sessionId by re-running loadChat, which now sees an empty
+    // localStorage and returns a fresh sessionId + empty messages.
+    setPersisted(loadChat());
+    // Close the dialog.
+    setEndChatOpen(false);
+  }
+
   return (
-    <div className="flex flex-col h-full bg-white" aria-label="Criminal Law Assistant chat">
+    <div className="relative flex flex-col h-full bg-white" aria-label="Criminal Law Assistant chat">
+      <header role="banner" className="bg-white border-b border-gray-200 px-4 py-3">
+        <div className="flex items-center gap-3">
+          <div className="h-9 w-9 rounded-lg bg-brand/10 flex items-center justify-center shrink-0">
+            <Scale className="h-5 w-5 text-brand" aria-hidden="true" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-base font-heading font-semibold text-gray-900 truncate">
+              {BRANDING.firmName}
+            </h1>
+            <p className="text-sm text-gray-500">Criminal Law Assistant</p>
+          </div>
+          {messages.length > 0 && (
+            <EndChatButton onClick={() => setEndChatOpen(true)} />
+          )}
+        </div>
+      </header>
       <DisclaimerBanner />
       <MessageList
         messages={messages}
@@ -236,6 +303,11 @@ export function ChatWidget() {
         disabled={isLoading}
         suggestions={suggestions}
         onSuggestionsDismissed={() => setDismissedForMessageId(suggestionsKey)}
+      />
+      <EndChatDialog
+        open={endChatOpen}
+        onConfirm={handleEndChatConfirm}
+        onCancel={() => setEndChatOpen(false)}
       />
     </div>
   );

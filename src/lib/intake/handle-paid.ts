@@ -131,6 +131,13 @@ export async function handleIntakePaid(
   // urgency-specific next-step block.
   const intake = await getIntake(sessionId);
 
+  // Pre-fetch the stored transcript so both the client receipt and the firm
+  // notification can include it. Failure here is non-fatal — both emails
+  // degrade to "no conversation summary" rather than fail the fan-out.
+  const storedTranscript = await redis
+    .get<string>(`transcript:${sessionId}`)
+    .catch(() => null);
+
   // 4. Receipt email — best-effort
   const from = process.env.RESEND_FROM_EMAIL;
   if (from) {
@@ -152,6 +159,7 @@ export async function handleIntakePaid(
           urgency: intake?.urgency ?? null,
           calendlyUrl,
           clientEmail,
+          transcript: storedTranscript ?? undefined,
         }),
       });
     } catch (err) {
@@ -169,10 +177,6 @@ export async function handleIntakePaid(
   }
 
   // 5. Firm transcript — best-effort, requires intake record
-  const storedTranscript = await redis
-    .get<string>(`transcript:${sessionId}`)
-    .catch(() => null);
-
   if (intake) {
     try {
       await sendTranscriptEmail({
