@@ -61,7 +61,9 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: geminiFlash,
-    system: systemPrompt,
+    system: sessionId
+      ? `${systemPrompt}\n\n## Current chat session\n\nThe sessionId for this conversation is "${sessionId}". When any tool's input schema requires a sessionId field, you MUST pass exactly this value verbatim. Do NOT invent, generate, or modify the sessionId — it must match the literal string above.`
+      : systemPrompt,
     messages: await convertToModelMessages(messages as UIMessage[]),
     stopWhen: [stepCountIs(10), stopAfterShowOptionsOnly],
     tools,
