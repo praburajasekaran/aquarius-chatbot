@@ -5,14 +5,23 @@ import {
   type StopCondition,
   type UIMessage,
 } from "ai";
+import { after, NextResponse } from "next/server";
+import { z } from "zod";
 import { geminiFlash } from "@/lib/openrouter";
 import { tools, type ChatMessage } from "@/lib/tools";
 import { systemPrompt } from "@/lib/system-prompt";
 import { redis } from "@/lib/kv";
+import { parseJsonBody } from "@/lib/api/parse";
+import { chatLimiter } from "@/lib/rate-limit";
 
 export const maxDuration = 30;
 
 const TRANSCRIPT_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days, matches intake TTL
+
+const Body = z.object({
+  messages: z.array(z.looseObject({})).max(200),
+  sessionId: z.string().min(1).max(200).optional(),
+});
 
 // showOptions is a pure-UI tool that auto-resolves server-side. If the model
 // emits text alongside it in step N, we don't want step N+1 to fire — Gemini
@@ -41,21 +50,30 @@ function formatTranscript(messages: ChatMessage[]): string {
 }
 
 export async function POST(req: Request) {
-  const {
-    messages,
-    sessionId,
-  }: { messages: ChatMessage[]; sessionId?: string } = await req.json();
+  const ip =
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const { success } = await chatLimiter.limit(ip);
+  if (!success) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+  }
+
+  const parsed = await parseJsonBody(req, Body);
+  if (!parsed.ok) return parsed.response;
+  const messages = parsed.data.messages as unknown as ChatMessage[];
+  const sessionId = parsed.data.sessionId;
 
   if (sessionId) {
     const transcript = formatTranscript(messages);
     if (transcript) {
-      redis
-        .set(`transcript:${sessionId}`, transcript, {
-          ex: TRANSCRIPT_TTL_SECONDS,
-        })
-        .catch((err) =>
-          console.error("[chat] transcript persist failed", { sessionId, err })
-        );
+      after(async () => {
+        try {
+          await redis.set(`transcript:${sessionId}`, transcript, {
+            ex: TRANSCRIPT_TTL_SECONDS,
+          });
+        } catch (err) {
+          console.error("[chat] transcript persist failed", { sessionId, err });
+        }
+      });
     }
   }
 
