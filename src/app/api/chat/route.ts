@@ -52,8 +52,20 @@ function formatTranscript(messages: ChatMessage[]): string {
 export async function POST(req: Request) {
   const ip =
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-  const { success } = await chatLimiter.limit(ip);
-  if (!success) {
+  // Fail open if Redis is unreachable: a transient Upstash blip should not
+  // take the whole chatbot offline. The cost-of-abuse window is short, and
+  // the route still has its own server-side stop conditions on the LLM loop.
+  let limitOk = true;
+  try {
+    const result = await chatLimiter.limit(ip);
+    limitOk = result.success;
+  } catch (err) {
+    console.error("[chat] rate limiter unavailable, failing open", {
+      event: "ratelimit_unavailable",
+      err: err instanceof Error ? err.message : String(err),
+    });
+  }
+  if (!limitOk) {
     return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   }
 

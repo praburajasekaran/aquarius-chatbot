@@ -19,7 +19,17 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${appUrl}/?expired=1`);
   }
 
-  const intake = await getIntake(sessionId);
+  let intake;
+  try {
+    intake = await getIntake(sessionId);
+  } catch (err) {
+    console.error("[checkout/resume] intake lookup failed", {
+      event: "intake_lookup_failed",
+      sessionId,
+      err: err instanceof Error ? err.message : String(err),
+    });
+    return NextResponse.redirect(`${appUrl}/?expired=1`);
+  }
   if (!intake) {
     return NextResponse.redirect(`${appUrl}/?expired=1`);
   }

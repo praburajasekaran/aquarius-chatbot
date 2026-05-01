@@ -13,7 +13,17 @@ export async function POST(req: Request) {
   if (!parsed.ok) return parsed.response;
   const { sessionId } = parsed.data;
 
-  const intake = await getIntake(sessionId);
+  let intake;
+  try {
+    intake = await getIntake(sessionId);
+  } catch (err) {
+    console.error("[checkout] intake lookup failed", {
+      event: "intake_lookup_failed",
+      sessionId,
+      err: err instanceof Error ? err.message : String(err),
+    });
+    return NextResponse.json({ error: "intake_lookup_failed" }, { status: 502 });
+  }
   if (!intake) {
     return NextResponse.json({ error: "intake_not_found" }, { status: 404 });
   }
