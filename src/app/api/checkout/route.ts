@@ -1,32 +1,55 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { createCheckoutSession, PRICING } from "@/lib/stripe";
 import { getIntake, updateIntake } from "@/lib/intake";
+import { parseJsonBody } from "@/lib/api/parse";
+
+const Body = z.object({
+  sessionId: z.string().min(1),
+});
 
 export async function POST(req: Request) {
-  const { sessionId } = (await req.json()) as { sessionId: string };
+  const parsed = await parseJsonBody(req, Body);
+  if (!parsed.ok) return parsed.response;
+  const { sessionId } = parsed.data;
 
-  if (!sessionId) {
-    return NextResponse.json({ error: "Missing sessionId" }, { status: 400 });
+  let intake;
+  try {
+    intake = await getIntake(sessionId);
+  } catch (err) {
+    console.error("[checkout] intake lookup failed", {
+      event: "intake_lookup_failed",
+      sessionId,
+      err: err instanceof Error ? err.message : String(err),
+    });
+    return NextResponse.json({ error: "intake_lookup_failed" }, { status: 502 });
+  }
+  if (!intake) {
+    return NextResponse.json({ error: "intake_not_found" }, { status: 404 });
   }
 
-  const intake = await getIntake(sessionId);
-  if (!intake) {
+  if (!PRICING[intake.urgency]) {
+    return NextResponse.json({ error: "invalid_urgency" }, { status: 422 });
+  }
+
+  let checkoutSession;
+  try {
+    checkoutSession = await createCheckoutSession({
+      sessionId,
+      urgency: intake.urgency,
+      returnUrlBase: process.env.NEXT_PUBLIC_URL ?? "",
+    });
+  } catch (err) {
+    console.error("[checkout] stripe session creation failed", {
+      event: "checkout_create_failed",
+      sessionId,
+      err: err instanceof Error ? err.message : String(err),
+    });
     return NextResponse.json(
-      { error: "No intake record found. Please complete the urgency selection step." },
-      { status: 409 }
+      { error: "checkout_create_failed" },
+      { status: 502 }
     );
   }
-
-  const urgency = intake.urgency;
-  if (!PRICING[urgency]) {
-    return NextResponse.json({ error: "Invalid urgency in intake" }, { status: 500 });
-  }
-
-  const checkoutSession = await createCheckoutSession({
-    sessionId,
-    urgency,
-    returnUrlBase: process.env.NEXT_PUBLIC_URL ?? "",
-  });
 
   try {
     await updateIntake(sessionId, { stripeSessionId: checkoutSession.id });

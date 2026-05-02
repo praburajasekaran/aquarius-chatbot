@@ -1,4 +1,4 @@
-import { ChatWidget } from "@/components/chat/chat-widget";
+import { ChatWidget } from "@/components/chat/chat-widget-client";
 
 export default async function Home({
   searchParams,

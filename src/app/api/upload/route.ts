@@ -1,25 +1,56 @@
+import path from "node:path";
 import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { validateFileType, validateFileSize } from "@/lib/validators";
 import { createSession, getSession, updateSession } from "@/lib/kv";
 import { deliverInChatUploadsToZapier } from "@/lib/in-chat-upload/deliver-to-zapier";
+import { inChatUploadLimiter } from "@/lib/rate-limit";
 
 const MAX_FILES_PER_SESSION = 5;
+const MAX_SESSION_ID_LENGTH = 200;
+
+function safeFilename(name: string): string {
+  // Strip any directory components — uploads must land flat under
+  // uploads/{sessionId}/, never traverse out of it. basename handles ../ and
+  // backslashes; we then drop control chars and clamp length.
+  const base = path.basename(name);
+  let cleaned = "";
+  for (const c of base) {
+    const code = c.charCodeAt(0);
+    if (code >= 32 && code !== 127) cleaned += c;
+  }
+  const trimmed = cleaned.trim();
+  if (!trimmed || trimmed === "." || trimmed === "..") return "file";
+  return trimmed.slice(0, 200);
+}
 
 export async function POST(req: Request) {
+  const ip =
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const { success } = await inChatUploadLimiter.limit(ip);
+  if (!success) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+  }
+
   try {
     const formData = await req.formData();
-    const sessionId = formData.get("sessionId") as string | null;
-    const files = formData.getAll("files") as File[];
+    const sessionIdRaw = formData.get("sessionId");
+    const files = formData.getAll("files");
 
-    if (!sessionId) {
+    if (
+      typeof sessionIdRaw !== "string" ||
+      sessionIdRaw.length === 0 ||
+      sessionIdRaw.length > MAX_SESSION_ID_LENGTH
+    ) {
       return NextResponse.json(
         { error: "Session ID required" },
         { status: 400 }
       );
     }
+    const sessionId = sessionIdRaw;
 
-    if (files.length === 0) {
+    const fileEntries = files.filter((f): f is File => f instanceof File);
+    if (fileEntries.length === 0) {
       return NextResponse.json(
         { error: "No files provided" },
         { status: 400 }
@@ -40,8 +71,8 @@ export async function POST(req: Request) {
       );
     }
 
-    const filesToProcess = files.slice(0, remainingSlots);
-    const skipped = files.length - filesToProcess.length;
+    const filesToProcess = fileEntries.slice(0, remainingSlots);
+    const skipped = fileEntries.length - filesToProcess.length;
 
     const successful: {
       url: string;
@@ -52,9 +83,11 @@ export async function POST(req: Request) {
     const errors: { name: string; reason: string }[] = [];
 
     for (const file of filesToProcess) {
+      const cleanName = safeFilename(file.name);
+
       if (!validateFileType(file.type)) {
         errors.push({
-          name: file.name,
+          name: cleanName,
           reason: "Invalid file type. Allowed: PDF, JPG, PNG, DOCX",
         });
         continue;
@@ -62,7 +95,7 @@ export async function POST(req: Request) {
 
       if (!validateFileSize(file.size)) {
         errors.push({
-          name: file.name,
+          name: cleanName,
           reason: "File exceeds 10MB limit",
         });
         continue;
@@ -70,23 +103,27 @@ export async function POST(req: Request) {
 
       try {
         const blob = await put(
-          `uploads/${sessionId}/${Date.now()}-${file.name}`,
+          `uploads/${sessionId}/${Date.now()}-${cleanName}`,
           file,
           { access: "public", contentType: file.type }
         );
         successful.push({
           url: blob.url,
-          name: file.name,
+          name: cleanName,
           contentType: file.type,
           sizeBytes: file.size,
         });
       } catch (err) {
-        console.error("[upload] vercel blob put failed:", err);
-        const message = err instanceof Error ? err.message : "Unknown error";
-        errors.push({
-          name: file.name,
-          reason: `Upload failed: ${message}`,
+        // Don't echo vendor error messages to the client — they can leak
+        // bucket names, internal hostnames, or signed-URL fragments. Log
+        // server-side, return a generic reason.
+        console.error("[upload] vercel blob put failed", {
+          event: "blob_put_failed",
+          sessionId,
+          name: cleanName,
+          err: err instanceof Error ? err.message : String(err),
         });
+        errors.push({ name: cleanName, reason: "Upload failed" });
       }
     }
 
