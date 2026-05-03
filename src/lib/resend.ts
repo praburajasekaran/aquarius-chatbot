@@ -85,6 +85,7 @@ export async function sendTranscriptEmail({
     to,
     subject: `New ${urgency} Criminal Law Inquiry — ${clientName}`,
     html: `
+      ${BRANDING.emailLogoHtml}
       <h2>New Client Inquiry</h2>
       <table style="border-collapse:collapse;width:100%">
         <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Name</td><td style="padding:8px;border:1px solid #ddd">${clientName}</td></tr>
@@ -172,6 +173,7 @@ export async function sendClientInquiryEmail({
     subject: `Your ${subjectMatterLabel} inquiry — ${BRANDING.firmName}`,
     html: `
       <div style="font-family:-apple-system,Segoe UI,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#1a1a1a">
+        ${BRANDING.emailLogoHtml}
         <h2 style="margin:0 0 16px;font-size:20px">Hi ${clientName},</h2>
         <p style="margin:0 0 16px;font-size:15px;line-height:1.5">
           Thanks for your inquiry with ${BRANDING.firmName}. Here's a quick summary of what you shared with us:
@@ -222,6 +224,7 @@ export async function sendFirmLeadEmail({
     to,
     subject: `New ${urgency} inquiry — ${clientName} (awaiting payment)`,
     html: `
+      ${BRANDING.emailLogoHtml}
       <h2>New Client Inquiry (Awaiting Payment)</h2>
       <table style="border-collapse:collapse;width:100%">
         <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Name</td><td style="padding:8px;border:1px solid #ddd">${clientName}</td></tr>
@@ -291,6 +294,7 @@ export async function sendBookingNotificationEmail({
     subject: `Booking confirmed — ${clientName} — ${startLocal}`,
     html: `
       <div style="font-family:-apple-system,Segoe UI,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#1a1a1a">
+        ${BRANDING.emailLogoHtml}
         <h2 style="margin:0 0 16px;font-size:20px">New Legal Strategy Session booking</h2>
         <table style="border-collapse:collapse;width:100%;margin:16px 0">
           <tr><td style="padding:8px;border:1px solid #e5e5e5;font-weight:600;width:35%">Client</td><td style="padding:8px;border:1px solid #e5e5e5">${clientName}</td></tr>
