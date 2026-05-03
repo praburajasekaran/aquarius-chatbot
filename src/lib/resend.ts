@@ -80,7 +80,14 @@ export async function sendTranscriptEmail({
     );
     return;
   }
-  const to = process.env.FIRM_NOTIFY_EMAIL ?? "prabu@paretoid.com";
+  const to = process.env.FIRM_NOTIFY_EMAIL;
+  if (!to) {
+    console.error(
+      "[resend] FIRM_NOTIFY_EMAIL not set — sendTranscriptEmail SKIPPED (was previously falling back to a hardcoded personal address)",
+      { event: "firm_notify_email_missing", caller: "sendTranscriptEmail" }
+    );
+    return;
+  }
   const safeName = escapeHtml(clientName);
   const safeEmail = escapeHtml(clientEmail);
   const safePhone = escapeHtml(clientPhone);
@@ -93,6 +100,7 @@ export async function sendTranscriptEmail({
     to,
     subject: `New ${urgency} Criminal Law Inquiry — ${clientName}`,
     html: `
+      ${BRANDING.emailLogoHtml}
       <h2>New Client Inquiry</h2>
       <table style="border-collapse:collapse;width:100%">
         <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Name</td><td style="padding:8px;border:1px solid #ddd">${safeName}</td></tr>
@@ -187,6 +195,7 @@ export async function sendClientInquiryEmail({
     subject: `Your ${subjectMatterLabel} inquiry — ${BRANDING.firmName}`,
     html: `
       <div style="font-family:-apple-system,Segoe UI,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#1a1a1a">
+        ${BRANDING.emailLogoHtml}
         <h2 style="margin:0 0 16px;font-size:20px">Hi ${safeName},</h2>
         <p style="margin:0 0 16px;font-size:15px;line-height:1.5">
           Thanks for your inquiry with ${BRANDING.firmName}. Here's a quick summary of what you shared with us:
@@ -231,7 +240,14 @@ export async function sendFirmLeadEmail({
     );
     return;
   }
-  const to = process.env.FIRM_NOTIFY_EMAIL ?? "prabu@paretoid.com";
+  const to = process.env.FIRM_NOTIFY_EMAIL;
+  if (!to) {
+    console.error(
+      "[resend] FIRM_NOTIFY_EMAIL not set — sendFirmLeadEmail SKIPPED",
+      { event: "firm_notify_email_missing", caller: "sendFirmLeadEmail" }
+    );
+    return;
+  }
   const safeName = escapeHtml(clientName);
   const safeEmail = escapeHtml(clientEmail);
   const safePhone = escapeHtml(clientPhone);
@@ -244,6 +260,7 @@ export async function sendFirmLeadEmail({
     to,
     subject: `New ${urgency} inquiry — ${clientName} (awaiting payment)`,
     html: `
+      ${BRANDING.emailLogoHtml}
       <h2>New Client Inquiry (Awaiting Payment)</h2>
       <table style="border-collapse:collapse;width:100%">
         <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Name</td><td style="padding:8px;border:1px solid #ddd">${safeName}</td></tr>
@@ -289,7 +306,14 @@ export async function sendBookingNotificationEmail({
     );
     return;
   }
-  const to = process.env.FIRM_NOTIFY_EMAIL ?? "prabu@paretoid.com";
+  const to = process.env.FIRM_NOTIFY_EMAIL;
+  if (!to) {
+    console.error(
+      "[resend] FIRM_NOTIFY_EMAIL not set — sendBookingNotificationEmail SKIPPED",
+      { event: "firm_notify_email_missing", caller: "sendBookingNotificationEmail" }
+    );
+    return;
+  }
 
   let startLocal = eventStartTime;
   try {
@@ -321,6 +345,7 @@ export async function sendBookingNotificationEmail({
     subject: `Booking confirmed — ${clientName} — ${startLocal}`,
     html: `
       <div style="font-family:-apple-system,Segoe UI,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#1a1a1a">
+        ${BRANDING.emailLogoHtml}
         <h2 style="margin:0 0 16px;font-size:20px">New Legal Strategy Session booking</h2>
         <table style="border-collapse:collapse;width:100%;margin:16px 0">
           <tr><td style="padding:8px;border:1px solid #e5e5e5;font-weight:600;width:35%">Client</td><td style="padding:8px;border:1px solid #e5e5e5">${safeName}</td></tr>

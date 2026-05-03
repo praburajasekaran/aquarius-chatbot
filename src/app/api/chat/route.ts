@@ -18,8 +18,32 @@ export const maxDuration = 30;
 
 const TRANSCRIPT_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days, matches intake TTL
 
+// Outer shape only — we don't try to validate every part type the AI
+// SDK supports (text, tool-call, tool-result, file, reasoning…) since
+// the SDK's own UIMessage typing covers the field-by-field semantics.
+// What we DO need is a hard ceiling on size so an attacker can't ship
+// a 10MB payload at us to flood the LLM context window or burn
+// OpenRouter credits before the request even reaches the model.
+const MAX_MESSAGE_BYTES = 64 * 1024; // 64 KiB per message
+const MessagePart = z
+  .looseObject({ type: z.string().max(64) })
+  .superRefine((part, ctx) => {
+    const size = JSON.stringify(part).length;
+    if (size > MAX_MESSAGE_BYTES) {
+      ctx.addIssue({
+        code: "custom",
+        message: `message part exceeds ${MAX_MESSAGE_BYTES} bytes`,
+      });
+    }
+  });
+const ChatMessageSchema = z.looseObject({
+  id: z.string().min(1).max(200),
+  role: z.enum(["system", "user", "assistant"]),
+  parts: z.array(MessagePart).max(50),
+});
+
 const Body = z.object({
-  messages: z.array(z.looseObject({})).max(200),
+  messages: z.array(ChatMessageSchema).max(200),
   sessionId: z.string().min(1).max(200).optional(),
 });
 

@@ -18,4 +18,13 @@ export const BRANDING = {
   get emailFooter() {
     return `This email was sent by the ${this.firmName} chatbot in response to your inquiry. ${this.firmName} provides general information only — not legal advice. Reply to this email if you have any questions.`;
   },
+  get emailLogoHtml() {
+    const base = (process.env.NEXT_PUBLIC_URL ?? "").replace(/\/$/, "");
+    const logoPath =
+      process.env.NEXT_PUBLIC_FIRM_LOGO_URL ?? "/aquarius-logo.jpg";
+    const logoUrl = /^https?:\/\//i.test(logoPath)
+      ? logoPath
+      : `${base}${logoPath.startsWith("/") ? "" : "/"}${logoPath}`;
+    return `<div style="text-align:center;padding:16px 0 24px"><img src="${logoUrl}" alt="${this.firmName}" width="180" style="display:inline-block;height:auto;max-width:180px;border:0;outline:none;text-decoration:none" /></div>`;
+  },
 };

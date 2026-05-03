@@ -4,7 +4,11 @@ import { cookies } from "next/headers";
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { z } from "zod";
 import { verifyCookie, COOKIE_NAME } from "@/lib/upload-session";
-import { tokenLimiter, globalLimiter } from "@/lib/rate-limit";
+import {
+  tokenLimiter,
+  globalLimiter,
+  ipUploadLimiter,
+} from "@/lib/rate-limit";
 import { hashToken } from "@/lib/upload-tokens";
 import { ALLOWED_CONTENT_TYPES, MAX_BYTES } from "@/lib/allowed-types";
 import { handleUploadCompleted } from "@/lib/late-upload/handle-completed";
@@ -24,15 +28,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const tokenKey = hashToken(session.sessionId);
-  const [tk, gl] = await Promise.all([
+  // Prefer the magic-link token hash (unguessable, per-token) as the
+  // bucket key. Fall back to hashing the sessionId for back-compat with
+  // cookies issued before tokenHash was stamped into the payload — those
+  // existing cookies live for up to 7 days post-deploy.
+  const tokenKey = session.tokenHash ?? hashToken(session.sessionId);
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+
+  const [tk, ipR, gl] = await Promise.all([
     tokenLimiter.limit(tokenKey),
+    ipUploadLimiter.limit(ip),
     globalLimiter.limit("global"),
   ]);
   // Fire-and-forget analytics writes; don't block the response on them
-  void Promise.all([tk.pending, gl.pending]);
+  void Promise.all([tk.pending, ipR.pending, gl.pending]);
 
-  if (!tk.success || !gl.success) {
+  if (!tk.success || !ipR.success || !gl.success) {
     return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   }
 

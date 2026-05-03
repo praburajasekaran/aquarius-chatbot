@@ -42,5 +42,12 @@ export interface UploadSessionCookie {
   // clientName was added to the payload — verifyCookie may return a
   // payload without it.
   clientName?: string;
+  // SHA-256 hex of the magic-link upload token. Used as the rate-limit
+  // bucket key for /api/late-upload/session so the bucket is keyed by an
+  // unguessable, per-token value rather than the chat sessionId (which
+  // is client-generated and may have low entropy). Optional for
+  // backwards compatibility with cookies issued before this field was
+  // added — those fall back to hashing the sessionId.
+  tokenHash?: string;
   exp: number;
 }

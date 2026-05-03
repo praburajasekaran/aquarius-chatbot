@@ -1,5 +1,9 @@
 import { redis, getSession, createSession, updateSession } from "@/lib/kv";
-import { createUploadToken, hashToken } from "@/lib/upload-tokens";
+import {
+  createUploadToken,
+  hashToken,
+  revokeTokenByHash,
+} from "@/lib/upload-tokens";
 import { sendAndLog, sendTranscriptEmail } from "@/lib/resend";
 import { getIntake } from "@/lib/intake";
 import { sendSms } from "@/lib/sms/dispatch";
@@ -92,15 +96,74 @@ export async function handleIntakePaid(
     });
   }
 
-  // 2. Dedupe — key name `stripe-session:` is intentionally retained because
-  //    src/lib/late-upload/handle-completed.ts looks up the upload-token hash
-  //    by this key. Renaming requires touching that lookup too.
+  // 2 + 3. Dedupe and upload-token mint, atomically.
+  //
+  // Key name `stripe-session:` is intentionally retained because
+  // src/lib/late-upload/handle-completed.ts looks up the upload-token hash
+  // by this key. Renaming requires touching that lookup too.
+  //
+  // Old behaviour was a two-step "SET NX 'pending'" → mint → "SET hash"
+  // sequence. If the function timed out between those (Resend, SMS, and
+  // QStash calls each take meaningful time), the dedupe key was left at
+  // "pending" for the full 7-day TTL. Stripe retries would then see
+  // "duplicate" and return early — but no upload token had ever been
+  // created or emailed, leaving the client in a paid-no-token deadlock
+  // recoverable only by manual Redis surgery.
+  //
+  // New approach: mint the token first, then atomically SET NX with the
+  // final hash. Minting before claiming means we may produce an orphan
+  // token if we lose the race against a concurrent peer — we revoke
+  // those before returning. We also detect legacy "pending" values left
+  // by the old code path and clear them so existing stuck records can
+  // self-heal.
   const dedupeKey = `stripe-session:${sessionId}`;
-  const created = await redis.set(dedupeKey, "pending", {
-    nx: true,
-    ex: DEDUPE_TTL_SECONDS,
+  const { rawToken } = await createUploadToken({
+    matterRef: sessionId,
+    clientEmail,
+    clientName,
+    sessionId,
   });
-  if (created !== "OK") {
+  const tokenHashHex = hashToken(rawToken);
+
+  let claimed = false;
+  for (let attempt = 0; attempt < 2 && !claimed; attempt++) {
+    const result = await redis.set(dedupeKey, tokenHashHex, {
+      nx: true,
+      ex: DEDUPE_TTL_SECONDS,
+    });
+    if (result === "OK") {
+      claimed = true;
+      break;
+    }
+    // Probe what's there. A real prior winner stores a hex hash
+    // (length 64); the legacy two-step bug stored "pending". Recover
+    // from "pending" exactly once — clear and retry SET NX. Real prior
+    // winners are duplicate events.
+    const existing = await redis.get<string>(dedupeKey);
+    if (existing === "pending" && attempt === 0) {
+      console.warn("[intake] recovering stuck 'pending' dedupe key", {
+        event: "intake_dedupe_recovery",
+        sessionId,
+        source,
+      });
+      await redis.del(dedupeKey);
+      continue;
+    }
+    break;
+  }
+
+  if (!claimed) {
+    // Concurrent peer beat us, or recovery itself raced. Revoke the
+    // orphan token we minted so it isn't dangling in Redis.
+    try {
+      await revokeTokenByHash(tokenHashHex);
+    } catch (err) {
+      console.error("[intake] orphan token revoke failed", {
+        event: "intake_orphan_revoke_failed",
+        sessionId,
+        err: err instanceof Error ? err.message : String(err),
+      });
+    }
     console.info("[intake] duplicate paid event ignored", {
       event: "intake_duplicate",
       sessionId,
@@ -108,17 +171,6 @@ export async function handleIntakePaid(
     });
     return { status: "duplicate" };
   }
-
-  // 3. Upload token
-  const { rawToken } = await createUploadToken({
-    matterRef: sessionId,
-    clientEmail,
-    clientName,
-    sessionId,
-  });
-  await redis.set(dedupeKey, hashToken(rawToken), {
-    ex: DEDUPE_TTL_SECONDS,
-  });
 
   const appUrl = process.env.APP_URL;
   if (!appUrl) {
