@@ -101,7 +101,7 @@ export function MessageList({
       </div>
       <div
         aria-label={`Assistant: ${BRANDING.welcomeMessage}`}
-        className="max-w-[80%] rounded-2xl px-4 py-2.5 text-base leading-relaxed bg-gray-100 text-gray-800 rounded-bl-md"
+        className="max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed bg-gray-100 text-gray-800 rounded-bl-md"
       >
         {BRANDING.welcomeMessage}
       </div>
@@ -143,7 +143,7 @@ export function MessageList({
                   </div>
                   <div
                     aria-label={`${isUser ? "You" : "Assistant"}: ${part.text}`}
-                    className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-base leading-relaxed ${
+                    className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
                       isUser
                         ? "bg-[#085a66] text-white rounded-br-md"
                         : "bg-gray-100 text-gray-800 rounded-bl-md"

@@ -16,7 +16,9 @@ export function DisclaimerBanner() {
           only. This is not legal advice. For advice specific to your situation,
           please book a Legal Strategy Session.{" "}
           <a
-            href="/privacy"
+            href="https://www.aquariuslawyers.com.au/privacy/"
+            target="_blank"
+            rel="noopener noreferrer"
             className="text-[#085a66] underline hover:text-[#064550]"
           >
             Privacy Policy

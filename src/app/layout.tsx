@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Rubik, Open_Sans } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { BRANDING } from "@/lib/branding";
 
@@ -30,7 +31,10 @@ export default function RootLayout({
       lang="en"
       className={`${rubik.variable} ${openSans.variable} h-full`}
     >
-      <body className="h-full font-body antialiased">{children}</body>
+      <body className="h-full font-body antialiased">
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }
