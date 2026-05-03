@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { MessageCircle, X } from "lucide-react";
+import { track } from "@vercel/analytics";
 
 // Once-per-session sessionStorage key. Scoped to the embedding origin, so
 // dismissals on one host site don't carry over to another. Wrapped in
@@ -22,7 +23,10 @@ export function ChatWidgetEmbed({ src = "/" }: { src?: string }) {
     }
     if (alreadyShown) return;
 
-    const id = setTimeout(() => setTeaserVisible(true), TEASER_DELAY_MS);
+    const id = setTimeout(() => {
+      setTeaserVisible(true);
+      track("teaser_shown", { surface: "react" });
+    }, TEASER_DELAY_MS);
     return () => clearTimeout(id);
   }, []);
 
@@ -35,9 +39,16 @@ export function ChatWidgetEmbed({ src = "/" }: { src?: string }) {
     }
   }
 
-  function openChat() {
+  function openChat(source: "teaser" | "launcher") {
     setOpen(true);
     dismissTeaser();
+    if (source === "teaser") track("teaser_clicked", { surface: "react" });
+    track("chat_opened", { surface: "react", source });
+  }
+
+  function closeChat() {
+    setOpen(false);
+    track("chat_closed", { surface: "react" });
   }
 
   if (typeof window === "undefined") return null;
@@ -80,7 +91,7 @@ export function ChatWidgetEmbed({ src = "/" }: { src?: string }) {
         <div className="relative">
           <button
             type="button"
-            onClick={openChat}
+            onClick={() => openChat("teaser")}
             tabIndex={teaserShown ? 0 : -1}
             className="rounded-2xl bg-white ring-1 ring-black/5 shadow-[0_8px_24px_rgba(0,0,0,0.12)] pl-4 pr-9 py-3 text-sm text-gray-800 hover:bg-gray-50 transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/40"
           >
@@ -91,6 +102,7 @@ export function ChatWidgetEmbed({ src = "/" }: { src?: string }) {
             onClick={(e) => {
               e.stopPropagation();
               dismissTeaser();
+              track("teaser_dismissed", { surface: "react" });
             }}
             tabIndex={teaserShown ? 0 : -1}
             aria-label="Dismiss chat teaser"
@@ -103,7 +115,7 @@ export function ChatWidgetEmbed({ src = "/" }: { src?: string }) {
 
       <button
         type="button"
-        onClick={() => (open ? setOpen(false) : openChat())}
+        onClick={() => (open ? closeChat() : openChat("launcher"))}
         aria-label={open ? "Close chat" : "Open chat"}
         aria-expanded={open}
         className="fixed bottom-5 right-5 z-[9999] h-14 w-14 rounded-full bg-brand text-white flex items-center justify-center shadow-[0_8px_24px_rgba(97,187,202,0.5)] hover:scale-105 hover:bg-brand-dark transition-all focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/40"
