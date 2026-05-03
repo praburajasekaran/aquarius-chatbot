@@ -13,6 +13,10 @@ import { touchMatterForSession } from "@/lib/session-matter-map";
 import { cancelPendingReminder } from "@/lib/sms/reminder";
 import type { UploadTokenRecord } from "@/types";
 import { BRANDING } from "@/lib/branding";
+import FirmUploadNotificationEmail from "@/lib/email/templates/firm-upload-notification";
+import ClientUploadConfirmationEmail, {
+  clientUploadConfirmationText,
+} from "@/lib/email/templates/client-upload-confirmation";
 
 export interface HandleCompletedArgs {
   blob: PutBlobResult;
@@ -141,30 +145,30 @@ export async function handleUploadCompleted(
   const from = process.env.RESEND_FROM_EMAIL;
   const firmTo = process.env.FIRM_NOTIFY_EMAIL;
 
-  // --- firm notification (plaintext) ---
+  // --- firm notification ---
   if (from && firmTo) {
     try {
       const needsManual =
         attachZapStatus === "failed" || !smokeballMatterId;
+      const displayName = record.clientName || "Client";
       await sendAndLog(
         {
           from,
           to: firmTo,
-          subject: `[Upload${
-            needsManual ? " — MANUAL REQUIRED" : ""
-          }] ${record.clientName || "Client"} — ${fileName}`,
-          text: [
-            `Client: ${record.clientName || "(no name)"} <${record.clientEmail}>`,
-            `Matter ref: ${matterRef}`,
-            `Smokeball matter ID: ${
-              smokeballMatterId ?? "(not captured — attach manually)"
-            }`,
-            `File: ${fileName} (${blob.contentType})`,
-            `Size: ${sizeBytes ?? "?"} bytes`,
-            `URL: ${blob.url}`,
-            `Smokeball Zap status: ${attachZapStatus}`,
-            `Uploaded at: ${uploadedAt}`,
-          ].join("\n"),
+          subject: `Upload received — ${displayName} (${fileName})`,
+          react: FirmUploadNotificationEmail({
+            clientName: record.clientName ?? "",
+            clientEmail: record.clientEmail,
+            matterRef,
+            smokeballMatterId,
+            fileName,
+            contentType: blob.contentType,
+            sizeBytes,
+            url: blob.url,
+            attachZapStatus,
+            uploadedAt,
+            needsManual,
+          }),
         },
         { event: "late_upload_firm_notify", sessionId }
       );
@@ -180,19 +184,14 @@ export async function handleUploadCompleted(
   // --- client confirmation (out-of-band tripwire) ---
   if (from) {
     try {
+      const clientName = record.clientName ?? "";
       await sendAndLog(
         {
           from,
           to: record.clientEmail,
-          subject: "We received a file for your matter",
-          text: [
-            `Hi ${record.clientName || "there"},`,
-            "",
-            `We just received "${fileName}" for your matter with ${BRANDING.firmName}.`,
-            "If this wasn't you, please reply to this email immediately so we can secure your upload link.",
-            "",
-            `— ${BRANDING.firmName}`,
-          ].join("\n"),
+          subject: `Upload received — ${BRANDING.firmName}`,
+          react: ClientUploadConfirmationEmail({ clientName, fileName }),
+          text: clientUploadConfirmationText({ clientName, fileName }),
         },
         { event: "late_upload_client_notify", sessionId }
       );
