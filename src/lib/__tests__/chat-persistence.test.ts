@@ -46,7 +46,11 @@ describe("chat-persistence", () => {
     it("mints a fresh session when storage is empty", async () => {
       const { loadChat } = await import("@/lib/chat-persistence");
       const result = loadChat();
-      expect(result.sessionId).toMatch(/^s_\d+_[a-z0-9]+$/);
+      // Modern: s_<UUID v4>; legacy fallback (old browsers without
+      // crypto.randomUUID): s_<timestamp>_<base36>. Accept either.
+      expect(result.sessionId).toMatch(
+        /^s_(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|\d+_[a-z0-9]+)$/,
+      );
       expect(result.initialMessages).toEqual([]);
     });
 
