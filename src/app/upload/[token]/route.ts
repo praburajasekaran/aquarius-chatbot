@@ -47,7 +47,7 @@ export async function GET(
   if (!resolved)
     return NextResponse.json({ error: "not_found" }, { status: 404 });
 
-  const { record } = resolved;
+  const { record, tokenHash } = resolved;
   const exp = Math.floor(Date.now() / 1000) + COOKIE_MAX_AGE_SECONDS;
 
   const sessionUrl = new URL("/upload/session", req.url);
@@ -58,6 +58,7 @@ export async function GET(
       matterRef: record.matterRef,
       sessionId: record.sessionId,
       clientName: record.clientName,
+      tokenHash,
       exp,
     }),
     {

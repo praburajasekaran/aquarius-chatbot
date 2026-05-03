@@ -5,6 +5,7 @@ import { validateFileType, validateFileSize } from "@/lib/validators";
 import { createSession, getSession, updateSession } from "@/lib/kv";
 import { deliverInChatUploadsToZapier } from "@/lib/in-chat-upload/deliver-to-zapier";
 import { inChatUploadLimiter } from "@/lib/rate-limit";
+import { checkMagicBytes } from "@/lib/upload/magic-byte-check";
 
 const MAX_FILES_PER_SESSION = 5;
 const MAX_SESSION_ID_LENGTH = 200;
@@ -97,6 +98,32 @@ export async function POST(req: Request) {
         errors.push({
           name: cleanName,
           reason: "File exceeds 10MB limit",
+        });
+        continue;
+      }
+
+      // Magic-byte check: declared Content-Type alone is client-controlled
+      // and trivial to spoof. Reject any file whose actual bytes don't
+      // match its declared MIME, or whose detected type isn't in the
+      // allowlist. Mirrors the same check the late-upload completion
+      // handler does.
+      const magic = await checkMagicBytes({
+        kind: "blob",
+        blob: file,
+        declared: file.type,
+      });
+      if (!magic.ok) {
+        console.warn("[upload] magic-byte mismatch", {
+          event: "in_chat_magic_byte_mismatch",
+          sessionId,
+          name: cleanName,
+          declared: magic.declared,
+          detected: magic.detected,
+          reason: magic.reason,
+        });
+        errors.push({
+          name: cleanName,
+          reason: "File contents don't match its type. Allowed: PDF, JPG, PNG, DOCX",
         });
         continue;
       }
