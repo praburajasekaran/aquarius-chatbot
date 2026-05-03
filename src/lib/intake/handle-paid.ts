@@ -1,6 +1,6 @@
 import { redis, getSession, createSession, updateSession } from "@/lib/kv";
 import { createUploadToken, hashToken } from "@/lib/upload-tokens";
-import { resend, sendTranscriptEmail } from "@/lib/resend";
+import { sendAndLog, sendTranscriptEmail } from "@/lib/resend";
 import { getIntake } from "@/lib/intake";
 import { sendSms } from "@/lib/sms/dispatch";
 import { scheduleReminderSms } from "@/lib/sms/reminder";
@@ -143,25 +143,34 @@ export async function handleIntakePaid(
   if (from) {
     try {
       await assertNoResendTracking();
+      // PaymentReceipt only renders the Calendly block when both `urgency`
+      // is "non-urgent" AND `calendlyUrl` is set, so a missing env var just
+      // drops that block instead of failing the entire receipt send.
       const calendlyUrl = process.env.CALENDLY_BOOKING_URL;
       if (!calendlyUrl) {
-        throw new Error("CALENDLY_BOOKING_URL not set");
+        console.warn(
+          "[intake] CALENDLY_BOOKING_URL not set — receipt sent without booking link",
+          { event: "intake_receipt_no_calendly", sessionId }
+        );
       }
-      await resend.emails.send({
-        from,
-        to: clientEmail,
-        subject: `Your payment receipt — ${BRANDING.firmName}`,
-        react: PaymentReceipt({
-          name: clientName || undefined,
-          matterRef: sessionId,
-          amountCents: paymentAmount,
-          uploadLink,
-          urgency: intake?.urgency ?? null,
-          calendlyUrl,
-          clientEmail,
-          transcript: storedTranscript ?? undefined,
-        }),
-      });
+      await sendAndLog(
+        {
+          from,
+          to: clientEmail,
+          subject: `Your payment receipt — ${BRANDING.firmName}`,
+          react: PaymentReceipt({
+            name: clientName || undefined,
+            matterRef: sessionId,
+            amountCents: paymentAmount,
+            uploadLink,
+            urgency: intake?.urgency ?? null,
+            calendlyUrl,
+            clientEmail,
+            transcript: storedTranscript ?? undefined,
+          }),
+        },
+        { event: "intake_receipt", sessionId }
+      );
     } catch (err) {
       console.error("[intake] receipt email failed", {
         event: "intake_receipt_email_failed",
