@@ -178,6 +178,13 @@ export function ChatWidget() {
     transport,
     sendAutomaticallyWhen: shouldAutoContinue,
     messages: initialMessages,
+    // Without onError, useChat swallows server failures: status flips to
+    // "error" but the existing UI only watches "streaming"/"submitted",
+    // leaving the typing indicator stuck. Logging at minimum surfaces the
+    // underlying cause in the console for production debugging.
+    onError: (err) => {
+      console.error("[chat] stream error", err);
+    },
   });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
