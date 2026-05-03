@@ -1,8 +1,25 @@
 (function() {
   var EMBED_URL = window.CHATBOT_EMBED_URL || 'http://localhost:3000/';
+  var EVENTS_URL = EMBED_URL.replace(/\/$/, '') + '/api/events';
   var TEASER_FLAG_KEY = 'aq_teaser_shown';
   var TEASER_DELAY_MS = 3000;
   var DESKTOP_QUERY = '(min-width: 768px)';
+
+  // Fire-and-forget analytics. keepalive lets the request survive a page
+  // navigation. Failures are intentionally silent — analytics must never
+  // break the widget for the visitor.
+  function trackEvent(name, properties) {
+    try {
+      fetch(EVENTS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event: name, properties: properties || {} }),
+        keepalive: true,
+        mode: 'cors',
+        credentials: 'omit'
+      }).catch(function () { /* noop */ });
+    } catch { /* noop */ }
+  }
 
   // Iframe — closed by default. Opening is now an explicit action (launcher
   // click or teaser body click) so visitors aren't auto-interrupted.
@@ -27,21 +44,24 @@
     try { sessionStorage.setItem(TEASER_FLAG_KEY, '1'); } catch { /* noop */ }
   }
 
-  function openChat() {
+  function openChat(source) {
     frame.style.display = 'block';
     btn.innerHTML = '✕';
     btn.setAttribute('aria-label', 'Close chat');
     dismissTeaser();
+    if (source === 'teaser') trackEvent('teaser_clicked');
+    trackEvent('chat_opened', { source: source });
   }
 
   function closeChat() {
     frame.style.display = 'none';
     btn.innerHTML = '💬';
     btn.setAttribute('aria-label', 'Open chat');
+    trackEvent('chat_closed');
   }
 
   btn.onclick = function() {
-    if (frame.style.display === 'none') openChat(); else closeChat();
+    if (frame.style.display === 'none') openChat('launcher'); else closeChat();
   };
 
   document.body.appendChild(frame);
@@ -84,7 +104,7 @@
   bodyBtn.type = 'button';
   bodyBtn.style.cssText = 'background:transparent;border:none;color:inherit;font:inherit;text-align:left;cursor:pointer;padding:12px 36px 12px 16px;border-radius:16px';
   bodyBtn.textContent = 'Need legal help? Ask me anything →';
-  bodyBtn.onclick = openChat;
+  bodyBtn.onclick = function() { openChat('teaser'); };
 
   var dismissBtn = document.createElement('button');
   dismissBtn.type = 'button';
@@ -94,6 +114,7 @@
   dismissBtn.onclick = function(e) {
     e.stopPropagation();
     dismissTeaser();
+    trackEvent('teaser_dismissed');
   };
 
   teaser.appendChild(bodyBtn);
@@ -104,5 +125,6 @@
     if (!teaser) return;
     teaser.style.opacity = '1';
     teaser.style.transform = 'translateY(0)';
+    trackEvent('teaser_shown');
   }, TEASER_DELAY_MS);
 })();
