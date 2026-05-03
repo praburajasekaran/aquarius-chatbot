@@ -94,7 +94,14 @@ export async function POST(req: Request) {
     system: sessionId
       ? `${systemPrompt}\n\n## Current chat session\n\nThe sessionId for this conversation is "${sessionId}". When any tool's input schema requires a sessionId field, you MUST pass exactly this value verbatim. Do NOT invent, generate, or modify the sessionId — it must match the literal string above.`
       : systemPrompt,
-    messages: await convertToModelMessages(messages as UIMessage[]),
+    // ignoreIncompleteToolCalls drops any tool part stuck in input-streaming
+    // or input-available before conversion. Without this, an abandoned client
+    // tool from an earlier turn (user closed the tab between the tool card
+    // rendering and clicking it) makes convertToModelMessages throw
+    // AI_MissingToolResultsError on every subsequent POST in that session.
+    messages: await convertToModelMessages(messages as UIMessage[], {
+      ignoreIncompleteToolCalls: true,
+    }),
     stopWhen: [stepCountIs(10), stopAfterShowOptionsOnly],
     tools,
   });
