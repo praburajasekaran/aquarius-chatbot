@@ -128,7 +128,15 @@ export default function PaymentReceipt({
               <Heading as="h2" style={subheading}>
                 Conversation summary
               </Heading>
-              <Text style={transcriptText}>{transcript}</Text>
+              {transcript
+                .split(/\n{2,}/)
+                .map((turn) => turn.trim())
+                .filter(Boolean)
+                .map((turn, i) => (
+                  <Text key={i} style={transcriptText}>
+                    {turn}
+                  </Text>
+                ))}
             </>
           )}
 
@@ -242,5 +250,5 @@ const transcriptText: React.CSSProperties = {
   fontSize: "13px",
   lineHeight: "20px",
   whiteSpace: "pre-wrap",
-  margin: "0 0 16px",
+  margin: "0 0 10px",
 };
