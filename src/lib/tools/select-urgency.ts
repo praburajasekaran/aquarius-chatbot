@@ -3,6 +3,13 @@ import { z } from "zod";
 import { PRICING } from "@/lib/stripe";
 import { createIntake } from "@/lib/intake";
 import { sendClientInquiryEmail, sendFirmLeadEmail } from "@/lib/resend";
+import { validateEmail, validatePhone } from "@/lib/validators";
+
+// Defense-in-depth caps. The model can pass arbitrary strings here (it's a
+// tool call, not a server-validated form) so we re-validate before any of
+// these values flow into Resend / Zapier / Smokeball / SMS.
+const MAX_NAME_LENGTH = 200;
+const MAX_MATTER_LENGTH = 2000;
 
 export const selectUrgency = tool({
   description:
@@ -27,15 +34,44 @@ export const selectUrgency = tool({
     clientPhone,
     matterDescription,
   }) => {
+    const trimmedName = clientName.trim();
+    const trimmedEmail = clientEmail.trim();
+    const trimmedPhone = clientPhone.trim();
+    const trimmedMatter = matterDescription.trim();
+
+    const errors: string[] = [];
+    if (trimmedName.length < 2 || trimmedName.length > MAX_NAME_LENGTH) {
+      errors.push("clientName must be 2-200 characters.");
+    }
+    if (!validateEmail(trimmedEmail)) {
+      errors.push("clientEmail is not a valid email address.");
+    }
+    if (!validatePhone(trimmedPhone)) {
+      errors.push("clientPhone is not a valid Australian phone number.");
+    }
+    if (trimmedMatter.length < 2 || trimmedMatter.length > MAX_MATTER_LENGTH) {
+      errors.push("matterDescription must be 2-2000 characters.");
+    }
+
+    if (errors.length > 0) {
+      return {
+        ok: false,
+        error: "invalid_arguments",
+        details: errors,
+        message:
+          "I couldn't record that — please re-confirm your name, email, phone, and matter details.",
+      } as const;
+    }
+
     const pricing = PRICING[urgency];
 
     try {
       await createIntake({
         sessionId,
-        clientName,
-        clientEmail,
-        clientPhone,
-        matterDescription,
+        clientName: trimmedName,
+        clientEmail: trimmedEmail,
+        clientPhone: trimmedPhone,
+        matterDescription: trimmedMatter,
         urgency,
         displayPrice: pricing.displayPrice,
         amountCents: pricing.amount,
@@ -47,9 +83,9 @@ export const selectUrgency = tool({
     try {
       await sendClientInquiryEmail({
         sessionId,
-        clientName,
-        clientEmail,
-        matterDescription,
+        clientName: trimmedName,
+        clientEmail: trimmedEmail,
+        matterDescription: trimmedMatter,
         urgency,
         displayPrice: pricing.displayPrice,
       });
@@ -61,10 +97,10 @@ export const selectUrgency = tool({
     const resumeUrl = `${appUrl}/api/checkout/resume?session=${encodeURIComponent(sessionId)}`;
     try {
       await sendFirmLeadEmail({
-        clientName,
-        clientEmail,
-        clientPhone,
-        matterDescription,
+        clientName: trimmedName,
+        clientEmail: trimmedEmail,
+        clientPhone: trimmedPhone,
+        matterDescription: trimmedMatter,
         urgency,
         displayPrice: pricing.displayPrice,
         resumeUrl,
