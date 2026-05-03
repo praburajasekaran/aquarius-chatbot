@@ -1,14 +1,6 @@
 import { NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
-import { updateSession, redis } from "@/lib/kv";
-import { createUploadToken, hashToken } from "@/lib/upload-tokens";
-import { sendAndLog, sendTranscriptEmail } from "@/lib/resend";
-import { getIntake } from "@/lib/intake";
-import PaymentReceipt from "@/lib/email/payment-receipt";
-import { assertNoResendTracking } from "@/lib/email/assert-no-tracking";
-import { BRANDING } from "@/lib/branding";
-
-const DEDUPE_TTL_SECONDS = 60 * 60 * 24 * 7;
+import { handleIntakePaid } from "@/lib/intake/handle-paid";
 
 export async function POST(req: Request) {
   const body = await req.text();
@@ -40,107 +32,41 @@ export async function POST(req: Request) {
       session.customer_details?.email ?? session.customer_email ?? null;
     const clientName = session.customer_details?.name ?? "";
 
-    if (sessionId) {
-      try {
-        await updateSession(sessionId, {
-          paymentStatus: "paid",
-          stripeSessionId: session.id,
-          paymentAmount: session.amount_total,
-        });
-      } catch {
-        console.error(
-          `[stripe-webhook] session update failed ${sessionId} / ${session.id}`
-        );
-      }
+    if (!sessionId) {
+      console.error("[stripe-webhook] missing sessionId in metadata", {
+        event: "stripe_missing_session_id",
+        stripeSessionId: session.id,
+      });
+      return NextResponse.json({ received: true });
+    }
+    if (!clientEmail) {
+      console.error("[stripe-webhook] missing client email", {
+        event: "stripe_missing_email",
+        stripeSessionId: session.id,
+        sessionId,
+      });
+      return NextResponse.json({ received: true });
     }
 
-    if (sessionId && clientEmail) {
-      try {
-        const dedupeKey = `stripe-session:${session.id}`;
-        const created = await redis.set(dedupeKey, "pending", {
-          nx: true,
-          ex: DEDUPE_TTL_SECONDS,
-        });
-        if (created !== "OK") {
-          console.info(
-            `[stripe-webhook] retry ignored for ${session.id} (already processed)`
-          );
-          return NextResponse.json({ received: true });
-        }
-
-        const { rawToken } = await createUploadToken({
-          matterRef: sessionId,
-          clientEmail,
-          clientName,
-          sessionId,
-        });
-
-        await redis.set(dedupeKey, hashToken(rawToken), {
-          ex: DEDUPE_TTL_SECONDS,
-        });
-
-        const appUrl = process.env.APP_URL;
-        if (!appUrl) {
-          throw new Error("APP_URL not configured");
-        }
-        const uploadLink = `${appUrl}/upload/${rawToken}`;
-
-        const from = process.env.RESEND_FROM_EMAIL;
-        if (!from) {
-          throw new Error("RESEND_FROM_EMAIL not configured");
-        }
-
-        await assertNoResendTracking();
-
-        // Load intake before the receipt so we can route the next-step block
-        // (urgent → call us; non-urgent → Calendly link).
-        const intake = await getIntake(sessionId);
-        // PaymentReceipt only renders the Calendly block when both `urgency`
-        // is "non-urgent" AND `calendlyUrl` is set, so a missing env var just
-        // drops that block instead of failing the entire receipt send.
-        const calendlyUrl = process.env.CALENDLY_BOOKING_URL;
-        if (!calendlyUrl) {
-          console.warn(
-            "[stripe] CALENDLY_BOOKING_URL not set — receipt sent without booking link",
-            { sessionId }
-          );
-        }
-
-        await sendAndLog(
-          {
-            from,
-            to: clientEmail,
-            subject: `Your payment receipt — ${BRANDING.firmName}`,
-            react: PaymentReceipt({
-              name: clientName || undefined,
-              matterRef: sessionId,
-              amountCents: session.amount_total ?? 0,
-              uploadLink,
-              urgency: intake?.urgency ?? null,
-              calendlyUrl,
-              clientEmail,
-            }),
-          },
-          { event: "stripe_receipt", sessionId }
-        );
-
-        // Notify firm about the paid inquiry
-        await sendTranscriptEmail({
-          clientName: intake?.clientName ?? clientName,
-          clientEmail: intake?.clientEmail ?? clientEmail,
-          clientPhone: intake?.clientPhone ?? "N/A",
-          matterDescription: intake?.matterDescription ?? "N/A",
-          urgency: intake?.urgency ?? "N/A",
-          paymentAmount: session.amount_total ?? 0,
-          stripeSessionId: session.id,
-        });
-      } catch (err) {
-        // Webhook MUST return 200 regardless — otherwise Stripe retries forever
-        console.error("[stripe-webhook] token/email fan-out failed", {
-          stripeSessionId: session.id,
-          err: err instanceof Error ? err.message : String(err),
-        });
-      }
+    try {
+      await handleIntakePaid({
+        sessionId,
+        paymentRef: session.id,
+        paymentAmount: session.amount_total ?? 0,
+        clientEmail,
+        clientName,
+        source: "stripe",
+      });
+    } catch (err) {
+      // Webhook MUST return 200 regardless — otherwise Stripe retries forever.
+      // handleIntakePaid only throws on missing APP_URL; everything else is
+      // logged + degraded inside the orchestrator.
+      console.error("[stripe-webhook] orchestrator threw", {
+        event: "stripe_orchestrator_failed",
+        stripeSessionId: session.id,
+        sessionId,
+        err: err instanceof Error ? err.message : String(err),
+      });
     }
   }
 
