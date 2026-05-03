@@ -79,42 +79,39 @@ export function MessageList({
     el.scrollTop = el.scrollHeight;
   }, [scrollKey]);
 
-  if (messages.length === 0) {
-    // Show the welcome message as a proper assistant bubble on mount so the
-    // AI greets the visitor first, instead of an empty canvas that requires
-    // the visitor to type the first message. The suggestion chips for this
-    // initial state are provided by ChatWidget through MessageInput.
-    return (
-      <div role="log" aria-label="Conversation" className="flex-1 overflow-y-auto p-4 space-y-4">
-        <div className="flex gap-3">
-          <div
-            aria-hidden="true"
-            className="shrink-0 h-8 w-8 rounded-full overflow-hidden bg-brand/10"
-          >
-            <Image
-              src="/chat-profile-pic.png"
-              alt=""
-              width={64}
-              height={64}
-              className="h-full w-full object-cover"
-            />
-          </div>
-          <div
-            aria-label={`Assistant: ${BRANDING.welcomeMessage}`}
-            className="max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed bg-gray-100 text-gray-800 rounded-bl-md"
-          >
-            {BRANDING.welcomeMessage}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   const lastMsgIndex = messages.length - 1;
+
+  // Static welcome bubble. Rendered as a sibling of the message list (not
+  // injected into `messages`) so it persists across the conversation without
+  // ever being sent to the model — purely a UI affordance that greets the
+  // visitor first instead of an empty canvas.
+  const welcomeBubble = (
+    <div className="flex gap-3">
+      <div
+        aria-hidden="true"
+        className="shrink-0 h-8 w-8 rounded-full overflow-hidden bg-brand/10"
+      >
+        <Image
+          src="/chat-profile-pic.png"
+          alt=""
+          width={64}
+          height={64}
+          className="h-full w-full object-cover"
+        />
+      </div>
+      <div
+        aria-label={`Assistant: ${BRANDING.welcomeMessage}`}
+        className="max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed bg-gray-100 text-gray-800 rounded-bl-md"
+      >
+        {BRANDING.welcomeMessage}
+      </div>
+    </div>
+  );
 
   return (
     /* role="log" has implicit aria-live="polite" — new messages announced to screen readers */
     <div ref={scrollRef} role="log" aria-label="Conversation" className="flex-1 overflow-y-auto p-4 space-y-4">
+      {welcomeBubble}
       {messages.map((message, msgIndex) => (
         <div key={message.id} className="space-y-2">
           {message.parts.map((part, i) => {
