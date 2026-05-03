@@ -4,4 +4,4 @@ const openrouter = createOpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY,
 });
 
-export const geminiFlash = openrouter("google/gemini-2.5-flash");
+export const chatModel = openrouter("deepseek/deepseek-v4-flash");
