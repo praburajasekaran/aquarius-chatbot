@@ -12,6 +12,7 @@ import { loadChat, saveChat, clearChat } from "@/lib/chat-persistence";
 import type { ChatMessage } from "@/lib/tools";
 import { Scale } from "lucide-react";
 import { BRANDING } from "@/lib/branding";
+import { FIRM_CONTACT } from "@/lib/contact";
 
 // Chips shown alongside the initial assistant greeting, before the visitor
 // has sent any message. These mirror the options the AI would emit itself if
@@ -38,10 +39,72 @@ const CLIENT_TOOLS_REQUIRING_CONTINUATION = new Set([
   "tool-showUrgentContact",
 ]);
 
+// Terminal states reached after the booking flow completes. Once either is
+// resolved, no further LLM call is allowed: the model is supposed to stay
+// quiet per Step 8 of the system prompt, but DeepSeek frequently re-narrates
+// or leaks raw tokens (`<|begin_of_sentence|>`, code fragments) when prompted
+// past this boundary. The client enforces the closure the prompt cannot.
+function isTerminalState(messages: ChatMessage[]): boolean {
+  for (const msg of messages) {
+    if (msg.role !== "assistant") continue;
+    for (const p of msg.parts) {
+      const part = p as {
+        type?: string;
+        state?: string;
+        output?: { acknowledged?: boolean; booked?: boolean };
+      };
+      if (part.state !== "output-available") continue;
+      if (
+        part.type === "tool-showUrgentContact" &&
+        part.output?.acknowledged === true
+      ) {
+        return true;
+      }
+      if (
+        part.type === "tool-scheduleAppointment" &&
+        part.output?.booked === true
+      ) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function terminalReplyText(messages: ChatMessage[]): string {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msg = messages[i];
+    if (msg.role !== "assistant") continue;
+    for (const p of msg.parts) {
+      const part = p as {
+        type?: string;
+        state?: string;
+        output?: { acknowledged?: boolean; booked?: boolean };
+      };
+      if (part.state !== "output-available") continue;
+      if (
+        part.type === "tool-showUrgentContact" &&
+        part.output?.acknowledged === true
+      ) {
+        return `Thanks — your urgent session is locked in. Please call ${FIRM_CONTACT.phone} to speak with the team. Anything else can be raised directly with your lawyer when you call.`;
+      }
+      if (
+        part.type === "tool-scheduleAppointment" &&
+        part.output?.booked === true
+      ) {
+        return "Thanks — your session is locked in. Anything else can be raised directly with your lawyer when you speak.";
+      }
+    }
+  }
+  return "Thanks — your session is locked in. Anything else can be raised directly with your lawyer when you speak.";
+}
+
 // Auto-continuation condition. Fires only when one of the whitelisted client
 // tools in the last assistant message has entered a resolved state, meaning
 // the user has just completed an action (paid, uploaded, booked, etc.) and
-// the AI needs to see the result to produce the next turn.
+// the AI needs to see the result to produce the next turn. Terminal-state
+// guard short-circuits before the resolved tool can re-trigger continuation
+// after the booking flow has already closed.
 function shouldAutoContinue({
   messages,
 }: {
@@ -50,12 +113,21 @@ function shouldAutoContinue({
   const last = messages[messages.length - 1];
   if (!last || last.role !== "assistant") return false;
 
-  return last.parts.some((p) => {
+  const lastHasResolvedClientTool = last.parts.some((p) => {
     const part = p as { type?: string; state?: string };
     if (typeof part.type !== "string") return false;
     if (!CLIENT_TOOLS_REQUIRING_CONTINUATION.has(part.type)) return false;
     return part.state === "output-available" || part.state === "output-error";
   });
+  if (!lastHasResolvedClientTool) return false;
+
+  // If the booking flow has already produced its terminal acknowledgement
+  // earlier in the transcript, do not trigger another LLM round even if
+  // showUrgentContact/scheduleAppointment resolves again on the last message.
+  const priorMessages = messages.slice(0, -1);
+  if (isTerminalState(priorMessages)) return false;
+
+  return true;
 }
 
 // Pull the `options` array from the most recent assistant message's
@@ -167,6 +239,26 @@ export function ChatWidget() {
 
   function handleSend(text: string) {
     setDismissedForMessageId(suggestionsKey);
+
+    // Once the booking flow has closed (urgent contact acknowledged or session
+    // booked), append the visitor's message and a static reply locally — never
+    // call the API. The LLM is no longer trustworthy past this point.
+    if (isTerminalState(messages)) {
+      const stamp = `${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+      const userMsg: ChatMessage = {
+        id: `terminal_user_${stamp}`,
+        role: "user",
+        parts: [{ type: "text", text }],
+      };
+      const assistantMsg: ChatMessage = {
+        id: `terminal_assistant_${stamp}`,
+        role: "assistant",
+        parts: [{ type: "text", text: terminalReplyText(messages) }],
+      };
+      setMessages([...messages, userMsg, assistantMsg]);
+      return;
+    }
+
     sendMessage({ text });
   }
 
