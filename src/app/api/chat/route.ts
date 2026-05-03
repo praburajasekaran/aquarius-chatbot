@@ -7,7 +7,7 @@ import {
 } from "ai";
 import { after, NextResponse } from "next/server";
 import { z } from "zod";
-import { geminiFlash } from "@/lib/openrouter";
+import { chatModel } from "@/lib/openrouter";
 import { tools, type ChatMessage } from "@/lib/tools";
 import { systemPrompt } from "@/lib/system-prompt";
 import { redis } from "@/lib/kv";
@@ -90,7 +90,7 @@ export async function POST(req: Request) {
   }
 
   const result = streamText({
-    model: geminiFlash,
+    model: chatModel,
     system: sessionId
       ? `${systemPrompt}\n\n## Current chat session\n\nThe sessionId for this conversation is "${sessionId}". When any tool's input schema requires a sessionId field, you MUST pass exactly this value verbatim. Do NOT invent, generate, or modify the sessionId — it must match the literal string above.`
       : systemPrompt,
