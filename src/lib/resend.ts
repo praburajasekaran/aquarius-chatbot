@@ -1,3 +1,4 @@
+import type { CreateEmailOptions, CreateEmailResponseSuccess } from "resend";
 import { Resend } from "resend";
 import { FIRM_CONTACT } from "@/lib/contact";
 import { BRANDING } from "@/lib/branding";
@@ -13,6 +14,44 @@ export const resend: Resend = new Proxy({} as Resend, {
     return Reflect.get(getClient(), prop);
   },
 });
+
+// The Resend SDK's `emails.send()` returns `{ data, error }` and does NOT throw
+// on application-level rejections (unverified sender, suppression list, rate
+// limits, schema errors). Without inspection these failures are invisible —
+// the surrounding try/catch only catches transport/JS errors, so a successful
+// `await` looks identical to a silently rejected send.
+//
+// `sendAndLog` is the single chokepoint every send must go through:
+//   - logs `{event:"resend_sent", id, to, subject}` on success
+//   - logs `{event:"resend_send_failed", error, to, subject}` on Resend error
+//     and re-throws so existing try/catches still trigger their fallback path
+export async function sendAndLog(
+  payload: CreateEmailOptions,
+  context: { event: string; sessionId?: string }
+): Promise<CreateEmailResponseSuccess> {
+  const { data, error } = await resend.emails.send(payload);
+  if (error) {
+    console.error("[resend] send failed", {
+      event: "resend_send_failed",
+      caller: context.event,
+      sessionId: context.sessionId,
+      to: payload.to,
+      subject: payload.subject,
+      error: { name: error.name, message: error.message },
+    });
+    throw new Error(`Resend rejected: ${error.name} — ${error.message}`);
+  }
+  console.info("[resend] sent", {
+    event: "resend_sent",
+    caller: context.event,
+    sessionId: context.sessionId,
+    to: payload.to,
+    subject: payload.subject,
+    id: data?.id,
+  });
+  // data is non-null when error is null per Resend SDK contract
+  return data as CreateEmailResponseSuccess;
+}
 
 export async function sendTranscriptEmail({
   clientName,
@@ -41,7 +80,7 @@ export async function sendTranscriptEmail({
     return;
   }
   const to = process.env.FIRM_NOTIFY_EMAIL ?? "prabu@paretoid.com";
-  return resend.emails.send({
+  return sendAndLog({
     from,
     to,
     subject: `New ${urgency} Criminal Law Inquiry — ${clientName}`,
@@ -59,7 +98,7 @@ export async function sendTranscriptEmail({
       ${transcript ? `<h3>Chat Transcript</h3>
       <div style="background:#f5f5f5;padding:16px;border-radius:8px;white-space:pre-wrap;font-family:sans-serif;font-size:14px">${transcript}</div>` : ""}
     `,
-  });
+  }, { event: "sendTranscriptEmail", sessionId: stripeSessionId ?? undefined });
 }
 
 export async function sendClientInquiryEmail({
@@ -127,7 +166,7 @@ export async function sendClientInquiryEmail({
       ? "Initial Deposit for Urgent Court Matter"
       : "Legal Strategy Session";
 
-  return resend.emails.send({
+  return sendAndLog({
     from,
     to: clientEmail,
     subject: `Your ${subjectMatterLabel} inquiry — ${BRANDING.firmName}`,
@@ -150,7 +189,7 @@ export async function sendClientInquiryEmail({
         </p>
       </div>
     `,
-  });
+  }, { event: "sendClientInquiryEmail", sessionId });
 }
 
 export async function sendFirmLeadEmail({
@@ -178,7 +217,7 @@ export async function sendFirmLeadEmail({
     return;
   }
   const to = process.env.FIRM_NOTIFY_EMAIL ?? "prabu@paretoid.com";
-  return resend.emails.send({
+  return sendAndLog({
     from,
     to,
     subject: `New ${urgency} inquiry — ${clientName} (awaiting payment)`,
@@ -199,7 +238,7 @@ export async function sendFirmLeadEmail({
         <a href="${resumeUrl}" style="color:#085a66">View payment link</a>
       </p>
     `,
-  });
+  }, { event: "sendFirmLeadEmail" });
 }
 
 export async function sendBookingNotificationEmail({
@@ -246,7 +285,7 @@ export async function sendBookingNotificationEmail({
     // fall back to raw ISO string if parsing fails
   }
 
-  return resend.emails.send({
+  return sendAndLog({
     from,
     to,
     subject: `Booking confirmed — ${clientName} — ${startLocal}`,
@@ -265,5 +304,5 @@ export async function sendBookingNotificationEmail({
         </table>
       </div>
     `,
-  });
+  }, { event: "sendBookingNotificationEmail", sessionId: stripeSessionId ?? undefined });
 }

@@ -1,7 +1,7 @@
 import { del, head } from "@vercel/blob";
 import type { PutBlobResult } from "@vercel/blob";
 import { fileTypeFromBuffer } from "file-type";
-import { resend } from "@/lib/resend";
+import { sendAndLog } from "@/lib/resend";
 import { sendToZapier } from "@/lib/zapier";
 import { redis } from "@/lib/kv";
 import {
@@ -146,25 +146,28 @@ export async function handleUploadCompleted(
     try {
       const needsManual =
         attachZapStatus === "failed" || !smokeballMatterId;
-      await resend.emails.send({
-        from,
-        to: firmTo,
-        subject: `[Upload${
-          needsManual ? " — MANUAL REQUIRED" : ""
-        }] ${record.clientName || "Client"} — ${fileName}`,
-        text: [
-          `Client: ${record.clientName || "(no name)"} <${record.clientEmail}>`,
-          `Matter ref: ${matterRef}`,
-          `Smokeball matter ID: ${
-            smokeballMatterId ?? "(not captured — attach manually)"
-          }`,
-          `File: ${fileName} (${blob.contentType})`,
-          `Size: ${sizeBytes ?? "?"} bytes`,
-          `URL: ${blob.url}`,
-          `Smokeball Zap status: ${attachZapStatus}`,
-          `Uploaded at: ${uploadedAt}`,
-        ].join("\n"),
-      });
+      await sendAndLog(
+        {
+          from,
+          to: firmTo,
+          subject: `[Upload${
+            needsManual ? " — MANUAL REQUIRED" : ""
+          }] ${record.clientName || "Client"} — ${fileName}`,
+          text: [
+            `Client: ${record.clientName || "(no name)"} <${record.clientEmail}>`,
+            `Matter ref: ${matterRef}`,
+            `Smokeball matter ID: ${
+              smokeballMatterId ?? "(not captured — attach manually)"
+            }`,
+            `File: ${fileName} (${blob.contentType})`,
+            `Size: ${sizeBytes ?? "?"} bytes`,
+            `URL: ${blob.url}`,
+            `Smokeball Zap status: ${attachZapStatus}`,
+            `Uploaded at: ${uploadedAt}`,
+          ].join("\n"),
+        },
+        { event: "late_upload_firm_notify", sessionId }
+      );
     } catch (err) {
       console.error("[late-upload] firm notify failed", err);
     }
@@ -177,19 +180,22 @@ export async function handleUploadCompleted(
   // --- client confirmation (out-of-band tripwire) ---
   if (from) {
     try {
-      await resend.emails.send({
-        from,
-        to: record.clientEmail,
-        subject: "We received a file for your matter",
-        text: [
-          `Hi ${record.clientName || "there"},`,
-          "",
-          `We just received "${fileName}" for your matter with ${BRANDING.firmName}.`,
-          "If this wasn't you, please reply to this email immediately so we can secure your upload link.",
-          "",
-          `— ${BRANDING.firmName}`,
-        ].join("\n"),
-      });
+      await sendAndLog(
+        {
+          from,
+          to: record.clientEmail,
+          subject: "We received a file for your matter",
+          text: [
+            `Hi ${record.clientName || "there"},`,
+            "",
+            `We just received "${fileName}" for your matter with ${BRANDING.firmName}.`,
+            "If this wasn't you, please reply to this email immediately so we can secure your upload link.",
+            "",
+            `— ${BRANDING.firmName}`,
+          ].join("\n"),
+        },
+        { event: "late_upload_client_notify", sessionId }
+      );
     } catch (err) {
       console.error("[late-upload] client notify failed", err);
     }

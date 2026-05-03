@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
 import { updateSession, redis } from "@/lib/kv";
 import { createUploadToken, hashToken } from "@/lib/upload-tokens";
-import { resend, sendTranscriptEmail } from "@/lib/resend";
+import { sendAndLog, sendTranscriptEmail } from "@/lib/resend";
 import { getIntake } from "@/lib/intake";
 import PaymentReceipt from "@/lib/email/payment-receipt";
 import { assertNoResendTracking } from "@/lib/email/assert-no-tracking";
@@ -95,25 +95,34 @@ export async function POST(req: Request) {
         // Load intake before the receipt so we can route the next-step block
         // (urgent → call us; non-urgent → Calendly link).
         const intake = await getIntake(sessionId);
+        // PaymentReceipt only renders the Calendly block when both `urgency`
+        // is "non-urgent" AND `calendlyUrl` is set, so a missing env var just
+        // drops that block instead of failing the entire receipt send.
         const calendlyUrl = process.env.CALENDLY_BOOKING_URL;
         if (!calendlyUrl) {
-          throw new Error("CALENDLY_BOOKING_URL not set");
+          console.warn(
+            "[stripe] CALENDLY_BOOKING_URL not set — receipt sent without booking link",
+            { sessionId }
+          );
         }
 
-        await resend.emails.send({
-          from,
-          to: clientEmail,
-          subject: `Your payment receipt — ${BRANDING.firmName}`,
-          react: PaymentReceipt({
-            name: clientName || undefined,
-            matterRef: sessionId,
-            amountCents: session.amount_total ?? 0,
-            uploadLink,
-            urgency: intake?.urgency ?? null,
-            calendlyUrl,
-            clientEmail,
-          }),
-        });
+        await sendAndLog(
+          {
+            from,
+            to: clientEmail,
+            subject: `Your payment receipt — ${BRANDING.firmName}`,
+            react: PaymentReceipt({
+              name: clientName || undefined,
+              matterRef: sessionId,
+              amountCents: session.amount_total ?? 0,
+              uploadLink,
+              urgency: intake?.urgency ?? null,
+              calendlyUrl,
+              clientEmail,
+            }),
+          },
+          { event: "stripe_receipt", sessionId }
+        );
 
         // Notify firm about the paid inquiry
         await sendTranscriptEmail({
