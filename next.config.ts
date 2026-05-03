@@ -15,6 +15,24 @@ function findTurbopackRoot(start: string): string {
   }
 }
 
+// Frame-ancestors allowlist for the embedded chat widget. Default ("*")
+// preserves the original "embed anywhere" behavior so this rollout is a
+// no-op for deployments that haven't set the env var. Operators who know
+// the set of approved embedding origins should set
+// CHATBOT_FRAME_ANCESTORS to a space-separated list — e.g.
+// "https://aquariuslawyers.com.au https://*.aquariuslawyers.com.au" —
+// to prevent clickjacking + UI-redress attacks via malicious embeds.
+const frameAncestors = (
+  process.env.CHATBOT_FRAME_ANCESTORS ?? "*"
+).trim();
+const csp = `frame-ancestors ${frameAncestors}`;
+// X-Frame-Options is a binary toggle, not a list — only ALLOWALL or
+// SAMEORIGIN/DENY make sense. If the operator has restricted
+// frame-ancestors via CSP, drop XFO entirely (CSP supersedes it in
+// modern browsers; legacy IE/Edge fall back to no protection but this
+// app does not target those).
+const xfoValue = frameAncestors === "*" ? "ALLOWALL" : null;
+
 const nextConfig: NextConfig = {
   turbopack: {
     root: findTurbopackRoot(__dirname),
@@ -24,8 +42,8 @@ const nextConfig: NextConfig = {
       {
         source: "/:path*",
         headers: [
-          { key: "X-Frame-Options", value: "ALLOWALL" },
-          { key: "Content-Security-Policy", value: "frame-ancestors *" },
+          ...(xfoValue ? [{ key: "X-Frame-Options", value: xfoValue }] : []),
+          { key: "Content-Security-Policy", value: csp },
         ],
       },
       {

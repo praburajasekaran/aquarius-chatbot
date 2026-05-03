@@ -79,7 +79,14 @@ export async function sendTranscriptEmail({
     );
     return;
   }
-  const to = process.env.FIRM_NOTIFY_EMAIL ?? "prabu@paretoid.com";
+  const to = process.env.FIRM_NOTIFY_EMAIL;
+  if (!to) {
+    console.error(
+      "[resend] FIRM_NOTIFY_EMAIL not set — sendTranscriptEmail SKIPPED (was previously falling back to a hardcoded personal address)",
+      { event: "firm_notify_email_missing", caller: "sendTranscriptEmail" }
+    );
+    return;
+  }
   return sendAndLog({
     from,
     to,
@@ -218,7 +225,14 @@ export async function sendFirmLeadEmail({
     );
     return;
   }
-  const to = process.env.FIRM_NOTIFY_EMAIL ?? "prabu@paretoid.com";
+  const to = process.env.FIRM_NOTIFY_EMAIL;
+  if (!to) {
+    console.error(
+      "[resend] FIRM_NOTIFY_EMAIL not set — sendFirmLeadEmail SKIPPED",
+      { event: "firm_notify_email_missing", caller: "sendFirmLeadEmail" }
+    );
+    return;
+  }
   return sendAndLog({
     from,
     to,
@@ -270,7 +284,14 @@ export async function sendBookingNotificationEmail({
     );
     return;
   }
-  const to = process.env.FIRM_NOTIFY_EMAIL ?? "prabu@paretoid.com";
+  const to = process.env.FIRM_NOTIFY_EMAIL;
+  if (!to) {
+    console.error(
+      "[resend] FIRM_NOTIFY_EMAIL not set — sendBookingNotificationEmail SKIPPED",
+      { event: "firm_notify_email_missing", caller: "sendBookingNotificationEmail" }
+    );
+    return;
+  }
 
   let startLocal = eventStartTime;
   try {
