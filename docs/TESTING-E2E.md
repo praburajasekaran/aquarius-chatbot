@@ -15,7 +15,7 @@ Two payment paths exist. **Pick one and confirm before the demo:**
 
 | Mode | Trigger | Path |
 |---|---|---|
-| **Demo bypass** | `NEXT_PUBLIC_DEMO_BYPASS_PAYMENT=true` | `<DemoPaymentCard>` shows "Pay (Success)" / "Pay (Fail)" buttons → `POST /api/intake/bypass-paid` → `handleIntakePaid()` |
+| **Demo bypass** | `NEXT_PUBLIC_DEMO_BYPASS_PAYMENT=true` AND `DEMO_BYPASS_PAYMENT=true` | `<DemoPaymentCard>` shows "Pay (Success)" / "Pay (Fail)" buttons → `POST /api/intake/bypass-paid` → `handleIntakePaid()`. The server flag is required by `/api/intake/bypass-paid` (refuses without it, and always refuses when `VERCEL_ENV === "production"`). |
 | **Real Stripe** | env var unset/false | Embedded Stripe Checkout → Stripe webhook → legacy fan-out in `route.ts` (does **NOT** call `handleIntakePaid`) |
 
 > ⚠ **Behavior gap to know about**: the real Stripe webhook ([src/app/api/webhooks/stripe/route.ts](src/app/api/webhooks/stripe/route.ts)) fans out **payment receipt + firm transcript only** — it does *not* send the immediate client SMS, schedule the 24h reminder, or send the urgent-firm SMS. The demo bypass *does*, because it routes through `handleIntakePaid()`. If the demo will use real Stripe and SMS matters, this is a known regression.
@@ -28,7 +28,8 @@ Two payment paths exist. **Pick one and confirm before the demo:**
 | `UPSTASH_REDIS_REST_URL` / `_TOKEN` | Everywhere | Sessions/intake fail |
 | `STRIPE_SECRET_KEY` / `_WEBHOOK_SECRET` | Real-payment path | Checkout/webhook fail |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Embedded checkout | Stripe iframe fails |
-| `NEXT_PUBLIC_DEMO_BYPASS_PAYMENT=true` | Demo path | Real Stripe used |
+| `NEXT_PUBLIC_DEMO_BYPASS_PAYMENT=true` | Demo path (UI) | Real Stripe checkout shown |
+| `DEMO_BYPASS_PAYMENT=true` (server-only) | Demo path (endpoint) | Bypass endpoint refuses (403) |
 | `RESEND_API_KEY` / `RESEND_FROM_EMAIL` | All emails | Emails skipped (logged) |
 | `FIRM_NOTIFY_EMAIL` | Firm lead, firm transcript, late-upload firm notify, Calendly booking | Falls back to `prabu@paretoid.com` for some senders; late-upload notify is silently skipped |
 | `FIRM_NOTIFY_PHONE` | URGENT-only firm SMS | Skipped (logged) |

@@ -19,12 +19,17 @@ const PayloadSchema = z.object({
  * will run — proving the provider-agnostic seam without depending on a
  * real payment processor.
  *
- * Refuses unless `NEXT_PUBLIC_DEMO_BYPASS_PAYMENT === "true"` so this
- * endpoint cannot be used to mint upload tokens against real intake
- * records in a non-demo deployment.
+ * Refuses unless the **server-only** `DEMO_BYPASS_PAYMENT === "true"` AND
+ * we're not in a Vercel Production deployment. Server-only so the flag
+ * never ships to the browser bundle, where a misconfigured promotion of
+ * Preview→Production env could otherwise turn prod into a free
+ * upload-token mint. The VERCEL_ENV check is a second belt: even if the
+ * flag is accidentally set in Production, the route still refuses.
  */
 export async function POST(req: NextRequest) {
-  if (process.env.NEXT_PUBLIC_DEMO_BYPASS_PAYMENT !== "true") {
+  const bypassEnabled = process.env.DEMO_BYPASS_PAYMENT === "true";
+  const isProduction = process.env.VERCEL_ENV === "production";
+  if (!bypassEnabled || isProduction) {
     return NextResponse.json(
       { error: "demo_bypass_disabled" },
       { status: 403 }
