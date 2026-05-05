@@ -106,3 +106,30 @@ export function saveChat(sessionId: string, messages: ChatMessage[]): void {
 export function clearChat(): void {
   safeRemove();
 }
+
+// Notifies when another tab on the same origin updates the persisted chat.
+// `storage` events fire only in OTHER tabs by spec, so we never receive our
+// own writes here. Returns an unsubscribe function. No-op outside the browser.
+export function subscribeToStorage(
+  handler: (next: { sessionId: string; messages: ChatMessage[] } | "cleared") => void
+): () => void {
+  if (typeof window === "undefined") return () => {};
+  const onStorage = (e: StorageEvent) => {
+    if (e.key !== KEY) return;
+    if (e.newValue === null) {
+      handler("cleared");
+      return;
+    }
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(e.newValue);
+    } catch {
+      return;
+    }
+    if (!isStored(parsed)) return;
+    if (parsed.expiresAt <= Date.now()) return;
+    handler({ sessionId: parsed.sessionId, messages: parsed.messages });
+  };
+  window.addEventListener("storage", onStorage);
+  return () => window.removeEventListener("storage", onStorage);
+}
