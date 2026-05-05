@@ -27,6 +27,29 @@ type StreamSignal =
   | { type: "start"; sessionId: string }
   | { type: "end"; sessionId: string };
 
+// Cross-tab "how progressed is this transcript" metric. We can't rely on
+// messages.length alone because addToolOutput mutates a tool part's state in
+// place (input-available → output-available) without adding a new message.
+// A length-only guard rejects that save, leaving sister tabs frozen on the
+// pre-resolution UI (e.g., still showing "make the payment" after tab 1
+// already paid). Counting resolved client-tool parts catches the in-place
+// case while strict-greater comparison still breaks echo cycles when a tab
+// re-saves something it just adopted.
+const RESOLVED_PART_STATES = new Set(["output-available", "output-error"]);
+function transcriptProgressScore(messages: ChatMessage[]): number {
+  let resolved = 0;
+  for (const m of messages) {
+    if (m.role !== "assistant") continue;
+    for (const p of m.parts) {
+      const part = p as { state?: string };
+      if (part.state && RESOLVED_PART_STATES.has(part.state)) resolved++;
+    }
+  }
+  // Each message dominates the resolved-parts bonus so a longer transcript
+  // always wins over a shorter-but-more-resolved one.
+  return messages.length * 1000 + resolved;
+}
+
 // Chips shown alongside the initial assistant greeting, before the visitor
 // has sent any message. These mirror the options the AI would emit itself if
 // the visitor said "hi" first — rendering them statically avoids a wasted
@@ -218,13 +241,14 @@ export function ChatWidget() {
   // Cross-tab merge. When a sister tab finishes a stream and saves to
   // localStorage, the spec fires a `storage` event in every OTHER tab on the
   // same origin. Adopt the newer transcript so this tab converges without a
-  // reload. Guards: same sessionId, not currently streaming (our own turn is
-  // the source of truth while in-flight), and the incoming transcript must be
-  // at least as long as ours so we never go backwards.
-  const messagesLenRef = useRef(messages.length);
+  // reload. Guards: same sessionId, not currently streaming (our turn is the
+  // source of truth while in-flight), and incoming transcript must be MORE
+  // progressed than ours by transcriptProgressScore (length + resolved-tool
+  // count) — strict-greater so echoes of our own state don't trigger a loop.
+  const progressScoreRef = useRef(transcriptProgressScore(messages));
   const statusRef = useRef(status);
   useEffect(() => {
-    messagesLenRef.current = messages.length;
+    progressScoreRef.current = transcriptProgressScore(messages);
     statusRef.current = status;
   });
   useEffect(() => {
@@ -232,7 +256,7 @@ export function ChatWidget() {
       if (next === "cleared") return; // sister tab ended chat; don't wipe ours.
       if (next.sessionId !== sessionId) return;
       if (statusRef.current === "streaming" || statusRef.current === "submitted") return;
-      if (next.messages.length <= messagesLenRef.current) return;
+      if (transcriptProgressScore(next.messages) <= progressScoreRef.current) return;
       setMessages(next.messages);
     });
   }, [sessionId, setMessages]);

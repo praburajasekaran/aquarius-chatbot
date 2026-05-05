@@ -59,6 +59,26 @@ const stopAfterShowOptionsOnly: StopCondition<typeof tools> = ({ steps }) => {
   return toolCalls.every((tc) => tc.toolName === "showOptions");
 };
 
+// Tools without an `execute` are CLIENT tools — they pause the conversation
+// until the visitor interacts with the rendered UI (pay, upload, book, ack).
+// AI SDK v6's executeToolCall returns `undefined` for no-execute tools and
+// the SDK's loop counts that undefined as a completed result, so the model
+// happily re-emits the same client tool on every step until stepCountIs(10)
+// fires. That manifested as up to 10 stacked upload modals after a single
+// "I've paid" click. Stop the loop the moment the model emits any client
+// tool — there's nothing useful for it to do until the visitor responds.
+const stopAfterClientPausingTool: StopCondition<typeof tools> = ({ steps }) => {
+  const last = steps[steps.length - 1];
+  if (!last) return false;
+  const calls = last.toolCalls ?? [];
+  if (calls.length === 0) return false;
+  const toolDefs = tools as unknown as Record<string, { execute?: unknown }>;
+  return calls.some((tc) => {
+    const def = toolDefs[tc.toolName];
+    return def != null && def.execute == null;
+  });
+};
+
 function formatTranscript(messages: ChatMessage[]): string {
   return messages
     .filter((m) => m.role === "user" || m.role === "assistant")
@@ -126,7 +146,7 @@ export async function POST(req: Request) {
     messages: await convertToModelMessages(messages as UIMessage[], {
       ignoreIncompleteToolCalls: true,
     }),
-    stopWhen: [stepCountIs(10), stopAfterShowOptionsOnly],
+    stopWhen: [stepCountIs(10), stopAfterShowOptionsOnly, stopAfterClientPausingTool],
     tools,
   });
 
