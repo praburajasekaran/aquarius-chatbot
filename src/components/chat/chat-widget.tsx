@@ -6,11 +6,12 @@ import { useRef, useEffect, useMemo, useState } from "react";
 import { DisclaimerBanner } from "./disclaimer-banner";
 import { MessageList } from "./message-list";
 import { MessageInput } from "./message-input";
-import { EndChatButton } from "./end-chat-button";
+import { ChatMenu } from "./chat-menu";
 import { EndChatDialog } from "./end-chat-dialog";
 import { loadChat, saveChat, clearChat } from "@/lib/chat-persistence";
 import type { ChatMessage } from "@/lib/tools";
-import { Scale } from "lucide-react";
+import { Scale, Minus } from "lucide-react";
+import { notifyParent, isEmbedded } from "@/lib/embed-bridge";
 import { BRANDING } from "@/lib/branding";
 import { FIRM_CONTACT } from "@/lib/contact";
 
@@ -365,9 +366,21 @@ export function ChatWidget() {
             </h1>
             <p className="text-sm text-gray-500">Criminal Law Assistant</p>
           </div>
-          {messages.length > 0 && (
-            <EndChatButton onClick={() => setEndChatOpen(true)} />
-          )}
+          <div className="flex items-center gap-1">
+            {messages.length > 0 && (
+              <ChatMenu onEndChat={() => setEndChatOpen(true)} />
+            )}
+            {isEmbedded() && (
+              <button
+                type="button"
+                onClick={() => notifyParent({ source: "aq-chat", type: "minimize" })}
+                aria-label="Minimize chat"
+                className="inline-flex items-center justify-center h-8 w-8 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 transition-colors"
+              >
+                <Minus className="h-4 w-4" strokeWidth={2.25} aria-hidden="true" />
+              </button>
+            )}
+          </div>
         </div>
       </header>
       <DisclaimerBanner />

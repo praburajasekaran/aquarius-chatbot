@@ -1,25 +1,75 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MessageCircle, X } from "lucide-react";
+import { MessageCircle, Minus } from "lucide-react";
 import { track } from "@vercel/analytics";
 
-// Once-per-session sessionStorage key. Scoped to the embedding origin, so
-// dismissals on one host site don't carry over to another. Wrapped in
-// try/catch on every read/write because Safari private mode can throw.
+// Mirror of public/embed.js — keep both surfaces in lockstep when changing
+// widget UX (state machine, default-open behaviour, mobile reset, postMessage
+// envelope).
+
+const STATE_KEY = "aq_widget_state"; // 'open' | 'minimized'
 const TEASER_FLAG_KEY = "aq_teaser_shown";
 const TEASER_DELAY_MS = 3000;
+const DESKTOP_QUERY = "(min-width: 768px)";
+
+function readState(): "open" | "minimized" | null {
+  try {
+    const v = sessionStorage.getItem(STATE_KEY);
+    return v === "open" || v === "minimized" ? v : null;
+  } catch {
+    return null;
+  }
+}
+function writeState(s: "open" | "minimized") {
+  try {
+    sessionStorage.setItem(STATE_KEY, s);
+  } catch {
+    // noop
+  }
+}
+
+function computeInitialState(): "open" | "minimized" {
+  if (typeof window === "undefined") return "minimized";
+  let isDesktop = false;
+  try {
+    isDesktop = window.matchMedia(DESKTOP_QUERY).matches;
+  } catch {
+    // noop
+  }
+  if (!isDesktop) return "minimized";
+  const stored = readState();
+  if (stored === "minimized") return "minimized";
+  return "open";
+}
 
 export function ChatWidgetEmbed({ src = "/" }: { src?: string }) {
-  const [open, setOpen] = useState(false);
+  const [state, setState] = useState<"open" | "minimized">(computeInitialState);
   const [teaserVisible, setTeaserVisible] = useState(false);
 
+  // Persist state changes + emit auto-open analytics on first paint.
   useEffect(() => {
+    const stored = readState();
+    if (state === "open" && !stored) {
+      writeState("open");
+      track("chat_opened", { surface: "react", source: "auto" });
+    } else if (stored !== state) {
+      writeState(state);
+    }
+    // Mount-only — subsequent state changes flow through openChat/minimizeChat
+    // which call writeState directly.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Teaser only fires when boot state is 'minimized' (mobile, or desktop
+  // visitor who explicitly minimised earlier in this tab).
+  useEffect(() => {
+    if (state !== "minimized") return;
     let alreadyShown = false;
     try {
       alreadyShown = sessionStorage.getItem(TEASER_FLAG_KEY) === "1";
     } catch {
-      // Storage unavailable — fall through and show the teaser anyway.
+      // noop
     }
     if (alreadyShown) return;
 
@@ -28,31 +78,45 @@ export function ChatWidgetEmbed({ src = "/" }: { src?: string }) {
       track("teaser_shown", { surface: "react" });
     }, TEASER_DELAY_MS);
     return () => clearTimeout(id);
-  }, []);
+  }, [state]);
 
   function dismissTeaser() {
     setTeaserVisible(false);
     try {
       sessionStorage.setItem(TEASER_FLAG_KEY, "1");
     } catch {
-      // Silent failure — worst case the teaser shows again next visit.
+      // noop
     }
   }
 
   function openChat(source: "teaser" | "launcher") {
-    setOpen(true);
+    writeState("open");
+    setState("open");
     dismissTeaser();
     if (source === "teaser") track("teaser_clicked", { surface: "react" });
     track("chat_opened", { surface: "react", source });
   }
 
-  function closeChat() {
-    setOpen(false);
-    track("chat_closed", { surface: "react" });
+  function minimizeChat(source: "panel" | "launcher") {
+    writeState("minimized");
+    setState("minimized");
+    track("chat_minimized", { surface: "react", source });
   }
+
+  // Listen for the iframe's Minimize button via postMessage.
+  useEffect(() => {
+    function onMessage(e: MessageEvent) {
+      const data = e.data as { source?: string; type?: string } | null;
+      if (!data || data.source !== "aq-chat") return;
+      if (data.type === "minimize") minimizeChat("panel");
+    }
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
 
   if (typeof window === "undefined") return null;
 
+  const open = state === "open";
   const teaserShown = teaserVisible && !open;
 
   return (
@@ -108,20 +172,20 @@ export function ChatWidgetEmbed({ src = "/" }: { src?: string }) {
             aria-label="Dismiss chat teaser"
             className="absolute top-1.5 right-1.5 h-6 w-6 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
           >
-            <X className="h-3.5 w-3.5" strokeWidth={2.5} />
+            <span aria-hidden className="text-sm leading-none">×</span>
           </button>
         </div>
       </div>
 
       <button
         type="button"
-        onClick={() => (open ? closeChat() : openChat("launcher"))}
-        aria-label={open ? "Close chat" : "Open chat"}
+        onClick={() => (open ? minimizeChat("launcher") : openChat("launcher"))}
+        aria-label={open ? "Minimize chat" : "Open chat"}
         aria-expanded={open}
         className="fixed bottom-5 right-5 z-[9999] h-14 w-14 rounded-full bg-brand text-white flex items-center justify-center shadow-[0_8px_24px_rgba(97,187,202,0.5)] hover:scale-105 hover:bg-brand-dark transition-all focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/40"
       >
         {open ? (
-          <X className="h-6 w-6" strokeWidth={2.5} />
+          <Minus className="h-6 w-6" strokeWidth={2.5} />
         ) : (
           <MessageCircle className="h-6 w-6" strokeWidth={2.25} />
         )}
