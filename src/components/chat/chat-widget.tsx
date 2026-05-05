@@ -6,7 +6,7 @@ import { useRef, useEffect, useMemo, useState } from "react";
 import { DisclaimerBanner } from "./disclaimer-banner";
 import { MessageList } from "./message-list";
 import { MessageInput } from "./message-input";
-import { ChatMenu } from "./chat-menu";
+import { EndChatButton } from "./end-chat-button";
 import { EndChatDialog } from "./end-chat-dialog";
 import { loadChat, saveChat, clearChat } from "@/lib/chat-persistence";
 import type { ChatMessage } from "@/lib/tools";
@@ -368,7 +368,7 @@ export function ChatWidget() {
           </div>
           <div className="flex items-center gap-1">
             {messages.length > 0 && (
-              <ChatMenu onEndChat={() => setEndChatOpen(true)} />
+              <EndChatButton onClick={() => setEndChatOpen(true)} />
             )}
             {isEmbedded() && (
               <button
