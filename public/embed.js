@@ -1,6 +1,9 @@
+// Host-page launcher script. Mirror of src/app/demo/chat-widget-embed.tsx —
+// keep both surfaces in lockstep when changing widget UX.
 (function() {
   var EMBED_URL = window.CHATBOT_EMBED_URL || 'http://localhost:3000/';
   var EVENTS_URL = EMBED_URL.replace(/\/$/, '') + '/api/events';
+  var STATE_KEY = 'aq_widget_state';     // 'open' | 'minimized'
   var TEASER_FLAG_KEY = 'aq_teaser_shown';
   var TEASER_DELAY_MS = 3000;
   var DESKTOP_QUERY = '(min-width: 768px)';
@@ -21,18 +24,53 @@
     } catch { /* noop */ }
   }
 
-  // Iframe — closed by default. Opening is now an explicit action (launcher
-  // click or teaser body click) so visitors aren't auto-interrupted.
+  function readState() {
+    try { return sessionStorage.getItem(STATE_KEY); } catch { return null; }
+  }
+  function writeState(s) {
+    try { sessionStorage.setItem(STATE_KEY, s); } catch { /* noop */ }
+  }
+
+  var isDesktop = false;
+  try { isDesktop = window.matchMedia(DESKTOP_QUERY).matches; } catch { /* noop */ }
+
+  // Desktop-only auto-open. On mobile, every page boots minimised regardless
+  // of stored state — auto-opening would cover the host page on small screens.
+  var stored = readState();
+  var initialState;
+  if (!isDesktop) {
+    initialState = 'minimized';
+  } else if (stored === 'minimized') {
+    initialState = 'minimized';
+  } else {
+    initialState = 'open';
+  }
+
   var frame = document.createElement('iframe');
   frame.src = EMBED_URL;
   frame.title = 'Aquarius Lawyers chat assistant';
-  frame.style.cssText = 'position:fixed;bottom:90px;right:20px;width:400px;height:600px;border:none;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,0.15);z-index:9999;display:none';
+  frame.style.cssText = 'position:fixed;bottom:90px;right:20px;width:400px;height:600px;border:none;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,0.15);z-index:9999;display:' + (initialState === 'open' ? 'block' : 'none');
 
   var btn = document.createElement('button');
   btn.type = 'button';
-  btn.setAttribute('aria-label', 'Open chat');
-  btn.innerHTML = '💬';
   btn.style.cssText = 'position:fixed;bottom:20px;right:20px;width:56px;height:56px;border-radius:50%;background:#61BBCA;color:#fff;border:none;font-size:24px;cursor:pointer;z-index:10000;box-shadow:0 4px 12px rgba(0,0,0,0.2)';
+
+  function applyState(s) {
+    if (s === 'open') {
+      frame.style.display = 'block';
+      btn.innerHTML = '–';
+      btn.setAttribute('aria-label', 'Minimize chat');
+    } else {
+      frame.style.display = 'none';
+      btn.innerHTML = '💬';
+      btn.setAttribute('aria-label', 'Open chat');
+    }
+  }
+  applyState(initialState);
+  if (initialState === 'open' && stored !== 'open') {
+    writeState('open');
+    if (!stored) trackEvent('chat_opened', { source: 'auto' });
+  }
 
   var teaser = null;
 
@@ -45,34 +83,39 @@
   }
 
   function openChat(source) {
-    frame.style.display = 'block';
-    btn.innerHTML = '✕';
-    btn.setAttribute('aria-label', 'Close chat');
+    writeState('open');
+    applyState('open');
     dismissTeaser();
     if (source === 'teaser') trackEvent('teaser_clicked');
     trackEvent('chat_opened', { source: source });
   }
 
-  function closeChat() {
-    frame.style.display = 'none';
-    btn.innerHTML = '💬';
-    btn.setAttribute('aria-label', 'Open chat');
-    trackEvent('chat_closed');
+  function minimizeChat(source) {
+    writeState('minimized');
+    applyState('minimized');
+    trackEvent('chat_minimized', { source: source || 'launcher' });
   }
 
   btn.onclick = function() {
-    if (frame.style.display === 'none') openChat('launcher'); else closeChat();
+    if (frame.style.display === 'none') openChat('launcher'); else minimizeChat('launcher');
   };
+
+  // Listen for control messages from the iframe (Minimize button inside the
+  // chat panel). Validate the envelope strictly — host pages may have other
+  // postMessage listeners and we mustn't trust unrelated traffic.
+  window.addEventListener('message', function(event) {
+    var data = event.data;
+    if (!data || data.source !== 'aq-chat') return;
+    if (data.type === 'minimize') minimizeChat('panel');
+  });
 
   document.body.appendChild(frame);
   document.body.appendChild(btn);
 
-  // Teaser nudge — desktop only, once per session.
-  // sessionStorage is per-tab/per-host, so different embedding sites stay
-  // independent and a new tab on the same site gets a fresh teaser.
-  var isDesktop = false;
-  try { isDesktop = window.matchMedia(DESKTOP_QUERY).matches; } catch { /* old browser */ }
-  if (!isDesktop) return;
+  // Teaser nudge — desktop-minimised only. With desktop auto-open as the
+  // default, the teaser only fires when the visitor has explicitly minimised
+  // earlier in this tab. On mobile, teaser still fires once per session.
+  if (initialState === 'open') return;
 
   var alreadyShown = false;
   try { alreadyShown = sessionStorage.getItem(TEASER_FLAG_KEY) === '1'; } catch { /* noop */ }
