@@ -2,13 +2,13 @@
 
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { useRef, useEffect, useMemo, useState } from "react";
+import { useRef, useEffect, useMemo, useState, useCallback } from "react";
 import { DisclaimerBanner } from "./disclaimer-banner";
 import { MessageList } from "./message-list";
 import { MessageInput } from "./message-input";
 import { EndChatButton } from "./end-chat-button";
 import { EndChatDialog } from "./end-chat-dialog";
-import { loadChat, saveChat, clearChat, subscribeToStorage } from "@/lib/chat-persistence";
+import { loadChat, saveChat, clearChat, subscribeToStorage, peekChat } from "@/lib/chat-persistence";
 import type { ChatMessage } from "@/lib/tools";
 import { Scale, Minus } from "lucide-react";
 import { notifyParent, isEmbedded } from "@/lib/embed-bridge";
@@ -157,11 +157,15 @@ function shouldAutoContinue({
   });
   if (!lastHasResolvedClientTool) return false;
 
-  // If the booking flow has already produced its terminal acknowledgement
-  // earlier in the transcript, do not trigger another LLM round even if
-  // showUrgentContact/scheduleAppointment resolves again on the last message.
-  const priorMessages = messages.slice(0, -1);
-  if (isTerminalState(priorMessages)) return false;
+  // Once the booking flow is terminal anywhere in the transcript (urgent
+  // contact acknowledged or appointment booked), do NOT auto-continue. We
+  // used to slice off the last message here so that the FIRST acknowledgment
+  // would still trigger the LLM's closing reply, but DeepSeek violates Step
+  // 8 of the system prompt and re-emits showUrgentContact / scheduleAppointment
+  // when prompted past terminal — producing stacked duplicate cards and
+  // leaked raw tokens. The closing text is appended locally instead (see the
+  // terminal-closing useEffect below).
+  if (isTerminalState(messages)) return false;
 
   return true;
 }
@@ -251,15 +255,44 @@ export function ChatWidget() {
     progressScoreRef.current = transcriptProgressScore(messages);
     statusRef.current = status;
   });
-  useEffect(() => {
-    return subscribeToStorage((next) => {
-      if (next === "cleared") return; // sister tab ended chat; don't wipe ours.
+  // Single merge function shared between storage events and the
+  // visibility/focus fallbacks below. Encapsulates all the guards.
+  const mergeFromCandidate = useCallback(
+    (next: { sessionId: string; messages: ChatMessage[] }) => {
       if (next.sessionId !== sessionId) return;
       if (statusRef.current === "streaming" || statusRef.current === "submitted") return;
       if (transcriptProgressScore(next.messages) <= progressScoreRef.current) return;
       setMessages(next.messages);
+    },
+    [sessionId, setMessages],
+  );
+  useEffect(() => {
+    return subscribeToStorage((next) => {
+      if (next === "cleared") return; // sister tab ended chat; don't wipe ours.
+      mergeFromCandidate(next);
     });
-  }, [sessionId, setMessages]);
+  }, [mergeFromCandidate]);
+
+  // Defense-in-depth fallback. Browsers (Chromium especially) aggressively
+  // throttle background tabs — `storage` events queued while a tab is hidden
+  // can be deferred or coalesced, and a backgrounded sister tab may not
+  // process the event until you focus it. Re-reading localStorage on
+  // visibilitychange and focus catches anything we missed and re-applies the
+  // same progress-score guard, so foregrounding a tab always converges it.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const recheck = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+      const next = peekChat();
+      if (next) mergeFromCandidate(next);
+    };
+    window.addEventListener("focus", recheck);
+    document.addEventListener("visibilitychange", recheck);
+    return () => {
+      window.removeEventListener("focus", recheck);
+      document.removeEventListener("visibilitychange", recheck);
+    };
+  }, [mergeFromCandidate]);
 
   // Concurrent-submit guard via BroadcastChannel. Tab A broadcasts when it
   // enters streaming so sister tabs can disable input and show an inline
@@ -314,6 +347,40 @@ export function ChatWidget() {
     channel.postMessage(signal);
     channel.close();
   }, [status, sessionId]);
+
+  // Append the canned booking-closing reply once the booking flow is
+  // terminal. The LLM was supposed to emit this via auto-continue per Step 7
+  // of the system prompt, but DeepSeek mis-handles Step 8 and re-emits the
+  // booking tools instead, stacking duplicate cards and leaking raw special
+  // tokens. We synthesise the closing client-side so the visitor still sees
+  // confirmation. Idempotent: skips if the closing is already the last
+  // message (e.g., hydrated from a sister tab that already added it, or this
+  // tab's own previous render).
+  const closingAppendedRef = useRef(false);
+  useEffect(() => {
+    if (!isTerminalState(messages)) {
+      closingAppendedRef.current = false;
+      return;
+    }
+    if (closingAppendedRef.current) return;
+    if (statusRef.current === "streaming" || statusRef.current === "submitted") return;
+    const closingText = terminalReplyText(messages);
+    const last = messages[messages.length - 1];
+    const alreadyClosed =
+      last?.role === "assistant" &&
+      last.parts.some((p) => {
+        const part = p as { type?: string; text?: string };
+        return part.type === "text" && part.text === closingText;
+      });
+    closingAppendedRef.current = true;
+    if (alreadyClosed) return;
+    const closing: ChatMessage = {
+      id: `terminal_closing_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      role: "assistant",
+      parts: [{ type: "text", text: closingText }],
+    };
+    setMessages([...messages, closing]);
+  }, [messages, setMessages]);
 
   // Resume continuation after hydration. The AI SDK's sendAutomaticallyWhen
   // callback fires only on session-internal mutations (sendMessage,

@@ -107,6 +107,30 @@ export function clearChat(): void {
   safeRemove();
 }
 
+// Synchronous read of the currently persisted chat. Returns null if storage
+// is unavailable, empty, malformed, expired, or for a different schema. Used
+// as a fallback merge source on visibility/focus, since browsers throttle
+// background tabs and may defer or drop `storage` events for inactive tabs.
+export function peekChat(): { sessionId: string; messages: ChatMessage[] } | null {
+  if (typeof window === "undefined") return null;
+  let raw: string | null = null;
+  try {
+    raw = localStorage.getItem(KEY);
+  } catch {
+    return null;
+  }
+  if (!raw) return null;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  if (!isStored(parsed)) return null;
+  if (parsed.expiresAt <= Date.now()) return null;
+  return { sessionId: parsed.sessionId, messages: parsed.messages };
+}
+
 // Notifies when another tab on the same origin updates the persisted chat.
 // `storage` events fire only in OTHER tabs by spec, so we never receive our
 // own writes here. Returns an unsubscribe function. No-op outside the browser.
