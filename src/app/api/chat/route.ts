@@ -83,7 +83,7 @@ function formatTranscript(messages: ChatMessage[]): string {
   return messages
     .filter((m) => m.role === "user" || m.role === "assistant")
     .flatMap((m) => {
-      const label = m.role === "user" ? "Client" : "Chatbot";
+      const label = m.role === "user" ? "Client" : "AL Bot";
       const lines = m.parts
         .filter((p): p is { type: "text"; text: string } => p.type === "text")
         .map((p) => p.text.trim())
