@@ -8,11 +8,23 @@ import { MessageList } from "./message-list";
 import { MessageInput } from "./message-input";
 import { EndChatButton } from "./end-chat-button";
 import { EndChatDialog } from "./end-chat-dialog";
-import { loadChat, saveChat, clearChat } from "@/lib/chat-persistence";
+import { loadChat, saveChat, clearChat, subscribeToStorage } from "@/lib/chat-persistence";
 import type { ChatMessage } from "@/lib/tools";
 import { Scale } from "lucide-react";
 import { BRANDING } from "@/lib/branding";
 import { FIRM_CONTACT } from "@/lib/contact";
+
+// Cross-tab signaling. Same origin only — BroadcastChannel does not cross
+// origins or browsers, which is the security boundary we want.
+const STREAM_CHANNEL = "aquarius_chat_stream";
+// Slightly longer than the server's maxDuration (30s in app/api/chat/route.ts).
+// If a sister tab crashes mid-stream and never broadcasts `end`, this prevents
+// other tabs from being disabled forever.
+const OTHER_TAB_STREAM_TIMEOUT_MS = 35_000;
+
+type StreamSignal =
+  | { type: "start"; sessionId: string }
+  | { type: "end"; sessionId: string };
 
 // Chips shown alongside the initial assistant greeting, before the visitor
 // has sent any message. These mirror the options the AI would emit itself if
@@ -168,6 +180,9 @@ export function ChatWidget() {
   // automatically — no effect needed, avoiding cascading-render lint errors.
   const [dismissedForMessageId, setDismissedForMessageId] = useState<string | null>(null);
   const [endChatOpen, setEndChatOpen] = useState(false);
+  // True when a sister tab on the same origin is mid-stream for this session.
+  // Drives input disable + an inline notice so the visitor doesn't double-send.
+  const [otherTabStreaming, setOtherTabStreaming] = useState(false);
 
   const transport = useMemo(
     () => new DefaultChatTransport({ api: "/api/chat", body: { sessionId } }),
@@ -198,6 +213,82 @@ export function ChatWidget() {
     if (messages.length === 0) return;
     saveChat(sessionId, messages);
   }, [messages, status, sessionId]);
+
+  // Cross-tab merge. When a sister tab finishes a stream and saves to
+  // localStorage, the spec fires a `storage` event in every OTHER tab on the
+  // same origin. Adopt the newer transcript so this tab converges without a
+  // reload. Guards: same sessionId, not currently streaming (our own turn is
+  // the source of truth while in-flight), and the incoming transcript must be
+  // at least as long as ours so we never go backwards.
+  const messagesLenRef = useRef(messages.length);
+  const statusRef = useRef(status);
+  useEffect(() => {
+    messagesLenRef.current = messages.length;
+    statusRef.current = status;
+  });
+  useEffect(() => {
+    return subscribeToStorage((next) => {
+      if (next === "cleared") return; // sister tab ended chat; don't wipe ours.
+      if (next.sessionId !== sessionId) return;
+      if (statusRef.current === "streaming" || statusRef.current === "submitted") return;
+      if (next.messages.length <= messagesLenRef.current) return;
+      setMessages(next.messages);
+    });
+  }, [sessionId, setMessages]);
+
+  // Concurrent-submit guard via BroadcastChannel. Tab A broadcasts when it
+  // enters streaming so sister tabs can disable input and show an inline
+  // notice. The safety timer covers the case where Tab A crashes between
+  // `start` and `end` — sister tabs unblock after the timeout instead of
+  // staying frozen.
+  const otherStreamTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (typeof BroadcastChannel === "undefined") return;
+    const channel = new BroadcastChannel(STREAM_CHANNEL);
+    channel.onmessage = (e: MessageEvent<StreamSignal>) => {
+      const data = e.data;
+      if (!data || data.sessionId !== sessionId) return;
+      if (data.type === "start") {
+        setOtherTabStreaming(true);
+        if (otherStreamTimerRef.current) clearTimeout(otherStreamTimerRef.current);
+        otherStreamTimerRef.current = setTimeout(() => {
+          setOtherTabStreaming(false);
+        }, OTHER_TAB_STREAM_TIMEOUT_MS);
+      } else if (data.type === "end") {
+        setOtherTabStreaming(false);
+        if (otherStreamTimerRef.current) {
+          clearTimeout(otherStreamTimerRef.current);
+          otherStreamTimerRef.current = null;
+        }
+      }
+    };
+    return () => {
+      channel.close();
+      if (otherStreamTimerRef.current) {
+        clearTimeout(otherStreamTimerRef.current);
+        otherStreamTimerRef.current = null;
+      }
+    };
+  }, [sessionId]);
+
+  // Broadcast our own streaming transitions so sister tabs can react. Posts
+  // `start` when we enter streaming/submitted, `end` whenever we leave it.
+  // BroadcastChannel does not deliver to the posting context, so we never
+  // hear our own messages.
+  const wasStreamingRef = useRef(false);
+  useEffect(() => {
+    if (typeof BroadcastChannel === "undefined") return;
+    const isActive = status === "streaming" || status === "submitted";
+    if (isActive === wasStreamingRef.current) return;
+    wasStreamingRef.current = isActive;
+    const channel = new BroadcastChannel(STREAM_CHANNEL);
+    const signal: StreamSignal = {
+      type: isActive ? "start" : "end",
+      sessionId,
+    };
+    channel.postMessage(signal);
+    channel.close();
+  }, [status, sessionId]);
 
   // Resume continuation after hydration. The AI SDK's sendAutomaticallyWhen
   // callback fires only on session-internal mutations (sendMessage,
@@ -245,6 +336,10 @@ export function ChatWidget() {
     dismissedForMessageId === suggestionsKey ? [] : rawSuggestions;
 
   function handleSend(text: string) {
+    // Belt-and-braces: the input is already disabled when a sister tab is
+    // streaming, but suppress here too so a stale event in flight can't fire
+    // a duplicate POST against the same session.
+    if (otherTabStreaming) return;
     setDismissedForMessageId(suggestionsKey);
 
     // Once the booking flow has closed (urgent contact acknowledged or session
@@ -396,10 +491,15 @@ export function ChatWidget() {
             Typing...
           </div>
         )}
+        {!isLoading && otherTabStreaming && (
+          <div className="text-sm text-gray-700">
+            Another tab is responding to this conversation. Please continue there.
+          </div>
+        )}
       </div>
       <MessageInput
         onSend={handleSend}
-        disabled={isLoading}
+        disabled={isLoading || otherTabStreaming}
         suggestions={suggestions}
         onSuggestionsDismissed={() => setDismissedForMessageId(suggestionsKey)}
       />
