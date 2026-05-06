@@ -40,7 +40,7 @@ const MessagePart = z
 const ChatMessageSchema = z.looseObject({
   id: z.string().min(1).max(200),
   role: z.enum(["system", "user", "assistant"]),
-  parts: z.array(MessagePart).max(50),
+  parts: z.array(MessagePart).max(200),
 });
 
 const Body = z.object({
