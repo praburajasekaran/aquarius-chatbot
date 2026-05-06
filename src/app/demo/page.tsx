@@ -71,19 +71,22 @@ export default function DemoLandingPage() {
           </Link>
 
           <nav aria-label="Primary" className="hidden lg:flex items-center gap-8">
-            {NAV.map((item) => (
-              <a
-                key={item.label}
-                href={item.href}
-                className={`text-[13px] font-semibold tracking-wide transition-colors ${
-                  item.active
-                    ? "text-brand border-b-2 border-brand pb-1"
-                    : "text-gray-800 hover:text-brand"
-                }`}
-              >
-                {item.label}
-              </a>
-            ))}
+            {NAV.map((item) => {
+              const className = `text-[13px] font-semibold tracking-wide transition-colors ${
+                item.active
+                  ? "text-brand border-b-2 border-brand pb-1"
+                  : "text-gray-800 hover:text-brand"
+              }`;
+              return item.href.startsWith("/") ? (
+                <Link key={item.label} href={item.href} className={className}>
+                  {item.label}
+                </Link>
+              ) : (
+                <a key={item.label} href={item.href} className={className}>
+                  {item.label}
+                </a>
+              );
+            })}
             <a
               href="#contact"
               className="inline-flex items-center gap-2 rounded-full bg-brand px-6 py-2.5 text-[13px] font-semibold tracking-wide text-white shadow-sm hover:bg-brand-dark transition-colors"
