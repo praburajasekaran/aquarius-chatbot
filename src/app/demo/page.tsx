@@ -14,7 +14,7 @@ import { ChatWidgetEmbed } from "./chat-widget-embed";
 
 const NAV = [
   { label: "HOME", href: "#home", active: true },
-  { label: "ABOUT US", href: "#about" },
+  { label: "ABOUT US", href: "/demo/about" },
   { label: "OUR SERVICES", href: "#services" },
   { label: "LEGAL RESOURCES", href: "#" },
   { label: "BLOG", href: "#" },
