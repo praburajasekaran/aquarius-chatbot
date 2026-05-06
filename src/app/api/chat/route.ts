@@ -13,6 +13,7 @@ import { systemPrompt } from "@/lib/system-prompt";
 import { redis } from "@/lib/kv";
 import { parseJsonBody } from "@/lib/api/parse";
 import { chatLimiter } from "@/lib/rate-limit";
+import { sanitizeAssistantText } from "@/lib/sanitize-llm-text";
 
 export const maxDuration = 30;
 
@@ -84,13 +85,31 @@ function formatTranscript(messages: ChatMessage[]): string {
     .filter((m) => m.role === "user" || m.role === "assistant")
     .flatMap((m) => {
       const label = m.role === "user" ? "Client" : "AL Bot";
+      const isAssistant = m.role === "assistant";
       const lines = m.parts
         .filter((p): p is { type: "text"; text: string } => p.type === "text")
-        .map((p) => p.text.trim())
+        .map((p) => (isAssistant ? sanitizeAssistantText(p.text) : p.text).trim())
         .filter(Boolean);
       return lines.map((text) => `${label}: ${text}`);
     })
     .join("\n\n");
+}
+
+// Strip leaked control tokens from prior assistant turns before they go back
+// into the model context. Without this, the model sees its own junk in the
+// history and keeps regenerating it (or doubles down with more drift).
+function sanitizeMessageHistory(messages: ChatMessage[]): ChatMessage[] {
+  return messages.map((m) => {
+    if (m.role !== "assistant") return m;
+    const parts = m.parts.map((p) => {
+      const part = p as { type?: string; text?: string };
+      if (part.type !== "text" || typeof part.text !== "string") return p;
+      const cleaned = sanitizeAssistantText(part.text);
+      if (cleaned === part.text) return p;
+      return { ...p, text: cleaned };
+    });
+    return { ...m, parts } as ChatMessage;
+  });
 }
 
 export async function POST(req: Request) {
@@ -115,7 +134,9 @@ export async function POST(req: Request) {
 
   const parsed = await parseJsonBody(req, Body);
   if (!parsed.ok) return parsed.response;
-  const messages = parsed.data.messages as unknown as ChatMessage[];
+  const messages = sanitizeMessageHistory(
+    parsed.data.messages as unknown as ChatMessage[],
+  );
   const sessionId = parsed.data.sessionId;
 
   if (sessionId) {

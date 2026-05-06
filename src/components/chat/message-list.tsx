@@ -10,6 +10,7 @@ import { DocumentUpload } from "@/components/upload/document-upload";
 import { CalendlyEmbed } from "@/components/booking/calendly-embed";
 import { UrgentContactCard } from "@/components/booking/urgent-contact-card";
 import { BRANDING } from "@/lib/branding";
+import { sanitizeAssistantText } from "@/lib/sanitize-llm-text";
 
 interface MessageListProps {
   messages: ChatMessage[];
@@ -115,8 +116,12 @@ export function MessageList({
       {messages.map((message, msgIndex) => (
         <div key={message.id} className="space-y-2">
           {message.parts.map((part, i) => {
-            if (part.type === "text" && part.text && part.text.trim()) {
+            if (part.type === "text" && part.text) {
               const isUser = message.role === "user";
+              const displayText = isUser
+                ? part.text
+                : sanitizeAssistantText(part.text);
+              if (!displayText.trim()) return null;
               return (
                 <div
                   key={`${message.id}-${i}`}
@@ -142,7 +147,7 @@ export function MessageList({
                     )}
                   </div>
                   <div
-                    aria-label={`${isUser ? "You" : "Assistant"}: ${part.text}`}
+                    aria-label={`${isUser ? "You" : "Assistant"}: ${displayText}`}
                     className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
                       isUser
                         ? "bg-[#085a66] text-white rounded-br-md"
@@ -150,7 +155,7 @@ export function MessageList({
                     }`}
                   >
                     {isUser ? (
-                      part.text
+                      displayText
                     ) : (
                       /* Render markdown from the model so **bold**, *italic*, lists etc.
                          become real HTML instead of showing literal asterisks. Plain
@@ -186,7 +191,7 @@ export function MessageList({
                             ),
                           }}
                         >
-                          {part.text}
+                          {displayText}
                         </ReactMarkdown>
                       </div>
                     )}
