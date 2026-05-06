@@ -1,8 +1,10 @@
 import type { CreateEmailOptions, CreateEmailResponseSuccess } from "resend";
 import { Resend } from "resend";
-import { FIRM_CONTACT } from "@/lib/contact";
 import { BRANDING } from "@/lib/branding";
-import { escapeHtml } from "@/lib/email/escape-html";
+import ClientInquiryEmail from "@/lib/email/templates/client-inquiry";
+import FirmBookingNotificationEmail from "@/lib/email/templates/firm-booking-notification";
+import FirmLeadEmail from "@/lib/email/templates/firm-lead";
+import FirmTranscriptEmail from "@/lib/email/templates/firm-transcript";
 
 // Lazily initialized so that a missing RESEND_API_KEY at module load time
 // doesn't crash routes that import this file without ever sending email.
@@ -88,33 +90,24 @@ export async function sendTranscriptEmail({
     );
     return;
   }
-  const safeName = escapeHtml(clientName);
-  const safeEmail = escapeHtml(clientEmail);
-  const safePhone = escapeHtml(clientPhone);
-  const safeMatter = escapeHtml(matterDescription);
-  const safeUrgency = escapeHtml(urgency);
-  const safeStripeSessionId = escapeHtml(stripeSessionId ?? "N/A");
-  const safeTranscript = transcript ? escapeHtml(transcript) : "";
-  return sendAndLog({
-    from,
-    to,
-    subject: `New ${urgency} Criminal Law Inquiry — ${clientName}`,
-    html: `
-      ${BRANDING.emailLogoHtml}
-      <h2>New Client Inquiry</h2>
-      <table style="border-collapse:collapse;width:100%">
-        <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Name</td><td style="padding:8px;border:1px solid #ddd">${safeName}</td></tr>
-        <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Email</td><td style="padding:8px;border:1px solid #ddd">${safeEmail}</td></tr>
-        <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Phone</td><td style="padding:8px;border:1px solid #ddd">${safePhone}</td></tr>
-        <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Matter</td><td style="padding:8px;border:1px solid #ddd">${safeMatter}</td></tr>
-        <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Urgency</td><td style="padding:8px;border:1px solid #ddd">${safeUrgency}</td></tr>
-        <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Payment</td><td style="padding:8px;border:1px solid #ddd">$${(paymentAmount / 100).toFixed(2)} AUD</td></tr>
-        <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Stripe Session</td><td style="padding:8px;border:1px solid #ddd">${safeStripeSessionId}</td></tr>
-      </table>
-      ${safeTranscript ? `<h3>Chat Transcript</h3>
-      <div style="background:#f5f5f5;padding:16px;border-radius:8px;white-space:pre-wrap;font-family:sans-serif;font-size:14px">${safeTranscript}</div>` : ""}
-    `,
-  }, { event: "sendTranscriptEmail", sessionId: stripeSessionId ?? undefined });
+  return sendAndLog(
+    {
+      from,
+      to,
+      subject: `New inquiry — ${clientName} (${urgency})`,
+      react: FirmTranscriptEmail({
+        clientName,
+        clientEmail,
+        clientPhone,
+        matterDescription,
+        urgency,
+        paymentAmount,
+        stripeSessionId,
+        transcript,
+      }),
+    },
+    { event: "sendTranscriptEmail", sessionId: stripeSessionId ?? undefined }
+  );
 }
 
 export async function sendClientInquiryEmail({
@@ -146,74 +139,29 @@ export async function sendClientInquiryEmail({
     throw new Error("CALENDLY_BOOKING_URL not set");
   }
   const calendlyPrefillUrl = `${calendlyUrl}?name=${encodeURIComponent(clientName)}&email=${encodeURIComponent(clientEmail)}`;
-  const safeName = escapeHtml(clientName);
-  const safeMatter = escapeHtml(matterDescription);
-  const safeUrgency = escapeHtml(urgency);
-  const safeDisplayPrice = escapeHtml(displayPrice);
-  const safeResumeUrl = escapeHtml(resumeUrl);
-  const safeCalendlyUrl = escapeHtml(calendlyUrl);
-  const safeCalendlyPrefillUrl = escapeHtml(calendlyPrefillUrl);
-
-  const urgentBlock = `
-    <p style="margin:16px 0;font-size:15px;line-height:1.5">
-      For urgent matters, please call us on
-      <a href="${FIRM_CONTACT.phoneHref}" style="color:#085a66;font-weight:600">${FIRM_CONTACT.phone}</a>
-      during our business hours (<strong>${FIRM_CONTACT.businessHours}</strong>).
-      We'll be ready to help as soon as we hear from you.
-    </p>
-  `;
-
-  const nonUrgentBlock = `
-    <p style="margin:16px 0;font-size:15px;line-height:1.5">
-      For non-urgent matters, we'll schedule your Legal Strategy Session via Calendly.
-      You can pick a slot at any time here:
-      <br />
-      <a href="${safeCalendlyPrefillUrl}" style="color:#085a66;font-weight:600">${safeCalendlyUrl}</a>
-    </p>
-  `;
-
-  const paymentBlock = `
-    <p style="margin:24px 0">
-      <a
-        href="${safeResumeUrl}"
-        style="display:inline-block;background:#61BBCA;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600"
-      >Complete payment — ${safeDisplayPrice}</a>
-    </p>
-    <p style="margin:8px 0;font-size:13px;color:#555">
-      If you've already paid, this link will take you to a confirmation page instead.
-    </p>
-  `;
 
   const subjectMatterLabel =
     urgency === "urgent"
       ? "Initial Deposit for Urgent Court Matter"
       : "Legal Strategy Session";
 
-  return sendAndLog({
-    from,
-    to: clientEmail,
-    subject: `Your ${subjectMatterLabel} inquiry — ${BRANDING.firmName}`,
-    html: `
-      <div style="font-family:-apple-system,Segoe UI,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#1a1a1a">
-        ${BRANDING.emailLogoHtml}
-        <h2 style="margin:0 0 16px;font-size:20px">Hi ${safeName},</h2>
-        <p style="margin:0 0 16px;font-size:15px;line-height:1.5">
-          Thanks for your inquiry with ${BRANDING.firmName}. Here's a quick summary of what you shared with us:
-        </p>
-        <table style="border-collapse:collapse;width:100%;margin:16px 0">
-          <tr><td style="padding:8px;border:1px solid #e5e5e5;font-weight:600;width:35%">Matter</td><td style="padding:8px;border:1px solid #e5e5e5">${safeMatter}</td></tr>
-          <tr><td style="padding:8px;border:1px solid #e5e5e5;font-weight:600">Urgency</td><td style="padding:8px;border:1px solid #e5e5e5">${safeUrgency}</td></tr>
-          <tr><td style="padding:8px;border:1px solid #e5e5e5;font-weight:600">Fee</td><td style="padding:8px;border:1px solid #e5e5e5">${safeDisplayPrice}</td></tr>
-        </table>
-        ${paymentBlock}
-        ${urgency === "urgent" ? urgentBlock : nonUrgentBlock}
-        <hr style="border:none;border-top:1px solid #e5e5e5;margin:24px 0" />
-        <p style="margin:0;font-size:12px;color:#777;line-height:1.5">
-          ${BRANDING.emailFooter}
-        </p>
-      </div>
-    `,
-  }, { event: "sendClientInquiryEmail", sessionId });
+  return sendAndLog(
+    {
+      from,
+      to: clientEmail,
+      subject: `Your ${subjectMatterLabel} inquiry — ${BRANDING.firmName}`,
+      react: ClientInquiryEmail({
+        clientName,
+        matterDescription,
+        urgency,
+        displayPrice,
+        resumeUrl,
+        calendlyPrefillUrl,
+        calendlyUrl,
+      }),
+    },
+    { event: "sendClientInquiryEmail", sessionId }
+  );
 }
 
 export async function sendFirmLeadEmail({
@@ -248,36 +196,23 @@ export async function sendFirmLeadEmail({
     );
     return;
   }
-  const safeName = escapeHtml(clientName);
-  const safeEmail = escapeHtml(clientEmail);
-  const safePhone = escapeHtml(clientPhone);
-  const safeMatter = escapeHtml(matterDescription);
-  const safeUrgency = escapeHtml(urgency);
-  const safeDisplayPrice = escapeHtml(displayPrice);
-  const safeResumeUrl = escapeHtml(resumeUrl);
-  return sendAndLog({
-    from,
-    to,
-    subject: `New ${urgency} inquiry — ${clientName} (awaiting payment)`,
-    html: `
-      ${BRANDING.emailLogoHtml}
-      <h2>New Client Inquiry (Awaiting Payment)</h2>
-      <table style="border-collapse:collapse;width:100%">
-        <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Name</td><td style="padding:8px;border:1px solid #ddd">${safeName}</td></tr>
-        <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Email</td><td style="padding:8px;border:1px solid #ddd">${safeEmail}</td></tr>
-        <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Phone</td><td style="padding:8px;border:1px solid #ddd">${safePhone}</td></tr>
-        <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Matter</td><td style="padding:8px;border:1px solid #ddd">${safeMatter}</td></tr>
-        <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Urgency</td><td style="padding:8px;border:1px solid #ddd">${safeUrgency}</td></tr>
-        <tr><td style="padding:8px;border:1px solid #ddd;font-weight:bold">Fee</td><td style="padding:8px;border:1px solid #ddd">${safeDisplayPrice}</td></tr>
-      </table>
-      <p style="margin:16px 0;font-size:13px;color:#555">
-        Payment has not yet been completed. You will receive a second notification with the chat transcript once payment is confirmed.
-      </p>
-      <p style="margin:16px 0">
-        <a href="${safeResumeUrl}" style="color:#085a66">View payment link</a>
-      </p>
-    `,
-  }, { event: "sendFirmLeadEmail" });
+  return sendAndLog(
+    {
+      from,
+      to,
+      subject: `New lead — ${clientName} (awaiting payment)`,
+      react: FirmLeadEmail({
+        clientName,
+        clientEmail,
+        clientPhone,
+        matterDescription,
+        urgency,
+        displayPrice,
+        resumeUrl,
+      }),
+    },
+    { event: "sendFirmLeadEmail" }
+  );
 }
 
 export async function sendBookingNotificationEmail({
@@ -310,7 +245,10 @@ export async function sendBookingNotificationEmail({
   if (!to) {
     console.error(
       "[resend] FIRM_NOTIFY_EMAIL not set — sendBookingNotificationEmail SKIPPED",
-      { event: "firm_notify_email_missing", caller: "sendBookingNotificationEmail" }
+      {
+        event: "firm_notify_email_missing",
+        caller: "sendBookingNotificationEmail",
+      }
     );
     return;
   }
@@ -331,33 +269,25 @@ export async function sendBookingNotificationEmail({
     // fall back to raw ISO string if parsing fails
   }
 
-  const safeName = escapeHtml(clientName);
-  const safeEmail = escapeHtml(clientEmail);
-  const safeUrgency = urgency ? escapeHtml(urgency) : "";
-  const safeMatter = matterDescription ? escapeHtml(matterDescription) : "";
-  const safeStartLocal = escapeHtml(startLocal);
-  const safeEventUri = escapeHtml(eventUri);
-  const safeInviteeUri = escapeHtml(inviteeUri);
-  const safeStripeSessionId = stripeSessionId ? escapeHtml(stripeSessionId) : "";
-  return sendAndLog({
-    from,
-    to,
-    subject: `Booking confirmed — ${clientName} — ${startLocal}`,
-    html: `
-      <div style="font-family:-apple-system,Segoe UI,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#1a1a1a">
-        ${BRANDING.emailLogoHtml}
-        <h2 style="margin:0 0 16px;font-size:20px">New Legal Strategy Session booking</h2>
-        <table style="border-collapse:collapse;width:100%;margin:16px 0">
-          <tr><td style="padding:8px;border:1px solid #e5e5e5;font-weight:600;width:35%">Client</td><td style="padding:8px;border:1px solid #e5e5e5">${safeName}</td></tr>
-          <tr><td style="padding:8px;border:1px solid #e5e5e5;font-weight:600">Email</td><td style="padding:8px;border:1px solid #e5e5e5">${safeEmail}</td></tr>
-          ${safeUrgency ? `<tr><td style="padding:8px;border:1px solid #e5e5e5;font-weight:600">Urgency</td><td style="padding:8px;border:1px solid #e5e5e5">${safeUrgency}</td></tr>` : ""}
-          ${safeMatter ? `<tr><td style="padding:8px;border:1px solid #e5e5e5;font-weight:600">Matter</td><td style="padding:8px;border:1px solid #e5e5e5">${safeMatter}</td></tr>` : ""}
-          <tr><td style="padding:8px;border:1px solid #e5e5e5;font-weight:600">Start time</td><td style="padding:8px;border:1px solid #e5e5e5">${safeStartLocal}</td></tr>
-          <tr><td style="padding:8px;border:1px solid #e5e5e5;font-weight:600">Calendly event</td><td style="padding:8px;border:1px solid #e5e5e5"><a href="${safeEventUri}">${safeEventUri}</a></td></tr>
-          <tr><td style="padding:8px;border:1px solid #e5e5e5;font-weight:600">Calendly invitee</td><td style="padding:8px;border:1px solid #e5e5e5"><a href="${safeInviteeUri}">${safeInviteeUri}</a></td></tr>
-          ${safeStripeSessionId ? `<tr><td style="padding:8px;border:1px solid #e5e5e5;font-weight:600">Stripe session</td><td style="padding:8px;border:1px solid #e5e5e5">${safeStripeSessionId}</td></tr>` : ""}
-        </table>
-      </div>
-    `,
-  }, { event: "sendBookingNotificationEmail", sessionId: stripeSessionId ?? undefined });
+  return sendAndLog(
+    {
+      from,
+      to,
+      subject: `Booking confirmed — ${clientName} (${startLocal})`,
+      react: FirmBookingNotificationEmail({
+        clientName,
+        clientEmail,
+        matterDescription,
+        urgency,
+        startTimeLocal: startLocal,
+        eventUri,
+        inviteeUri,
+        stripeSessionId,
+      }),
+    },
+    {
+      event: "sendBookingNotificationEmail",
+      sessionId: stripeSessionId ?? undefined,
+    }
+  );
 }
