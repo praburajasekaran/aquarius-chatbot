@@ -8,7 +8,7 @@ import { MessageList } from "./message-list";
 import { MessageInput } from "./message-input";
 import { EndChatButton } from "./end-chat-button";
 import { EndChatDialog } from "./end-chat-dialog";
-import { loadChat, saveChat, clearChat, subscribeToStorage, peekChat } from "@/lib/chat-persistence";
+import { loadChat, saveChat, clearChat, subscribeToStorage, peekChat, getThisTabId } from "@/lib/chat-persistence";
 import type { ChatMessage } from "@/lib/tools";
 import { Scale, Minus } from "lucide-react";
 import { notifyParent, isEmbedded } from "@/lib/embed-bridge";
@@ -258,8 +258,13 @@ export function ChatWidget() {
   // Single merge function shared between storage events and the
   // visibility/focus fallbacks below. Encapsulates all the guards.
   const mergeFromCandidate = useCallback(
-    (next: { sessionId: string; messages: ChatMessage[] }) => {
+    (next: { sessionId: string; messages: ChatMessage[]; writerTabId?: string }) => {
       if (next.sessionId !== sessionId) return;
+      // Reject merges originating from this tab. peekChat() on visibility/focus
+      // re-reads localStorage that this tab itself just wrote; without this
+      // guard, a focus event arriving mid-`addToolOutput` flush could revert
+      // resolved tool state to the pre-mutation snapshot.
+      if (next.writerTabId && next.writerTabId === getThisTabId()) return;
       if (statusRef.current === "streaming" || statusRef.current === "submitted") return;
       if (transcriptProgressScore(next.messages) <= progressScoreRef.current) return;
       setMessages(next.messages);

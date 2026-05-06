@@ -9,6 +9,23 @@ interface Stored {
   sessionId: string;
   messages: ChatMessage[];
   expiresAt: number;
+  // Per-tab UUID stamped on every save. Lets `peekChat` / `subscribeToStorage`
+  // consumers reject merges originating from this tab, closing the
+  // visibility/focus self-merge race in chat-widget. Optional for
+  // backwards-compatibility with v1 payloads written before this field
+  // existed — treat absent id as "unknown other tab" (don't reject).
+  writerTabId?: string;
+}
+
+let TAB_ID: string | null = null;
+export function getThisTabId(): string {
+  if (TAB_ID) return TAB_ID;
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    TAB_ID = `t_${crypto.randomUUID()}`;
+  } else {
+    TAB_ID = `t_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+  }
+  return TAB_ID;
 }
 
 function generateSessionId(): string {
@@ -41,13 +58,19 @@ function isMessageLike(m: unknown): boolean {
 function isStored(value: unknown): value is Stored {
   if (typeof value !== "object" || value === null) return false;
   const v = value as Record<string, unknown>;
-  return (
-    v.schemaVersion === SCHEMA_VERSION &&
-    typeof v.sessionId === "string" &&
-    Array.isArray(v.messages) &&
-    v.messages.every(isMessageLike) &&
-    Number.isFinite(v.expiresAt)
-  );
+  if (
+    v.schemaVersion !== SCHEMA_VERSION ||
+    typeof v.sessionId !== "string" ||
+    !Array.isArray(v.messages) ||
+    !v.messages.every(isMessageLike) ||
+    !Number.isFinite(v.expiresAt)
+  ) {
+    return false;
+  }
+  // writerTabId is optional (v1 payloads predate it). Reject only if
+  // present-but-wrong-type so the field can't be silently corrupted.
+  if (v.writerTabId !== undefined && typeof v.writerTabId !== "string") return false;
+  return true;
 }
 
 export function loadChat(): {
@@ -95,6 +118,7 @@ export function saveChat(sessionId: string, messages: ChatMessage[]): void {
     sessionId,
     messages,
     expiresAt: Date.now() + TTL_MS,
+    writerTabId: getThisTabId(),
   };
   try {
     localStorage.setItem(KEY, JSON.stringify(payload));
@@ -111,7 +135,11 @@ export function clearChat(): void {
 // is unavailable, empty, malformed, expired, or for a different schema. Used
 // as a fallback merge source on visibility/focus, since browsers throttle
 // background tabs and may defer or drop `storage` events for inactive tabs.
-export function peekChat(): { sessionId: string; messages: ChatMessage[] } | null {
+export function peekChat(): {
+  sessionId: string;
+  messages: ChatMessage[];
+  writerTabId?: string;
+} | null {
   if (typeof window === "undefined") return null;
   let raw: string | null = null;
   try {
@@ -128,14 +156,22 @@ export function peekChat(): { sessionId: string; messages: ChatMessage[] } | nul
   }
   if (!isStored(parsed)) return null;
   if (parsed.expiresAt <= Date.now()) return null;
-  return { sessionId: parsed.sessionId, messages: parsed.messages };
+  return {
+    sessionId: parsed.sessionId,
+    messages: parsed.messages,
+    writerTabId: parsed.writerTabId,
+  };
 }
 
 // Notifies when another tab on the same origin updates the persisted chat.
 // `storage` events fire only in OTHER tabs by spec, so we never receive our
 // own writes here. Returns an unsubscribe function. No-op outside the browser.
 export function subscribeToStorage(
-  handler: (next: { sessionId: string; messages: ChatMessage[] } | "cleared") => void
+  handler: (
+    next:
+      | { sessionId: string; messages: ChatMessage[]; writerTabId?: string }
+      | "cleared"
+  ) => void
 ): () => void {
   if (typeof window === "undefined") return () => {};
   const onStorage = (e: StorageEvent) => {
@@ -152,7 +188,11 @@ export function subscribeToStorage(
     }
     if (!isStored(parsed)) return;
     if (parsed.expiresAt <= Date.now()) return;
-    handler({ sessionId: parsed.sessionId, messages: parsed.messages });
+    handler({
+      sessionId: parsed.sessionId,
+      messages: parsed.messages,
+      writerTabId: parsed.writerTabId,
+    });
   };
   window.addEventListener("storage", onStorage);
   return () => window.removeEventListener("storage", onStorage);
