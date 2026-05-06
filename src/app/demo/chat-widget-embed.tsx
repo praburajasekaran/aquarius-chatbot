@@ -44,21 +44,22 @@ function computeInitialState(): "open" | "minimized" {
 }
 
 export function ChatWidgetEmbed({ src = "/" }: { src?: string }) {
-  const [state, setState] = useState<"open" | "minimized">(computeInitialState);
+  const [mounted, setMounted] = useState(false);
+  const [state, setState] = useState<"open" | "minimized">("minimized");
   const [teaserVisible, setTeaserVisible] = useState(false);
 
-  // Persist state changes + emit auto-open analytics on first paint.
+  // Compute initial state on client only, then mount + persist + track.
   useEffect(() => {
+    const initial = computeInitialState();
+    setState(initial);
+    setMounted(true);
     const stored = readState();
-    if (state === "open" && !stored) {
+    if (initial === "open" && !stored) {
       writeState("open");
       track("chat_opened", { surface: "react", source: "auto" });
-    } else if (stored !== state) {
-      writeState(state);
+    } else if (stored !== initial) {
+      writeState(initial);
     }
-    // Mount-only — subsequent state changes flow through openChat/minimizeChat
-    // which call writeState directly.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Teaser only fires when boot state is 'minimized' (mobile, or desktop
@@ -114,7 +115,7 @@ export function ChatWidgetEmbed({ src = "/" }: { src?: string }) {
     return () => window.removeEventListener("message", onMessage);
   }, []);
 
-  if (typeof window === "undefined") return null;
+  if (!mounted) return null;
 
   const open = state === "open";
   const teaserShown = teaserVisible && !open;
