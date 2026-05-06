@@ -82,29 +82,37 @@ export function MessageList({
 
   const lastMsgIndex = messages.length - 1;
 
-  // Haiku (and any model with parallel tool calls) sometimes emits the same
-  // client-pausing tool more than once — either as parallel calls in a single
-  // step, or by re-emitting on the next turn after `ignoreIncompleteToolCalls`
-  // drops the unresolved prior call from the model's view. The result is
-  // multiple stacked upload boxes / payment cards / Calendly embeds. Walk the
-  // transcript once and remember the latest pending toolCallId for each
-  // client-pausing tool type; the render loop suppresses earlier pending
-  // instances so the visitor only ever sees the most recent one.
-  const latestPendingToolCallId: Record<string, string | null> = {
+  // Models with parallel tool calls (Gemini 2.5 Flash, Haiku 4.5) sometimes
+  // emit the same client-pausing tool more than once. The visible card must
+  // stay stable across user-side resolutions: `addToolOutput` mutates only
+  // the resolved part to output-available, so a "latest pending" rule causes
+  // an earlier still-pending duplicate to un-suppress and render a fresh
+  // widget right after the visible one is acknowledged. Pick the FIRST
+  // pending toolCallId per type and keep it for the rest of the transcript.
+  // Once any instance of a type has resolved (output-available/error),
+  // suppress every other pending instance — the conversation is past it.
+  const renderedToolCallIdByType: Record<string, string | null> = {
     "tool-initiatePayment": null,
     "tool-uploadDocuments": null,
     "tool-scheduleAppointment": null,
     "tool-showUrgentContact": null,
   };
+  const resolvedToolTypes = new Set<string>();
   for (const message of messages) {
     if (message.role !== "assistant") continue;
     for (const p of message.parts) {
       const part = p as { type?: string; state?: string; toolCallId?: string };
       if (typeof part.type !== "string") continue;
-      if (!(part.type in latestPendingToolCallId)) continue;
-      if (part.state !== "input-available" && part.state !== "input-streaming") continue;
+      if (!(part.type in renderedToolCallIdByType)) continue;
       if (typeof part.toolCallId !== "string") continue;
-      latestPendingToolCallId[part.type] = part.toolCallId;
+      if (part.state === "output-available" || part.state === "output-error") {
+        resolvedToolTypes.add(part.type);
+        continue;
+      }
+      if (part.state !== "input-available" && part.state !== "input-streaming") continue;
+      if (renderedToolCallIdByType[part.type] === null) {
+        renderedToolCallIdByType[part.type] = part.toolCallId;
+      }
     }
   }
 
@@ -282,7 +290,10 @@ export function MessageList({
             // Payment tool
             if (part.type === "tool-initiatePayment") {
               if (part.state === "input-available") {
-                if (latestPendingToolCallId["tool-initiatePayment"] !== part.toolCallId) {
+                if (
+                  resolvedToolTypes.has("tool-initiatePayment") ||
+                  renderedToolCallIdByType["tool-initiatePayment"] !== part.toolCallId
+                ) {
                   return null;
                 }
                 const isLatest = msgIndex === lastMsgIndex;
@@ -311,7 +322,10 @@ export function MessageList({
             // Upload tool
             if (part.type === "tool-uploadDocuments") {
               if (part.state === "input-available" || part.state === "input-streaming") {
-                if (latestPendingToolCallId["tool-uploadDocuments"] !== part.toolCallId) {
+                if (
+                  resolvedToolTypes.has("tool-uploadDocuments") ||
+                  renderedToolCallIdByType["tool-uploadDocuments"] !== part.toolCallId
+                ) {
                   return null;
                 }
                 const isLatest = msgIndex === lastMsgIndex;
@@ -339,7 +353,10 @@ export function MessageList({
 
             if (part.type === "tool-scheduleAppointment") {
               if (part.state === "input-available" || part.state === "input-streaming") {
-                if (latestPendingToolCallId["tool-scheduleAppointment"] !== part.toolCallId) {
+                if (
+                  resolvedToolTypes.has("tool-scheduleAppointment") ||
+                  renderedToolCallIdByType["tool-scheduleAppointment"] !== part.toolCallId
+                ) {
                   return null;
                 }
                 const isLatest = msgIndex === lastMsgIndex;
@@ -374,7 +391,10 @@ export function MessageList({
 
             if (part.type === "tool-showUrgentContact") {
               if (part.state === "input-available" || part.state === "input-streaming") {
-                if (latestPendingToolCallId["tool-showUrgentContact"] !== part.toolCallId) {
+                if (
+                  resolvedToolTypes.has("tool-showUrgentContact") ||
+                  renderedToolCallIdByType["tool-showUrgentContact"] !== part.toolCallId
+                ) {
                   return null;
                 }
                 const isLatest = msgIndex === lastMsgIndex;
