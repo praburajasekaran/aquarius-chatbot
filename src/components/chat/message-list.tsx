@@ -82,6 +82,32 @@ export function MessageList({
 
   const lastMsgIndex = messages.length - 1;
 
+  // Haiku (and any model with parallel tool calls) sometimes emits the same
+  // client-pausing tool more than once — either as parallel calls in a single
+  // step, or by re-emitting on the next turn after `ignoreIncompleteToolCalls`
+  // drops the unresolved prior call from the model's view. The result is
+  // multiple stacked upload boxes / payment cards / Calendly embeds. Walk the
+  // transcript once and remember the latest pending toolCallId for each
+  // client-pausing tool type; the render loop suppresses earlier pending
+  // instances so the visitor only ever sees the most recent one.
+  const latestPendingToolCallId: Record<string, string | null> = {
+    "tool-initiatePayment": null,
+    "tool-uploadDocuments": null,
+    "tool-scheduleAppointment": null,
+    "tool-showUrgentContact": null,
+  };
+  for (const message of messages) {
+    if (message.role !== "assistant") continue;
+    for (const p of message.parts) {
+      const part = p as { type?: string; state?: string; toolCallId?: string };
+      if (typeof part.type !== "string") continue;
+      if (!(part.type in latestPendingToolCallId)) continue;
+      if (part.state !== "input-available" && part.state !== "input-streaming") continue;
+      if (typeof part.toolCallId !== "string") continue;
+      latestPendingToolCallId[part.type] = part.toolCallId;
+    }
+  }
+
   // Static welcome bubble. Rendered as a sibling of the message list (not
   // injected into `messages`) so it persists across the conversation without
   // ever being sent to the model — purely a UI affordance that greets the
@@ -256,6 +282,9 @@ export function MessageList({
             // Payment tool
             if (part.type === "tool-initiatePayment") {
               if (part.state === "input-available") {
+                if (latestPendingToolCallId["tool-initiatePayment"] !== part.toolCallId) {
+                  return null;
+                }
                 const isLatest = msgIndex === lastMsgIndex;
                 return (
                   <PaymentCard
@@ -282,6 +311,9 @@ export function MessageList({
             // Upload tool
             if (part.type === "tool-uploadDocuments") {
               if (part.state === "input-available" || part.state === "input-streaming") {
+                if (latestPendingToolCallId["tool-uploadDocuments"] !== part.toolCallId) {
+                  return null;
+                }
                 const isLatest = msgIndex === lastMsgIndex;
                 return (
                   <DocumentUpload
@@ -307,6 +339,9 @@ export function MessageList({
 
             if (part.type === "tool-scheduleAppointment") {
               if (part.state === "input-available" || part.state === "input-streaming") {
+                if (latestPendingToolCallId["tool-scheduleAppointment"] !== part.toolCallId) {
+                  return null;
+                }
                 const isLatest = msgIndex === lastMsgIndex;
                 return (
                   <CalendlyEmbed
@@ -339,6 +374,9 @@ export function MessageList({
 
             if (part.type === "tool-showUrgentContact") {
               if (part.state === "input-available" || part.state === "input-streaming") {
+                if (latestPendingToolCallId["tool-showUrgentContact"] !== part.toolCallId) {
+                  return null;
+                }
                 const isLatest = msgIndex === lastMsgIndex;
                 return (
                   <UrgentContactCard
