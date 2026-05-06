@@ -21,6 +21,9 @@ export async function parseJsonBody<T>(
 
   const result = schema.safeParse(body);
   if (!result.success) {
+    console.error("[parseJsonBody] zod validation failed", {
+      issues: result.error.issues,
+    });
     return {
       ok: false,
       response: NextResponse.json({ error: "bad_payload" }, { status: 400 }),
