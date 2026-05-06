@@ -6,7 +6,7 @@
 - Next.js (App Router, TypeScript)
 - Tailwind CSS v4 (CSS-based theme config)
 - Vercel AI SDK v6 (`ai`, `@ai-sdk/react`, `@ai-sdk/openai`)
-- LLM: Gemini 2.5 Flash via OpenRouter
+- LLM: Claude Haiku 4.5 via OpenRouter
 - Stripe (embedded checkout)
 - Upstash Redis (session store, replaces deprecated Vercel KV)
 - Resend (email)
