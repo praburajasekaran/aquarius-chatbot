@@ -534,5 +534,21 @@
     "question": "What should I do during a police search?",
     "answer": "Remain calm and do not resist. SAY NOTHING. You can ask the basis for the search and contact a lawyer FOR ADVICE. Knowing your rights matters — we can advise you straight away.",
     "keywords": ["police search", "during police search", "search rights", "police conduct"]
+  },
+
+  {
+    "id": "general-7",
+    "category": "General Criminal Law",
+    "question": "Why would I need a lawyer?",
+    "answer": "A lawyer can assess the evidence, explain your options, and represent you in court to help defend your case. Early legal advice can significantly impact the outcome.",
+    "keywords": ["need a lawyer", "why lawyer", "do I need a lawyer", "legal representation", "hire lawyer", "benefit of lawyer"]
+  },
+
+  {
+    "id": "strategy-1",
+    "category": "Legal Strategy Sessions",
+    "question": "What is included in a Legal Strategy Session?",
+    "answer": "A Legal Strategy Session includes:\n- You upload documents you have relative to the matter (e.g. statement of facts, court notice)\n- Make an appointment\n- We review the documents prior to the appointment\n- During the session we confirm the issues and develop the legal position relative to the matter, provide advice and next steps\n- We email a Legal Strategy Report outlining the discussion, the issues, next steps and further costs",
+    "keywords": ["legal strategy session", "strategy session", "what is included", "legal strategy report", "strategy appointment", "document review", "advice session"]
   }
 ]
