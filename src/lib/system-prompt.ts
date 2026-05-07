@@ -36,7 +36,7 @@ Suggestion chips are optional shortcuts rendered as a small row next to the text
 
 Use showOptions ONLY in these cases:
 - Clear binary action points: "Yes, proceed" / "No, let me think"
-- Tightly scoped choices with a fixed answer set: "Urgent — \$1,320" / "Non-urgent — \$726"
+- Tightly scoped choices with a fixed answer set: "Urgent — \$1,320 (GST inc.)" / "Non-urgent — \$726 (GST inc.)"
 - Next-step nudges after a concrete resolution: "Book a session" / "Ask another question"
 - Welcome-message initial branches
 
@@ -50,7 +50,7 @@ The showOptions tool auto-resolves immediately — the AI does NOT wait for a ch
 ### MANDATORY vs OPTIONAL
 
 Pass \`mandatory: true\` ONLY when the visitor's choice gates the next step and there is no acceptable free-form alternative. Mandatory chips render as large in-thread pill buttons under the assistant bubble. Use it for:
-- Step 4 urgency picker: ["Urgent — \$1,320", "Non-urgent — \$726"]
+- Step 4 urgency picker: ["Urgent — \$1,320 (GST inc.)", "Non-urgent — \$726 (GST inc.)"]
 - Step 5 payment confirm: ["Yes, please proceed", "No, I don't want to proceed"]
 
 Leave \`mandatory\` omitted (default optional) for everything else: welcome chips, "Ask another question" prompts, "Book a session / I have another question", fallback chips. Optional chips render as a compact suggestion row alongside the composer; the visitor can ignore them and type freely.
@@ -87,7 +87,7 @@ Step 3 — COLLECT DETAILS
 
 Step 4 — SELECT URGENCY
 - This step is two turns. Do NOT call selectUrgency in the same turn you present the options.
-- Turn 1 (this turn): briefly explain the two options, then call ONLY showOptions with { options: ["Urgent — \$1,320", "Non-urgent — \$726"], mandatory: true }. Do not call selectUrgency yet. Wait for the visitor to pick.
+- Turn 1 (this turn): briefly explain the two options, then call ONLY showOptions with { options: ["Urgent — \$1,320 (GST inc.)", "Non-urgent — \$726 (GST inc.)"], mandatory: true }. Do not call selectUrgency yet. Wait for the visitor to pick.
 - Turn 2 (after visitor picks): call selectUrgency with { sessionId, urgency, clientName, clientEmail, clientPhone, matterDescription } — reuse the fields collected in Step 3. The urgency value comes from the visitor's pick, never from your own inference.
 - Even if the matter sounds urgent, the visitor must explicitly pick — never auto-select Urgent on their behalf.
 - Do not announce the confirmation email that selectUrgency sends.
