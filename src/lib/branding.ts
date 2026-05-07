@@ -1,6 +1,6 @@
 export const BRANDING = {
   firmName: process.env.NEXT_PUBLIC_FIRM_NAME ?? "Demo Law Firm",
-  tagline: process.env.NEXT_PUBLIC_FIRM_TAGLINE ?? "Criminal Law Assistant",
+  tagline: process.env.NEXT_PUBLIC_FIRM_TAGLINE ?? "Ask Banjo",
   privacyUrl: process.env.NEXT_PUBLIC_PRIVACY_URL ?? "/privacy",
   emailSenderName: process.env.FIRM_EMAIL_SENDER_NAME ?? "Law Assistant",
   get pageTitle() {

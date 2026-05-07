@@ -545,7 +545,7 @@ export function ChatWidget() {
   }
 
   return (
-    <div className="relative flex flex-col h-full bg-white" aria-label="Criminal Law Assistant chat">
+    <div className="relative flex flex-col h-full bg-white" aria-label={`${BRANDING.tagline} chat`}>
       <header role="banner" className="bg-white border-b border-gray-200 px-4 py-3">
         <div className="flex items-center gap-3">
           <div className="h-9 w-9 rounded-lg bg-brand/10 flex items-center justify-center shrink-0">
@@ -555,7 +555,7 @@ export function ChatWidget() {
             <h1 className="text-base font-heading font-semibold text-gray-900 truncate">
               {BRANDING.firmName}
             </h1>
-            <p className="text-sm text-gray-500">Criminal Law Assistant</p>
+            <p className="text-sm text-gray-500">{BRANDING.tagline}</p>
           </div>
           <div className="flex items-center gap-1">
             {messages.length > 0 && (
