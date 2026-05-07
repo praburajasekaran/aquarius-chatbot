@@ -10,7 +10,7 @@ export const BRANDING = {
     return `Get answers to your criminal law questions and book a Legal Strategy Session with ${this.firmName}.`;
   },
   get welcomeMessage() {
-    return `Welcome to ${this.firmName}. I'm here to help with your criminal law questions and guide you through booking a Legal Strategy Session. Please note: I provide general information only — not legal advice. How can I help you today?`;
+    return `Welcome to ${this.firmName}. I'm here to help with your legal questions and guide you through booking a Legal Strategy Session.\n\nHow can I help you today?`;
   },
   get welcomeShort() {
     return `Welcome to ${this.firmName}. Ask me anything about criminal law.`;

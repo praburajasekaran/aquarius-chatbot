@@ -136,7 +136,7 @@ export function MessageList({
       </div>
       <div
         aria-label={`Assistant: ${BRANDING.welcomeMessage}`}
-        className="max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed bg-gray-100 text-gray-800 rounded-bl-md"
+        className="max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed bg-gray-100 text-gray-800 rounded-bl-md whitespace-pre-line"
       >
         {BRANDING.welcomeMessage}
       </div>
