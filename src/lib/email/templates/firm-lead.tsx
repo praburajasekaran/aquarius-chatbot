@@ -1,4 +1,4 @@
-import { Heading, Text } from "@react-email/components";
+import { Heading, Hr, Text } from "@react-email/components";
 import { EmailLayout } from "@/lib/email/components/EmailLayout";
 import { BrandButton } from "@/lib/email/components/BrandButton";
 import { DataTable } from "@/lib/email/components/DataTable";
@@ -12,6 +12,7 @@ export interface FirmLeadEmailProps {
   urgency: "urgent" | "non-urgent";
   displayPrice: string;
   resumeUrl: string;
+  transcript?: string;
 }
 
 export default function FirmLeadEmail({
@@ -22,6 +23,7 @@ export default function FirmLeadEmail({
   urgency,
   displayPrice,
   resumeUrl,
+  transcript,
 }: FirmLeadEmailProps) {
   return (
     <EmailLayout
@@ -40,9 +42,28 @@ export default function FirmLeadEmail({
           { label: "Fee", value: displayPrice },
         ]}
       />
+
+      {transcript && transcript.trim().length > 0 && (
+        <>
+          <Hr style={styles.divider} />
+          <Heading as="h2" style={styles.subheading}>
+            Chat transcript
+          </Heading>
+          {transcript
+            .split(/\n{2,}/)
+            .map((turn) => turn.trim())
+            .filter(Boolean)
+            .map((turn, i) => (
+              <Text key={i} style={styles.monoBlock}>
+                {turn}
+              </Text>
+            ))}
+        </>
+      )}
+
       <Text style={styles.paragraphMuted}>
-        Payment has not yet been completed. You will receive a second
-        notification with the chat transcript once payment is confirmed.
+        Payment has not yet been completed. A second notification will be
+        sent once payment is confirmed.
       </Text>
       <BrandButton href={resumeUrl} variant="secondary">
         View payment link
