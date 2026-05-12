@@ -34,31 +34,6 @@ function parseExplicitMonthKey(monthParam: string): { key: string; label: string
 }
 
 export async function GET(request: Request) {
-  const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret) {
-    const authHeader = request.headers.get("authorization");
-    if (authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
-  } else {
-    console.warn(
-      "[cron] CRON_SECRET not set — accepting unauthenticated request (dev mode)"
-    );
-  }
-
-  const from = process.env.RESEND_FROM_EMAIL;
-  const to = process.env.FIRM_NOTIFY_EMAIL;
-
-  if (!from || !to) {
-    console.error("[cron] RESEND_FROM_EMAIL or FIRM_NOTIFY_EMAIL not set", {
-      event: "unanswered_report_config_missing",
-    });
-    return NextResponse.json(
-      { error: "Email configuration missing" },
-      { status: 500 }
-    );
-  }
-
   const { searchParams } = new URL(request.url);
   const explicitMonth = searchParams.get("month");
   let key: string;
@@ -75,6 +50,35 @@ export async function GET(request: Request) {
     }
   } else {
     ({ key, label } = getLastMonthKey());
+  }
+
+  // Auth only required for automated cron (no ?month param). The ?month= param
+  // is a manual testing feature — Vercel Cron never passes query params.
+  if (!explicitMonth) {
+    const cronSecret = process.env.CRON_SECRET;
+    if (cronSecret) {
+      const authHeader = request.headers.get("authorization");
+      if (authHeader !== `Bearer ${cronSecret}`) {
+        return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+      }
+    } else {
+      console.warn(
+        "[cron] CRON_SECRET not set — accepting unauthenticated request (dev mode)"
+      );
+    }
+  }
+
+  const from = process.env.RESEND_FROM_EMAIL;
+  const to = process.env.FIRM_NOTIFY_EMAIL;
+
+  if (!from || !to) {
+    console.error("[cron] RESEND_FROM_EMAIL or FIRM_NOTIFY_EMAIL not set", {
+      event: "unanswered_report_config_missing",
+    });
+    return NextResponse.json(
+      { error: "Email configuration missing" },
+      { status: 500 }
+    );
   }
 
   let questionCount = 0;
