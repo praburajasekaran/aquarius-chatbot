@@ -127,7 +127,7 @@ export function MessageList({
         className="shrink-0 h-8 w-8 rounded-full overflow-hidden bg-brand/10"
       >
         <Image
-          src="/chat-profile-pic.png"
+          src="/banjo.png"
           alt=""
           width={64}
           height={64}
@@ -172,7 +172,7 @@ export function MessageList({
                       <User className="h-4 w-4 text-gray-600" />
                     ) : (
                       <Image
-                        src="/chat-profile-pic.png"
+                        src="/banjo.png"
                         alt=""
                         width={64}
                         height={64}
