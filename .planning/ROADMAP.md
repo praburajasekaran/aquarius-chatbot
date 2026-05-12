@@ -70,7 +70,9 @@
   3. `src/lib/sms/dispatch.ts` contains zero imports from the Stripe SDK — `grep -r "from 'stripe'" src/lib/sms/` returns no matches.
   4. The app boots and all non-SMS flows (chat, payment, email, upload) operate correctly when `CLICKSEND_USERNAME`, `CLICKSEND_API_KEY`, `CLICKSEND_SENDER_ID`, and `QSTASH_TOKEN` are all absent from the environment.
   5. An integration test simulating a client uploading before the 24h window results in `cancelPendingReminder()` being called and the reminder handler returning `"skipped"` rather than dispatching a second SMS.
-**Plans**: TBD
+**Plans**: 2 plans
+  - [ ] 03-01-PLAN.md — Wave 0: sms-immediate NX dedup + in-chat upload cancel hook
+  - [ ] 03-02-PLAN.md — Wave 1: Integration tests (TEST-02 retry dedup, TEST-03 upload-gate cancel)
 
 ---
 
@@ -80,7 +82,7 @@
 |-------|----------------|--------|-----------|
 | 1. Dispatch Foundation | 2/2 | Complete | 2026-04-27 |
 | 2. QStash Scheduler | 2/2 | Complete | 2026-04-27 |
-| 3. Provider-Agnostic Seam | 0/1 | Not started | - |
+| 3. Provider-Agnostic Seam | 2/2 | Planned | 2026-05-12 |
 
 ---
 
@@ -116,4 +118,4 @@ All 22 v1 requirements mapped. No orphans.
 ---
 
 *Roadmap created: 2026-04-24*
-*Last updated: 2026-04-27 after completing phase 02 (qstash-scheduler — 5/5 tests GREEN, SCHED-01–05 verified)*
+*Last updated: 2026-05-12 after planning phase 03 (provider-agnostic-seam — 2 plans)*
