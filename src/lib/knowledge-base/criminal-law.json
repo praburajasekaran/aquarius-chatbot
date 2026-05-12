@@ -550,5 +550,47 @@
     "question": "What is included in a Legal Strategy Session?",
     "answer": "A Legal Strategy Session includes:\n- You upload documents you have relative to the matter (e.g. statement of facts, court notice)\n- Make an appointment\n- We review the documents prior to the appointment\n- During the session we confirm the issues and develop the legal position relative to the matter, provide advice and next steps\n- We email a Legal Strategy Report outlining the discussion, the issues, next steps and further costs",
     "keywords": ["legal strategy session", "strategy session", "what is included", "legal strategy report", "strategy appointment", "document review", "advice session"]
+  },
+  {
+    "id": "strategy-2",
+    "category": "Legal Strategy Sessions",
+    "question": "What is a Criminal Law Legal Strategy Session?",
+    "answer": "A Criminal Law Strategy Session with Aquarius Lawyers is a confidential consultation with an experienced criminal defence lawyer designed to help you understand your legal position, your options, and the best strategy moving forward. During the session, we can: review police charges or investigations; explain court procedures and likely outcomes; identify legal risks and opportunities; discuss possible defence strategies; provide guidance before speaking further with police; and help you prepare for upcoming court appearances. Whether you have already been charged or are seeking early legal advice, our strategy sessions are designed to give you clarity, confidence and practical next steps.",
+    "keywords": ["criminal law strategy session", "strategy session", "legal consultation", "criminal defence lawyer", "legal advice session", "confidential consultation"]
+  },
+  {
+    "id": "strategy-3",
+    "category": "Legal Strategy Sessions",
+    "question": "Who should book a Criminal Law Strategy Session?",
+    "answer": "A Criminal Law Strategy Session may be suitable if: you have been charged with a criminal offence; police want to interview you; you have received a court attendance notice; you are concerned about a pending investigation; you need urgent legal advice before court; or you want to understand your rights and options before making decisions.",
+    "keywords": ["book strategy session", "who should book", "criminal law strategy", "should I book", "legal advice session", "strategy session eligibility"]
+  },
+  {
+    "id": "strategy-4",
+    "category": "Legal Strategy Sessions",
+    "question": "What is a Non-Urgent Criminal Law Strategy Session?",
+    "answer": "A Non-Urgent Criminal Law Strategy Session is designed for people seeking proactive legal advice where there is no immediate court deadline or urgent legal issue. This session focuses on long-term planning, legal risk assessment and strategic preparation.",
+    "keywords": ["non-urgent", "non urgent strategy session", "proactive legal advice", "long-term planning", "legal risk assessment", "strategic preparation"]
+  },
+  {
+    "id": "strategy-5",
+    "category": "Legal Strategy Sessions",
+    "question": "What are the benefits of a Non-Urgent Criminal Law Strategy Session?",
+    "answer": "Benefits may include: understanding your legal rights and obligations; avoiding common mistakes that can affect your case; receiving early legal advice before matters escalate; gaining clarity about possible penalties and outcomes; developing a tailored defence strategy; and understanding what evidence or documents may assist your case.",
+    "keywords": ["non-urgent benefits", "strategy session benefits", "early legal advice", "defence strategy", "legal rights"]
+  },
+  {
+    "id": "strategy-6",
+    "category": "Legal Strategy Sessions",
+    "question": "What happens during a Non-Urgent Criminal Law Strategy Session?",
+    "answer": "During your consultation, an Aquarius Lawyers criminal defence lawyer may: review available documents and evidence; discuss the allegations or investigation; explain possible court processes and likely outcomes; outline potential defence strategies; identify legal risks and opportunities; and provide guidance on practical next steps.",
+    "keywords": ["non-urgent session", "what happens during strategy session", "consultation process", "document review", "defence lawyer consultation"]
+  },
+  {
+    "id": "strategy-7",
+    "category": "Legal Strategy Sessions",
+    "question": "When is an urgent criminal law Legal Strategy Session required?",
+    "answer": "If you have a court date in the next three weeks, we need to urgently start the preparations for court. Therefore you need to book in immediately in order for us to represent you and minimise the charges.",
+    "keywords": ["urgent strategy session", "urgent legal advice", "court date soon", "urgent court preparation", "immediate booking", "three weeks court"]
   }
 ]
