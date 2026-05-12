@@ -1,5 +1,6 @@
 import { tool } from "ai";
 import { z } from "zod";
+import { redis } from "@/lib/kv";
 import { PRICING } from "@/lib/stripe";
 import { createIntake } from "@/lib/intake";
 import { sendClientInquiryEmail, sendFirmLeadEmail } from "@/lib/resend";
@@ -95,6 +96,11 @@ export const selectUrgency = tool({
 
     const appUrl = process.env.NEXT_PUBLIC_URL ?? "";
     const resumeUrl = `${appUrl}/api/checkout/resume?session=${encodeURIComponent(sessionId)}`;
+
+    const transcript = await redis
+      .get<string>(`transcript:${sessionId}`)
+      .catch(() => null);
+
     try {
       await sendFirmLeadEmail({
         clientName: trimmedName,
@@ -104,6 +110,7 @@ export const selectUrgency = tool({
         urgency,
         displayPrice: pricing.displayPrice,
         resumeUrl,
+        transcript: transcript ?? undefined,
       });
     } catch (err) {
       console.error("[selectUrgency] failed to send firm lead email", err);
