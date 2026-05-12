@@ -5,9 +5,9 @@ milestone_name: milestone
 status: planned
 last_updated: "2026-05-12T00:00:00.000Z"
 progress:
-  total_phases: 3
+  total_phases: 4
   completed_phases: 2
-  total_plans: 6
+  total_plans: 7
   completed_plans: 4
 ---
 
@@ -29,15 +29,16 @@ progress:
 ## Current Position
 
 Phase: 03 (provider-agnostic-seam) — PLANNED
-Plan: 2 of 2 (planning complete)
+Next unexecuted phase: 04 (unanswered-question-reporting) — PLANNED
+Plan: 2 of 2 for Phase 3, 1 of 1 for Phase 4 (planning complete)
 
 ## Performance Metrics
 
 | Metric | Value |
 |--------|-------|
-| Phases total | 3 |
+| Phases total | 4 |
 | Phases complete | 2 |
-| Requirements total | 22 |
+| Requirements total | 27 |
 | Requirements complete | 11 |
 | Session started | 2026-04-24 |
 
@@ -60,7 +61,7 @@ Plan: 2 of 2 (planning complete)
 |----------|-----------|
 | 3-phase coarse structure | ~1-day feature; phases align with merge-safety boundaries (phases 1-2 are new-files-only, phase 3 mutates existing files) |
 | QStash for 24h reminder, not Vercel Cron | Fires exactly once at the right time; cancellable by ID; no Redis scan needed; same Upstash vendor as existing Redis |
-| `handleIntakePaid()` as the single seam | Bpoint migration is in-flight in a parallel worktree; coupling SMS to Stripe types guarantees merge conflicts |
+| `handleIntakePaid()` as the single seam | Stripe → BPoint migration complete; `handleIntakePaid()` accepts `source: "bpoint"` and is provider-agnostic by design |
 | `fetch` only for ClickSend, no SDK | Consistent with existing Zapier/Resend pattern; ClickSend REST surface for a single send is 3 fields |
 | Landline detection pre-API, not post-response | ClickSend does not return carrier type synchronously; AU mobile prefix check is sufficient and testable |
 | Absent-safe env var pattern | App must boot and function without `CLICKSEND_*` or `QSTASH_*` vars for local dev and PR previews |
@@ -120,7 +121,7 @@ To resume work, read:
 2. `ROADMAP.md` — phase goals and success criteria
 3. The current phase's plan file (`.planning/plans/phase-N-*.md`) when created
 
-Next action: Execute Phase 03 (2 plans: sms-immediate NX dedup + upload cancel hook, then integration tests)
+Next action: Execute Phase 03 (2 plans: sms-immediate NX dedup + upload cancel hook, then integration tests). Phase 04 (1 plan: unanswered question reporting) is planned and ready after Phase 03.
 
 ---
 
