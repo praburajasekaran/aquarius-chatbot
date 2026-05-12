@@ -55,7 +55,7 @@ Paying clients reliably get their documents to the firm — because their mobile
 
 - **Tech stack**: Next.js App Router + TypeScript + Vercel. No new runtime; ClickSend integration is a TypeScript module using their HTTPS REST API. — *Consistency with existing integration pattern (`src/lib/resend.ts`, Zapier webhooks).*
 - **Dependencies**: No heavyweight SMS SDK — the ClickSend REST surface is small; use `fetch`. — *Avoid bundle bloat and the "unmaintained SDK" risk.*
-- **Payment-provider-agnostic**: SMS trigger must be decoupled from Stripe and Bpoint webhook handlers via an internal event/function call abstraction. — *Bpoint migration happening in parallel; avoid merge conflicts and duplicated logic.*
+- **Payment-provider-agnostic**: SMS trigger must be decoupled from payment webhook handlers via an internal event/function call abstraction. — *Stripe → BPoint migration completed; future providers follow the same seam.*
 - **Timeline**: Roughly 1 day of focused work. Drives coarse-grained phasing and lean tests. — *Stated by user.*
 - **Security**: ClickSend API key in `process.env` only; never log the key; never embed the upload token in anything other than an HTTPS URL; rate-limit outbound SMS per session to prevent abuse. — *Existing patterns in the codebase already follow these rules.*
 - **Compatibility**: App must continue to boot and function if `CLICKSEND_*` env vars are missing (e.g. local dev, PR previews) — SMS dispatch degrades to a warning log. — *Developer ergonomics + preview environments.*
@@ -64,7 +64,7 @@ Paying clients reliably get their documents to the firm — because their mobile
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Trigger SMS off an internal `intake-paid` event, not directly from Stripe/Bpoint webhook handlers | Bpoint migration is in flight in a parallel worktree; coupling to Stripe-specific code now would guarantee merge conflicts and duplicated dispatch logic | — Pending |
+| Trigger SMS off an internal `intake-paid` event, not directly from Stripe/Bpoint webhook handlers | Stripe → BPoint migration complete; the provider-agnostic seam prevents coupling to any single payment provider | — Pending |
 | Single reminder at 24h if no upload; no escalating ladder | User directive. Keeps scope tight and avoids the "pestering" perception on a regulated channel | — Pending |
 | Silently skip landlines, log for observability, no fallback action | User directive. Client already received email; double-contact via staff phone-call isn't this feature's job | — Pending |
 | Use ClickSend (not Twilio, not a generic SMS gateway) | User directive; ClickSend is AU-based, has local sender IDs, handles STOP opt-outs natively | — Pending |

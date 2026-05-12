@@ -24,7 +24,7 @@
 ### Provider-Agnostic Seam
 
 - [ ] **EVENT-01**: A single `handleIntakePaid(event: IntakePaidEvent)` function is the only entry point that fans out to SMS, email, and any downstream integrations
-- [ ] **EVENT-02**: The existing Stripe webhook handler is refactored to call `handleIntakePaid()` after validating and deduplicating its Stripe-specific payload
+- [ ] **EVENT-02**: The existing payment webhook handler is refactored to call `handleIntakePaid()` after validating and deduplicating its provider-specific payload (Stripe → BPoint migration in progress; the seam is provider-agnostic)
 - [ ] **EVENT-03**: The `IntakePaidEvent` shape contains only the fields both Stripe and Bpoint webhooks can supply: `sessionId`, `clientName`, `clientEmail`, `clientPhone`, `paidAt`, `amountCents`, `uploadLink`
 
 ### Compliance
@@ -44,6 +44,14 @@
 - [x] **TEST-01**: Unit tests cover E.164 normalisation, landline detection, and absent-env graceful degradation without hitting the real ClickSend API (mock `fetch`)
 - [ ] **TEST-02**: Integration test simulates a Stripe webhook retry and asserts exactly one immediate SMS is dispatched
 - [ ] **TEST-03**: Integration test simulates a client uploading before the 24h reminder fires and asserts the reminder is cancelled (or at minimum skipped by the upload-state check)
+
+### Knowledge Base Reporting
+
+- [ ] **REPORT-01**: When `matchQuestion` returns no match, the normalized question text is stored in a Redis sorted set `unanswered:{YYYY-MM}` with the current timestamp as score
+- [ ] **REPORT-02**: A Vercel Cron job triggers monthly (1st of month, midnight UTC) to compile and email the unanswered questions report
+- [ ] **REPORT-03**: The report email lists all unique unanswered questions from the prior month, rendered via a React email template
+- [ ] **REPORT-04**: Question storage degrades gracefully — if Redis is unavailable, `matchQuestion` continues to return the fallback response without error
+- [ ] **REPORT-05**: Duplicate questions (normalized text match) within a month update the timestamp but do not create duplicate entries in the sorted set
 
 ## v2 Requirements
 
@@ -102,10 +110,15 @@ Explicitly excluded. Documented to prevent scope creep.
 | OPS-02 | Phase 3 | Pending |
 | TEST-02 | Phase 3 | Pending |
 | TEST-03 | Phase 3 | Pending |
+| REPORT-01 | Phase 4 | Pending |
+| REPORT-02 | Phase 4 | Pending |
+| REPORT-03 | Phase 4 | Pending |
+| REPORT-04 | Phase 4 | Pending |
+| REPORT-05 | Phase 4 | Pending |
 
 **Coverage:**
-- v1 requirements: 22 total
-- Mapped to phases: 22
+- v1 requirements: 27 total
+- Mapped to phases: 27
 - Unmapped: 0 ✓
 
 ---

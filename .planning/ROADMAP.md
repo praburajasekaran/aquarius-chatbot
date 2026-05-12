@@ -12,6 +12,7 @@
 - [x] **Phase 1: Dispatch Foundation** - Isolated SMS module: E.164 normalisation, landline detection, ClickSend client, compliance copy, unit tests — no existing files touched *(completed 2026-04-27)*
 - [x] **Phase 2: QStash Scheduler** - 24h delayed reminder: schedule on payment, signature-verified delivery webhook, upload-gate cancellation hook *(completed 2026-04-27)*
 - [ ] **Phase 3: Provider-Agnostic Seam** - Wire everything into the app: `handleIntakePaid()` orchestrator, Stripe webhook refactor, upload-route cancel hooks, integration tests
+- [ ] **Phase 4: Unanswered Question Reporting** - Monthly email report of KB gaps: log unmatched questions to Redis, Vercel Cron aggregation, Resend email report
 
 ---
 
@@ -66,13 +67,33 @@
 - `src/lib/sms/__tests__/reminder.test.ts` — integration tests for retry dedup and upload-gate cancel
 **Success Criteria** (what must be TRUE):
   1. An SMS arrives on a test AU mobile number within 30 seconds of a simulated payment-success event fired through `handleIntakePaid()` in a staging environment with `CLICKSEND_*` vars set.
-  2. A simulated Stripe webhook retry (second POST of the same `checkout.session.completed` event) results in exactly one SMS send — verified by the Redis `sms-immediate:{sessionId}` NX key guard and the integration test asserting a single `fetch` call.
+  2. A simulated payment webhook retry (second POST of the same event) results in exactly one SMS send — verified by the Redis `sms-immediate:{sessionId}` NX key guard and the integration test asserting a single `fetch` call.
   3. `src/lib/sms/dispatch.ts` contains zero imports from the Stripe SDK — `grep -r "from 'stripe'" src/lib/sms/` returns no matches.
   4. The app boots and all non-SMS flows (chat, payment, email, upload) operate correctly when `CLICKSEND_USERNAME`, `CLICKSEND_API_KEY`, `CLICKSEND_SENDER_ID`, and `QSTASH_TOKEN` are all absent from the environment.
   5. An integration test simulating a client uploading before the 24h window results in `cancelPendingReminder()` being called and the reminder handler returning `"skipped"` rather than dispatching a second SMS.
 **Plans**: 2 plans
   - [ ] 03-01-PLAN.md — Wave 0: sms-immediate NX dedup + in-chat upload cancel hook
   - [ ] 03-02-PLAN.md — Wave 1: Integration tests (TEST-02 retry dedup, TEST-03 upload-gate cancel)
+
+### Phase 4: Unanswered Question Reporting
+**Goal**: When visitors ask questions not covered by the knowledge base, the question is logged to Redis. A monthly Vercel Cron job compiles a report and emails it to the firm, giving the Aquarius team visibility into knowledge base gaps.
+**Depends on**: Nothing (new feature, zero existing file mutations beyond `match-question.ts`)
+**Requirements**: REPORT-01, REPORT-02, REPORT-03, REPORT-04, REPORT-05
+**New files**:
+- `src/lib/tools/log-unanswered.ts` — `logUnanswered(question, sessionId)` — ZADD to `unanswered:{YYYY-MM}` sorted set
+- `src/lib/email/templates/unanswered-report.tsx` — React email template for the monthly report
+- `src/app/api/cron/unanswered-report/route.ts` — Vercel Cron GET handler
+**Modified files**:
+- `src/lib/tools/match-question.ts` — add `logUnanswered()` call in unmatched branch
+- `vercel.json` — add cron job entry
+**Success Criteria** (what must be TRUE):
+  1. Asking a question not in the knowledge base results in a Redis `ZADD` to `unanswered:{YYYY-MM}` — verified by integration test showing the key exists after a no-match
+  2. `GET /api/cron/unanswered-report` returns 200 and sends an email to `FIRM_NOTIFY_EMAIL` containing all unique unanswered questions from the prior month
+  3. The report email renders zero questions gracefully ("No unanswered questions this month") when the sorted set is empty
+  4. `matchQuestion` continues to function normally when Redis is unavailable — `logUnanswered` catches and swallows errors
+  5. Asking the same question twice in a month results in one entry in the sorted set (ZADD idempotency via member uniqueness)
+**Plans**: 1 plan
+  - [ ] 04-01-PLAN.md — Full feature: log-unanswered.ts, match-question integration, report template, cron endpoint, vercel.json
 
 ---
 
@@ -83,12 +104,13 @@
 | 1. Dispatch Foundation | 2/2 | Complete | 2026-04-27 |
 | 2. QStash Scheduler | 2/2 | Complete | 2026-04-27 |
 | 3. Provider-Agnostic Seam | 2/2 | Planned | 2026-05-12 |
+| 4. Unanswered Question Reporting | 1/1 | Planned | 2026-05-12 |
 
 ---
 
 ## Coverage
 
-All 22 v1 requirements mapped. No orphans.
+All 27 v1 requirements mapped. No orphans.
 
 | Requirement | Phase |
 |-------------|-------|
@@ -114,6 +136,11 @@ All 22 v1 requirements mapped. No orphans.
 | OPS-02 | 3 |
 | TEST-02 | 3 |
 | TEST-03 | 3 |
+| REPORT-01 | 4 |
+| REPORT-02 | 4 |
+| REPORT-03 | 4 |
+| REPORT-04 | 4 |
+| REPORT-05 | 4 |
 
 ---
 

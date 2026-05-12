@@ -2,6 +2,7 @@ import { tool } from "ai";
 import { z } from "zod";
 import type { QAPair } from "@/types";
 import qaData from "@/lib/knowledge-base/criminal-law.json";
+import { logUnanswered } from "@/lib/tools/log-unanswered";
 
 const knowledgeBase: QAPair[] = qaData;
 
@@ -57,6 +58,9 @@ export const matchQuestion = tool({
         answer: match.answer,
       };
     }
+
+    // Log unanswered question for monthly firm report.
+    logUnanswered(question).catch(() => {});
 
     return {
       matched: false,
