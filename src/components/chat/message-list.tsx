@@ -124,7 +124,7 @@ export function MessageList({
     <div className="flex gap-3">
       <div
         aria-hidden="true"
-        className="shrink-0 h-8 w-8 rounded-full overflow-hidden bg-brand/10"
+        className="shrink-0 h-8 w-8 rounded-xl overflow-hidden bg-brand/10"
       >
         <Image
           src="/banjo.png"
@@ -164,7 +164,7 @@ export function MessageList({
                   {/* Avatar — decorative, hidden from AT */}
                   <div
                     aria-hidden="true"
-                    className={`shrink-0 h-8 w-8 rounded-full overflow-hidden ${
+                    className={`shrink-0 h-8 w-8 rounded-xl overflow-hidden ${
                       isUser ? "bg-gray-200 flex items-center justify-center" : "bg-brand/10"
                     }`}
                   >

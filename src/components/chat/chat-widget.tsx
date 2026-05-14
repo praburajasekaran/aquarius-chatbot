@@ -10,7 +10,8 @@ import { EndChatButton } from "./end-chat-button";
 import { EndChatDialog } from "./end-chat-dialog";
 import { loadChat, saveChat, clearChat, subscribeToStorage, peekChat, getThisTabId } from "@/lib/chat-persistence";
 import type { ChatMessage } from "@/lib/tools";
-import { Scale, Minus } from "lucide-react";
+import { Minus } from "lucide-react";
+import Image from "next/image";
 import { notifyParent, isEmbedded } from "@/lib/embed-bridge";
 import { BRANDING } from "@/lib/branding";
 import { FIRM_CONTACT } from "@/lib/contact";
@@ -548,8 +549,14 @@ export function ChatWidget() {
     <div className="relative flex flex-col h-full bg-white" aria-label={`${BRANDING.tagline} chat`}>
       <header role="banner" className="bg-white border-b border-gray-200 px-4 py-3">
         <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-lg bg-brand/10 flex items-center justify-center shrink-0">
-            <Scale className="h-5 w-5 text-brand" aria-hidden="true" />
+          <div className="h-9 w-9 rounded-xl overflow-hidden shrink-0">
+            <Image
+              src="/banjo.png"
+              alt=""
+              width={36}
+              height={36}
+              className="h-full w-full object-cover"
+            />
           </div>
           <div className="min-w-0 flex-1">
             <h1 className="text-base font-heading font-semibold text-gray-900 truncate">
