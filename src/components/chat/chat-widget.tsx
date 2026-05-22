@@ -15,6 +15,8 @@ import Image from "next/image";
 import { notifyParent, isEmbedded } from "@/lib/embed-bridge";
 import { BRANDING } from "@/lib/branding";
 import { FIRM_CONTACT } from "@/lib/contact";
+import { postUploadBookingStepToChatMessage } from "./post-upload-booking-adapter";
+import type { PublicPostUploadBookingStep } from "@/lib/post-upload-booking/types";
 
 // Cross-tab signaling. Same origin only — BroadcastChannel does not cross
 // origins or browsers, which is the security boundary we want.
@@ -472,45 +474,8 @@ export function ChatWidget() {
         `/api/intake/${encodeURIComponent(sessionId)}/next-step`
       );
       if (!res.ok) throw new Error(`next_step_${res.status}`);
-      const data = (await res.json()) as
-        | {
-            route: "schedule";
-            input: {
-              sessionId: string;
-              prefillName: string;
-              prefillEmail: string;
-              matterDescription: string;
-            };
-          }
-        | { route: "urgent"; input: { sessionId: string } };
-
-      const stamp = `${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-      const nextStepMessage: ChatMessage =
-        data.route === "schedule"
-          ? {
-              id: `post_upload_schedule_${stamp}`,
-              role: "assistant",
-              parts: [
-                {
-                  type: "tool-scheduleAppointment",
-                  state: "input-available",
-                  toolCallId: `post_upload_schedule_${stamp}`,
-                  input: data.input,
-                },
-              ],
-            }
-          : {
-              id: `post_upload_urgent_${stamp}`,
-              role: "assistant",
-              parts: [
-                {
-                  type: "tool-showUrgentContact",
-                  state: "input-available",
-                  toolCallId: `post_upload_urgent_${stamp}`,
-                  input: data.input,
-                },
-              ],
-            };
+      const data = (await res.json()) as PublicPostUploadBookingStep;
+      const nextStepMessage = postUploadBookingStepToChatMessage(data);
 
       setMessages([...resolvedMessages, nextStepMessage]);
     } catch (err) {
@@ -524,7 +489,7 @@ export function ChatWidget() {
         parts: [
           {
             type: "text",
-            text: "Thanks — your documents were submitted, but booking is temporarily unavailable. Please contact Aquarius Lawyers directly to schedule your session.",
+            text: `Thanks — your documents were submitted, but the next step is temporarily unavailable. Please contact Aquarius Lawyers directly on ${FIRM_CONTACT.phone}.`,
           },
         ],
       };

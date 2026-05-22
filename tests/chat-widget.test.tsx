@@ -140,13 +140,11 @@ describe("ChatWidget URL signal", () => {
     vi.mocked(fetch).mockResolvedValue(
       new Response(
         JSON.stringify({
-          route: "schedule",
-          input: {
-            sessionId: "s_test",
-            prefillName: "Test Client",
-            prefillEmail: "test@example.com",
-            matterDescription: "Traffic matter",
-          },
+          kind: "session-booking",
+          sessionId: "s_test",
+          prefillName: "Test Client",
+          prefillEmail: "test@example.com",
+          matterSummary: "Traffic matter",
         }),
         { status: 200 }
       )

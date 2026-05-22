@@ -1,6 +1,17 @@
 import { NextResponse } from "next/server";
-import { getIntake } from "@/lib/intake";
 import { pricingProbeLimiter } from "@/lib/rate-limit";
+import { resolvePostUploadBookingStep } from "@/lib/post-upload-booking/resolve-post-upload-booking-step";
+import type {
+  PostUploadBookingStep,
+  PublicPostUploadBookingStep,
+} from "@/lib/post-upload-booking/types";
+
+function publicStep(step: PostUploadBookingStep): PublicPostUploadBookingStep {
+  if (step.kind === "unavailable") {
+    return { kind: "unavailable" };
+  }
+  return step;
+}
 
 export async function GET(
   req: Request,
@@ -24,25 +35,14 @@ export async function GET(
   }
 
   const { sessionId } = await params;
-  const intake = await getIntake(sessionId);
-  if (!intake) {
-    return NextResponse.json({ error: "Intake not found" }, { status: 404 });
-  }
-
-  if (intake.urgency === "urgent") {
-    return NextResponse.json({
-      route: "urgent",
-      input: { sessionId },
+  const step = await resolvePostUploadBookingStep({ sessionId });
+  if (step.kind === "unavailable") {
+    console.warn("[intake-next-step] post-upload booking step unavailable", {
+      event: "post_upload_booking_step_unavailable",
+      sessionId,
+      reason: step.reason,
     });
   }
 
-  return NextResponse.json({
-    route: "schedule",
-    input: {
-      sessionId,
-      prefillName: intake.clientName,
-      prefillEmail: intake.clientEmail,
-      matterDescription: intake.matterDescription,
-    },
-  });
+  return NextResponse.json(publicStep(step));
 }
