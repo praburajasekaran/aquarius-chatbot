@@ -151,6 +151,31 @@ function latestPaymentToolCallId(messages: ChatMessage[]): string | null {
   return null;
 }
 
+function uploadToolSessionId(
+  messages: ChatMessage[],
+  toolCallId: string
+): string | null {
+  for (const message of messages) {
+    if (message.role !== "assistant") continue;
+    for (const part of message.parts) {
+      const maybeTool = part as {
+        toolCallId?: string;
+        type?: string;
+        input?: { sessionId?: unknown };
+      };
+      if (
+        maybeTool.type === "tool-uploadDocuments" &&
+        maybeTool.toolCallId === toolCallId &&
+        typeof maybeTool.input?.sessionId === "string" &&
+        maybeTool.input.sessionId.length > 0
+      ) {
+        return maybeTool.input.sessionId;
+      }
+    }
+  }
+  return null;
+}
+
 // Auto-continuation condition. Fires only when one of the whitelisted client
 // tools in the last assistant message has entered a resolved state, meaning
 // the user has just completed an action (paid, uploaded, booked, etc.) and
@@ -453,6 +478,7 @@ export function ChatWidget() {
     toolCallId: string,
     uploaded: number
   ) {
+    const bookingSessionId = uploadToolSessionId(messages, toolCallId) ?? sessionId;
     const resolvedMessages = messages.map((message) => {
       if (message.role !== "assistant") return message;
       const parts = message.parts.map((part) => {
@@ -471,7 +497,7 @@ export function ChatWidget() {
 
     try {
       const res = await fetch(
-        `/api/intake/${encodeURIComponent(sessionId)}/next-step`
+        `/api/intake/${encodeURIComponent(bookingSessionId)}/next-step`
       );
       if (!res.ok) throw new Error(`next_step_${res.status}`);
       const data = (await res.json()) as PublicPostUploadBookingStep;
@@ -480,7 +506,7 @@ export function ChatWidget() {
       setMessages([...resolvedMessages, nextStepMessage]);
     } catch (err) {
       console.error("[chat] post-upload next step failed", {
-        sessionId,
+        sessionId: bookingSessionId,
         err: err instanceof Error ? err.message : String(err),
       });
       const fallback: ChatMessage = {

@@ -183,4 +183,55 @@ describe("ChatWidget URL signal", () => {
     });
     expect(sendMessageSpy).not.toHaveBeenCalled();
   });
+
+  it("uses the upload tool session for the post-upload booking lookup", async () => {
+    setSearch("");
+    localStorage.setItem(
+      "aquarius_chat_v1",
+      JSON.stringify({
+        schemaVersion: 1,
+        sessionId: "s_current",
+        messages: [],
+        expiresAt: Date.now() + 60_000,
+      })
+    );
+    mockMessages = [
+      {
+        id: "assistant-upload",
+        role: "assistant",
+        parts: [
+          {
+            type: "tool-uploadDocuments",
+            state: "input-available",
+            toolCallId: "upload-1",
+            input: { sessionId: "s_paid_intake" },
+          },
+        ],
+      },
+    ];
+    vi.mocked(fetch).mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          kind: "session-booking",
+          sessionId: "s_paid_intake",
+          prefillName: "Test Client",
+          prefillEmail: "test@example.com",
+        }),
+        { status: 200 }
+      )
+    );
+
+    vi.resetModules();
+    const { ChatWidget } = await import("@/components/chat/chat-widget");
+    render(<ChatWidget />);
+    const latestProps = messageListSpy.mock.calls.at(-1)?.[0] as {
+      onUploadComplete: (toolCallId: string, uploaded: number) => void;
+    };
+
+    latestProps.onUploadComplete("upload-1", 1);
+
+    await waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith("/api/intake/s_paid_intake/next-step");
+    });
+  });
 });
