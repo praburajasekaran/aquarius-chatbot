@@ -1,8 +1,8 @@
 /**
- * Revoke an active late-upload token for a given Stripe session.
+ * Revoke an active late-upload token for a given payment session.
  *
  * Usage:
- *   npx tsx src/scripts/revoke-upload-token.ts --session <stripeSessionId>
+ *   npx tsx src/scripts/revoke-upload-token.ts --session <sessionId>
  */
 import { redis } from "@/lib/kv";
 import { revokeTokenByHash } from "@/lib/upload-tokens";
@@ -11,11 +11,11 @@ async function main() {
   const idx = process.argv.indexOf("--session");
   const sessionId = idx >= 0 ? process.argv[idx + 1] : undefined;
   if (!sessionId) {
-    console.error("usage: --session <stripeSessionId>");
+    console.error("usage: --session <sessionId>");
     process.exit(1);
   }
 
-  const dedupeKey = `stripe-session:${sessionId}`;
+  const dedupeKey = `payment-session:${sessionId}`;
   const tokenHash = await redis.get<string>(dedupeKey);
   if (!tokenHash || tokenHash === "pending") {
     console.error(`no active token for session ${sessionId}`);

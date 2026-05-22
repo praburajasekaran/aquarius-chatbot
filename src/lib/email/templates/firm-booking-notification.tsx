@@ -11,7 +11,7 @@ export interface FirmBookingNotificationProps {
   startTimeLocal: string;
   eventUri: string;
   inviteeUri: string;
-  stripeSessionId?: string | null;
+  paymentRef?: string | null;
 }
 
 export default function FirmBookingNotificationEmail({
@@ -22,7 +22,7 @@ export default function FirmBookingNotificationEmail({
   startTimeLocal,
   eventUri,
   inviteeUri,
-  stripeSessionId,
+  paymentRef,
 }: FirmBookingNotificationProps) {
   const rows: DataTableRow[] = [
     { label: "Client", value: clientName },
@@ -49,8 +49,8 @@ export default function FirmBookingNotificationEmail({
       </Link>
     ),
   });
-  if (stripeSessionId) {
-    rows.push({ label: "Stripe session", value: stripeSessionId });
+  if (paymentRef) {
+    rows.push({ label: "Payment reference", value: paymentRef });
   }
 
   return (

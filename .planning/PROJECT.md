@@ -1,74 +1,109 @@
-# Aquarius Lawyers Chatbot — ClickSend SMS Integration
+# Aquarius Lawyers Chatbot
 
 ## What This Is
 
-A milestone on the existing Aquarius Lawyers chatbot (Next.js App Router app that chats with prospective clients, matches questions against a curated criminal-law Q&A base, captures intake details, takes payment, and pushes files into the firm's Smokeball matter via Zapier). This milestone adds **ClickSend SMS nudges to the post-payment document-upload flow** so clients actually see the upload link and the firm isn't blocked waiting on email.
+The Aquarius Lawyers chatbot — a Next.js App Router app that converses with prospective clients, matches questions against a curated criminal-law Q&A base, captures intake details, takes payment via Stripe, pushes files into the firm's Smokeball matter via Zapier, and notifies firm and client at each lifecycle stage.
+
+This file evolves milestone-by-milestone. The codebase artefacts in `.planning/codebase/` (mapped 2026-04-24) are the authoritative read for architecture, conventions, integrations, and known concerns.
+
+## Current Milestone: v1.1 Lifecycle Email Flow + Re-engagement
+
+**Goal:** Recover drop-off revenue with humane, cancellable email reminders, and consolidate firm awareness into a single morning digest instead of per-event noise.
+
+**Target features:**
+- Payment-abandonment re-engagement (1h hybrid nudge + LSS explainer; 24h follow-up nudge)
+- Appointment-booking-abandonment re-engagement (4h + 24h, non-urgent only)
+- Generalised email-reminder framework reusing v1.0's QStash + Redis patterns
+- Two-key idempotency (cancel-lookup + delivery NX) for every reminder
+- One-click courtesy unsubscribe that cancels all v1.1 reminders for the session
+- Daily 9am AEST firm digest covering overnight leads, payments, uploads, bookings, abandonments, unsubscribes
+- Audit pass on existing five happy-path emails to confirm content matches the lifecycle diagram
+
+## Previous Milestone: v1.0 ClickSend SMS Integration (PARTIALLY SHIPPED)
+
+**Status:** Phases 1–2 complete (2026-04-27); Phase 3 (provider-agnostic seam: `handleIntakePaid()` + Stripe webhook refactor + integration tests) is **deferred** to a future cycle. Artefacts archived at `.planning/milestones/v1.0/REQUIREMENTS.md` and `.planning/milestones/v1.0/ROADMAP.md`. Existing phase directories `.planning/phases/01-dispatch-foundation/` and `.planning/phases/02-qstash-scheduler/` remain in place.
+
+**Why deferred:** v1.1 hooks directly into existing [src/lib/intake/handle-paid.ts](src/lib/intake/handle-paid.ts) and [src/lib/tools/select-urgency.ts](src/lib/tools/select-urgency.ts) seams. The provider-agnostic rename can land in a later milestone without blocking re-engagement work.
 
 ## Core Value
 
-Paying clients reliably get their documents to the firm — because their mobile buzzed, not because they happened to check an email.
+Every visitor who shows intent gets a humane chance to convert; every paying client reaches a complete handoff to the firm; the firm sees one coherent morning summary instead of inbox noise.
 
 ## Requirements
 
 ### Validated
 
-<!-- Capabilities the existing codebase already provides and this milestone builds on top of. -->
+<!-- Capabilities the existing codebase already provides and v1.1 builds on top of. -->
 
 - ✓ Chatbot conversation with intake capture (name, email, AU-validated phone, matter category, urgency) — `src/lib/tools/collect-details.ts`, `src/lib/validators.ts`
 - ✓ Static criminal-law Q&A knowledge base with LLM matcher — `src/lib/knowledge-base/criminal-law.json`, `src/lib/tools/match-question.ts`
 - ✓ Stripe-based payment + upload-token issuance on success — `src/app/api/webhooks/stripe/route.ts`, `src/lib/upload-tokens.ts`
-- ✓ Post-payment transactional email to client with upload link, and new-lead alert to firm — `src/lib/resend.ts`, `src/lib/email/*`
-- ✓ Late-upload endpoint that validates token, accepts files, pushes them to Smokeball via Zapier — `src/app/api/late-upload/session/route.ts`, `src/lib/late-upload/handle-completed.ts`
+- ✓ Post-payment transactional email to client (receipt, upload link) and firm (transcript) — `src/lib/resend.ts`, `src/lib/email/*`
+- ✓ Pre-payment client inquiry email + firm "lead awaiting payment" notification on `selectUrgency` — `src/lib/tools/select-urgency.ts`
+- ✓ Calendly booking webhook → firm booking-confirmation email — `src/app/api/webhooks/calendly/route.ts`
+- ✓ Late-upload endpoint that validates token, accepts files, pushes to Smokeball via Zapier — `src/app/api/late-upload/session/route.ts`, `src/lib/late-upload/handle-completed.ts`
 - ✓ Session + intake + upload-token storage in Upstash Redis — `src/lib/kv.ts`, `src/lib/intake.ts`, `src/lib/upload-tokens.ts`
+- ✓ Unified React Email layout (Logo, EmailLayout, DataTable, BrandButton, Footer) — `src/lib/email/components/*`
+- ✓ ClickSend SMS dispatch module with E.164 normalisation, landline detection, locked DCEM copy — `src/lib/sms/dispatch.ts`, `src/lib/sms/copy.ts` *(v1.0 Phase 1)*
+- ✓ QStash 24h delayed reminder for SMS upload-nudge — `src/lib/sms/reminder.ts`, `src/app/api/webhooks/sms-reminder/route.ts` *(v1.0 Phase 2)*
 
 ### Active
 
-<!-- Hypotheses for this milestone. Validated when shipped and we can see upload completion rates lift. -->
+<!-- v1.1 hypotheses. Validated when shipped and we observe: (a) measurable lift in payment-completion within 24h of intake, (b) measurable lift in Calendly-booking within 24h of upload, (c) firm reports the digest is more useful than per-event pings. -->
 
-- [ ] Client receives an SMS immediately on payment success containing the upload link
-- [ ] Client receives a follow-up SMS 24 hours later **only if they haven't uploaded yet**
-- [ ] SMS dispatch fires the same way whether the payment came through Stripe or through Bpoint (the in-progress replacement in a parallel worktree)
-- [ ] Landline phone numbers are detected and silently skipped (logged, not errored)
-- [ ] Phone numbers are normalised to E.164 (+61…) before hitting ClickSend
-- [ ] SMS copy includes Spam Act–compliant opt-out language and is dispatched from a registered AU sender ID
-- [ ] ClickSend credentials live in env (not code) and are absent-safe (app boots without them; SMS just logs a warning)
+- [ ] Visitor who completes intake but doesn't pay receives a hybrid nudge + LSS explainer email at 1h, and a follow-up nudge at 24h — both cancelled if they pay before the timer fires
+- [ ] Non-urgent visitor who pays + uploads but doesn't book an appointment receives a Calendly-prefilled email at 4h and 24h — both cancelled if they book before the timer fires
+- [ ] Urgent visitors are never scheduled for appointment-abandonment reminders (they call the firm directly; both urgent and non-urgent leads continue to flow into Smokeball via existing Zapier)
+- [ ] Reminder emails carry a courtesy "no longer interested" link; clicking it cancels all pending v1.1 reminders for that session and is honoured at delivery time
+- [ ] Every cancellable reminder uses the two-key idempotency pattern from v1.0: cancel-lookup (`*-completed:{sessionId}`) plus delivery dedup (`*-reminder-sent:{sessionId}` NX)
+- [ ] Firm receives a single 9am AEST daily digest summarising the previous 24h of leads, payments, uploads, bookings, abandonments, and unsubscribes — replaces per-event pings for abandonment events; existing happy-path firm emails (lead, transcript, booking) remain unchanged
+- [ ] All v1.1 reminder code degrades gracefully when `QSTASH_*` env vars are missing — schedule calls log a structured warning and return without throwing; the app continues to function
 
 ### Out of Scope
 
-- **Two-way SMS / inbound replies** — STOP handling will be delegated to ClickSend's built-in opt-out list; we won't build a reply inbox. — *Scope containment for a ~1-day feature.*
-- **Booking reminders (Calendly → SMS)** — Different trigger, different copy, different consent story. — *Defer; decide separately after upload-nudge proves out.*
-- **Firm new-lead SMS alert** — Firm already gets email; this milestone is client-facing only. — *Avoid scope creep.*
-- **Migrating Stripe → Bpoint** — That's happening in the `clicksend-sms`-adjacent worktree. This milestone *depends on* a provider-agnostic trigger but does not do the migration. — *Separation of concerns.*
-- **Rebuilding the fragmented Redis session model** — Flagged in `.planning/codebase/CONCERNS.md` but out of scope for this feature. — *Known debt; not this milestone.*
-- **Adding tests to previously untested areas of the codebase** — New SMS code should be tested; retroactive coverage of existing code is a separate initiative. — *Scope containment.*
+- **v1.0 Phase 3 (provider-agnostic seam)** — Deferred to a future milestone. v1.1 hooks into existing `handlePaid` and `selectUrgency` seams directly. — *Avoid coupling milestone delivery to in-flight infrastructure refactor.*
+- **Doc-upload email reminder** — v1.0 SMS already covers this at 24h; adding an email reminder would triple-message the same drop-off. — *Channel discipline; cost containment.*
+- **Per-event firm alert for payment abandonment / appointment abandonment** — Replaced by the daily digest. Firm acts on the digest, not pings. — *Inbox noise reduction.*
+- **Pushing pre-payment abandonment leads to Smokeball as "open lead"** — Smokeball remains a paid-leads-only system of record (status quo). Abandonment visibility is digest-only. — *Avoids polluting the firm's matter list with non-paying inquiries.*
+- **Inbound email reply handling for unsubscribe** — Unsubscribe is one-click via signed link; no inbox to monitor. — *Operational simplicity; matches the SMS milestone's one-way-only stance.*
+- **Behavioural change to existing five happy-path emails** — Audited only; content stays unless the audit surfaces a bug. — *Scope containment.*
+- **Business-hour deferral for reminder dispatch** — Calendly enforces slot validity; visitor reads on their schedule; no need to delay sends to office hours. — *Decided 2026-05-07 in milestone questioning.*
+- **Multi-channel preference (visitor opts SMS vs email)** — Channel-per-stage is fixed by design (email for slow-decision actions, SMS for fast actions). — *Defer; v2 if signal emerges that a meaningful subset prefers the other channel.*
+- **Multiple reminder escalations beyond the locked cadence** — Payment is 1h+24h, appointment is 4h+24h. Adding a third touch crosses into pestering. — *Decided 2026-05-07.*
 
 ## Context
 
-- **Brownfield**. Codebase mapped on 2026-04-24; artefacts in `.planning/codebase/`. Key reads: `ARCHITECTURE.md`, `INTEGRATIONS.md`, `CONCERNS.md`.
-- **Parallel work**: A separate worktree is migrating the payment provider from Stripe to Bpoint. SMS dispatch must not hook Stripe-specific types or webhook bodies; it should fire off an internal event that both providers can emit.
-- **Geography**: Aquarius Lawyers is an Australian firm; all clients are AU. The existing phone validator (`validatePhone` at `src/lib/validators.ts:11`) already accepts AU mobile and landline formats but does not produce E.164.
-- **Regulatory**: AU Spam Act 2003 — commercial SMS requires consent (implied by the client initiating the intake and paying), clear sender identification, and a functional unsubscribe. ClickSend handles the STOP keyword natively.
-- **Deliverability cost**: ClickSend is per-segment, per-message; 24h-reminder must respect the "already uploaded" check to avoid wasted sends and client annoyance.
-- **Observability gap**: Logging in existing webhook handlers is inconsistent (see CONCERNS.md). SMS dispatch should log structured events so we can measure delivery and upload-completion lift.
+- **Brownfield**. Codebase mapped 2026-04-24; artefacts in `.planning/codebase/`. Key reads: `ARCHITECTURE.md`, `INTEGRATIONS.md`, `CONCERNS.md`.
+- **Two milestones overlap**: v1.0 SMS Phase 3 is deferred but its Phases 1–2 (dispatch module + QStash reminder) are **shipped and depended on by v1.1**. v1.1 reuses the QStash client, signature-verification middleware, and the two-key Redis idempotency pattern.
+- **No new external integrations**: v1.1 is pure email + scheduler glue on top of existing Resend, Upstash Redis, and Upstash QStash.
+- **Geography / regulation**: AU clients only. Re-engagement emails are arguably borderline-commercial under Spam Act 2003 — including a one-click courtesy unsubscribe is a defensive design choice, not a strict legal requirement.
+- **Reliability bar**: User directive — "I only want them to work reliably." Drives the two-key idempotency requirement, defence-in-depth state checks at delivery time, and graceful degradation when env vars are absent.
+- **Smokeball flow unchanged**: paid leads continue to push to Smokeball via the existing Zapier integration in `handlePaid`. v1.1 adds no Smokeball calls.
 
 ## Constraints
 
-- **Tech stack**: Next.js App Router + TypeScript + Vercel. No new runtime; ClickSend integration is a TypeScript module using their HTTPS REST API. — *Consistency with existing integration pattern (`src/lib/resend.ts`, Zapier webhooks).*
-- **Dependencies**: No heavyweight SMS SDK — the ClickSend REST surface is small; use `fetch`. — *Avoid bundle bloat and the "unmaintained SDK" risk.*
-- **Payment-provider-agnostic**: SMS trigger must be decoupled from payment webhook handlers via an internal event/function call abstraction. — *Stripe → BPoint migration completed; future providers follow the same seam.*
-- **Timeline**: Roughly 1 day of focused work. Drives coarse-grained phasing and lean tests. — *Stated by user.*
-- **Security**: ClickSend API key in `process.env` only; never log the key; never embed the upload token in anything other than an HTTPS URL; rate-limit outbound SMS per session to prevent abuse. — *Existing patterns in the codebase already follow these rules.*
-- **Compatibility**: App must continue to boot and function if `CLICKSEND_*` env vars are missing (e.g. local dev, PR previews) — SMS dispatch degrades to a warning log. — *Developer ergonomics + preview environments.*
+- **Tech stack**: Next.js App Router + TypeScript + Vercel + Resend + Upstash Redis + Upstash QStash. No new runtime, no new vendor. — *Stack continuity; reuse v1.0 patterns.*
+- **Dependencies**: No new heavy SDKs. Continue using `fetch` for ClickSend, `@upstash/qstash` for scheduling, `@upstash/redis` for state, `resend` + `@react-email/components` for email rendering. — *Bundle and maintenance discipline.*
+- **Idempotency mandate**: Every cancellable reminder uses the two-key pattern (cancel-lookup + delivery NX). Single-key shortcuts caused real bugs in v1.0 and are not acceptable. — *Lessons learned from v1.0 SCHED-05.*
+- **Absent-safe env vars**: App must boot and function with `QSTASH_*` and any new v1.1 env vars missing — schedule calls log + return; reminders degrade silently to no-op. — *Local dev + PR previews.*
+- **Security**: Unsubscribe links must be signed (HMAC over sessionId) so a leaked URL can't disable a third party's reminders. — *Standard one-click-unsubscribe security model.*
+- **No promotional copy**: Re-engagement emails are factual + transactional + LSS-explanatory. No marketing language, no promotional offers, no urgency manipulation. — *DCEM safe-harbour mindset carried over from v1.0 SMS copy.*
+- **Compatibility**: All v1.1 changes must merge cleanly with the in-flight v1.0 Phase 3 work in a different worktree. v1.1 hooks into the *current* `handlePaid` and `selectUrgency` seams; if Phase 3 lands first, v1.1 callers get the rename mechanically without behavioural change. — *Worktree-discipline.*
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Trigger SMS off an internal `intake-paid` event, not directly from Stripe/Bpoint webhook handlers | Stripe → BPoint migration complete; the provider-agnostic seam prevents coupling to any single payment provider | — Pending |
-| Single reminder at 24h if no upload; no escalating ladder | User directive. Keeps scope tight and avoids the "pestering" perception on a regulated channel | — Pending |
-| Silently skip landlines, log for observability, no fallback action | User directive. Client already received email; double-contact via staff phone-call isn't this feature's job | — Pending |
-| Use ClickSend (not Twilio, not a generic SMS gateway) | User directive; ClickSend is AU-based, has local sender IDs, handles STOP opt-outs natively | — Pending |
-| Defer the 24h scheduler mechanism (Vercel Cron vs Upstash QStash vs other) to plan-phase | Both are viable; the choice depends on reliability/cost trade-offs best explored during research, not questioning | — Pending |
+| Defer v1.0 Phase 3 (provider-agnostic seam) and ship v1.1 against existing `handlePaid` / `selectUrgency` seams | User directive; v1.1 re-engagement value > the abstract benefit of an in-flight refactor; rename is mechanical when Phase 3 ships later | — Pending (decided 2026-05-07) |
+| Channel discipline: email for slow-decision actions (payment, booking), SMS for fast actions (upload) — no doubling up | Visitor receiving SMS + email + SMS in 24h for the same action is pestering, expensive, and erodes trust on a regulated channel | — Pending |
+| Daily 9am AEST firm digest replaces per-event firm alerts for abandonment | A small firm + 5 emails per session = noise → tuned out → system fails. One digest preserves signal. | — Pending |
+| Smokeball stays paid-leads-only; abandonment never auto-pushes | Polluting the firm's matter list with non-paying inquiries undermines the CRM's signal-to-noise; digest is the right channel | — Pending |
+| Two-key idempotency on every reminder (cancel-lookup + delivery NX) | v1.0 SCHED-05 learned this the hard way: cancel races with delivery, single-key dedup loses the messageId. Pattern is proven. | — Pending |
+| One-click courtesy unsubscribe (HMAC-signed) on every reminder | Re-engagement sits in the grey zone of Spam Act commercial-vs-transactional. Defensive + reputationally protective. | — Pending |
+| No business-hour deferral for sends | Calendly enforces slot validity on its end; visitor reads when they read. Fewer moving parts. | — Pending |
+| Hybrid 1h email (gentle nudge + LSS explainer) instead of separate nudge + educational | One touchpoint, higher information density, no risk of an "educational" email reading like a follow-up sales pitch | — Pending |
+| Continue v1.0's coarse 3-phase mergeable-boundary phasing for v1.1 | New files first (framework + payment-abandonment), then new files (appointment-abandonment), then mostly-new + small wires (digest + audit) — same pattern that worked for v1.0 | — Pending |
+| Hand-edit `.planning/*.md` and use plain `git commit` | `gsd-sdk` not installed in this repo; workflow's atomic state commands unavailable | — Done in this milestone-init |
 
 ---
-*Last updated: 2026-04-24 after initialization*
+*Last updated: 2026-05-07 — v1.1 milestone initialised. v1.0 Phase 3 deferred; archive at `.planning/milestones/v1.0/`.*

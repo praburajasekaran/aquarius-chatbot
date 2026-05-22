@@ -1,4 +1,5 @@
 import { Redis } from "@upstash/redis";
+import { timingSafeEqual } from "node:crypto";
 import type { SessionData } from "@/types";
 
 export const redis = new Redis({
@@ -25,7 +26,7 @@ export async function createSession(
     urgency: null,
     paymentStatus: "pending",
     paymentAmount: null,
-    stripeSessionId: null,
+    paymentRef: null,
     uploadRefs: [],
     calendlyEvent: null,
     createdAt: new Date().toISOString(),
@@ -54,4 +55,20 @@ export async function updateSession(
 
 export async function deleteSession(sessionId: string): Promise<void> {
   await redis.del(sessionKey(sessionId));
+}
+
+export async function verifySessionSecret(
+  sessionId: string,
+  secret: string
+): Promise<boolean> {
+  if (!secret) return false;
+
+  const session = await getSession(sessionId);
+  const stored = (session as (SessionData & { sessionSecret?: string }) | null)
+    ?.sessionSecret;
+  if (!stored) return false;
+
+  const expected = Buffer.from(stored);
+  const actual = Buffer.from(secret);
+  return expected.length === actual.length && timingSafeEqual(expected, actual);
 }

@@ -8,7 +8,7 @@ import { z } from "zod";
 // a wrong tier and causing silent misbilling.
 export const initiatePayment = tool({
   description:
-    "Initiate Stripe Checkout using the urgency the visitor already confirmed in selectUrgency. This renders a payment form on the client side. The pricing is looked up server-side from the intake record — do NOT pass urgency, amount, or displayPrice.",
+    "Initiate BPoint Checkout ONLY after selectUrgency has successfully saved the intake record for this exact sessionId AND the visitor has clicked \"Yes, please proceed\". Never call this before selectUrgency. This renders a payment form on the client side. The pricing is looked up server-side from the intake record — do NOT pass urgency, amount, or displayPrice.",
   inputSchema: z.object({
     sessionId: z.string().describe("The chat session ID"),
   }),

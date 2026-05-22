@@ -3,7 +3,7 @@ import type { ZodType } from "zod";
 
 type ParseResult<T> =
   | { ok: true; data: T }
-  | { ok: false; response: Response };
+  | { ok: false; response: NextResponse };
 
 export async function parseJsonBody<T>(
   req: Request,

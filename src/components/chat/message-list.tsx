@@ -12,6 +12,11 @@ import { UrgentContactCard } from "@/components/booking/urgent-contact-card";
 import { BRANDING } from "@/lib/branding";
 import { sanitizeAssistantText } from "@/lib/sanitize-llm-text";
 
+const PAYMENT_CONFIRM_OPTIONS = [
+  "Yes, please proceed",
+  "No, I don't want to proceed",
+];
+
 interface MessageListProps {
   messages: ChatMessage[];
   sessionId: string;
@@ -49,6 +54,72 @@ function findNextUserMessageMatching(
     return options.find((o) => o === text) ?? null;
   }
   return null;
+}
+
+function messageText(message: ChatMessage): string {
+  return message.parts
+    .filter((p): p is { type: "text"; text: string } => p.type === "text")
+    .map((p) => sanitizeAssistantText(p.text).trim())
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+function hasMandatoryShowOptions(message: ChatMessage): boolean {
+  return message.parts.some(
+    (part) =>
+      part.type === "tool-showOptions" &&
+      part.input?.mandatory === true &&
+      (part.state === "input-available" || part.state === "output-available"),
+  );
+}
+
+function needsPaymentConfirmFallback(message: ChatMessage): boolean {
+  if (message.role !== "assistant" || hasMandatoryShowOptions(message)) {
+    return false;
+  }
+  return /do you want to proceed with this booking\?/i.test(messageText(message));
+}
+
+function MandatoryOptionButtons({
+  options,
+  selectedOption,
+  canInteract,
+  onPick,
+}: {
+  options: string[];
+  selectedOption: string | null;
+  canInteract: boolean;
+  onPick: (text: string) => void;
+}) {
+  return (
+    <div
+      role="group"
+      aria-label="Quick reply options"
+      className="flex flex-wrap gap-2 pl-11"
+    >
+      {options.map((option: string) => {
+        const isSelected = option === selectedOption;
+        const stateClasses = canInteract
+          ? "border-[#085a66] text-[#085a66] hover:bg-[#085a66] hover:text-white cursor-pointer"
+          : isSelected
+          ? "border-[#085a66] bg-[#085a66] text-white cursor-default"
+          : "border-gray-300 text-gray-500 cursor-default";
+        return (
+          <button
+            key={option}
+            type="button"
+            onClick={() => canInteract && onPick(option)}
+            disabled={!canInteract}
+            aria-pressed={isSelected || undefined}
+            /* min-h-[44px] satisfies WCAG 2.5.5 AAA 44x44px touch target */
+            className={`px-4 min-h-[44px] rounded-full border text-base font-medium transition-colors ${stateClasses}`}
+          >
+            {option}
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
 export function MessageList({
@@ -147,7 +218,17 @@ export function MessageList({
     /* role="log" has implicit aria-live="polite" — new messages announced to screen readers */
     <div ref={scrollRef} role="log" aria-label="Conversation" className="flex-1 overflow-y-auto p-4 space-y-4">
       {welcomeBubble}
-      {messages.map((message, msgIndex) => (
+      {messages.map((message, msgIndex) => {
+        const fallbackPaymentConfirm = needsPaymentConfirmFallback(message);
+        const fallbackSelectedOption = fallbackPaymentConfirm
+          ? findNextUserMessageMatching(messages, msgIndex, PAYMENT_CONFIRM_OPTIONS)
+          : null;
+        const fallbackCanInteract =
+          fallbackPaymentConfirm &&
+          msgIndex === lastMsgIndex &&
+          fallbackSelectedOption === null;
+
+        return (
         <div key={message.id} className="space-y-2">
           {message.parts.map((part, i) => {
             if (part.type === "text" && part.text) {
@@ -256,34 +337,13 @@ export function MessageList({
               const isAnswered = selectedOption !== null;
               const canInteract = isLatest && !isAnswered;
               return (
-                <div
+                <MandatoryOptionButtons
                   key={part.toolCallId}
-                  role="group"
-                  aria-label="Quick reply options"
-                  className="flex flex-wrap gap-2 pl-11"
-                >
-                  {options.map((option: string) => {
-                    const isSelected = option === selectedOption;
-                    const stateClasses = canInteract
-                      ? "border-[#085a66] text-[#085a66] hover:bg-[#085a66] hover:text-white cursor-pointer"
-                      : isSelected
-                      ? "border-[#085a66] bg-[#085a66] text-white cursor-default"
-                      : "border-gray-300 text-gray-500 cursor-default";
-                    return (
-                      <button
-                        key={option}
-                        type="button"
-                        onClick={() => canInteract && onMandatoryOptionPick(option)}
-                        disabled={!canInteract}
-                        aria-pressed={isSelected || undefined}
-                        /* min-h-[44px] satisfies WCAG 2.5.5 AAA 44×44px touch target */
-                        className={`px-4 min-h-[44px] rounded-full border text-base font-medium transition-colors ${stateClasses}`}
-                      >
-                        {option}
-                      </button>
-                    );
-                  })}
-                </div>
+                  options={options}
+                  selectedOption={selectedOption}
+                  canInteract={canInteract}
+                  onPick={onMandatoryOptionPick}
+                />
               );
             }
 
@@ -423,8 +483,17 @@ export function MessageList({
 
             return null;
           })}
+          {fallbackPaymentConfirm && (
+            <MandatoryOptionButtons
+              options={PAYMENT_CONFIRM_OPTIONS}
+              selectedOption={fallbackSelectedOption}
+              canInteract={fallbackCanInteract}
+              onPick={onMandatoryOptionPick}
+            />
+          )}
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

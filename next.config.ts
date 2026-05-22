@@ -6,6 +6,9 @@ import { existsSync } from "fs";
 // Walk up from __dirname to find the nearest ancestor that has node_modules/next,
 // so Turbopack's filesystem root covers both the source and its dependencies.
 function findTurbopackRoot(start: string): string {
+  if (existsSync(path.join(process.cwd(), "node_modules", "next"))) {
+    return process.cwd();
+  }
   let dir = start;
   while (true) {
     if (existsSync(path.join(dir, "node_modules", "next"))) return dir;
@@ -25,7 +28,10 @@ function findTurbopackRoot(start: string): string {
 const frameAncestors = (
   process.env.CHATBOT_FRAME_ANCESTORS ?? "*"
 ).trim();
-const csp = `frame-ancestors ${frameAncestors}`;
+const csp = [
+  `frame-ancestors ${frameAncestors}`,
+  "frame-src 'self' https://www.bpoint.com.au https://calendly.com https://*.calendly.com",
+].join("; ");
 // X-Frame-Options is a binary toggle, not a list — only ALLOWALL or
 // SAMEORIGIN/DENY make sense. If the operator has restricted
 // frame-ancestors via CSP, drop XFO entirely (CSP supersedes it in
@@ -33,7 +39,28 @@ const csp = `frame-ancestors ${frameAncestors}`;
 // app does not target those).
 const xfoValue = frameAncestors === "*" ? "ALLOWALL" : null;
 
+function hostnameFromUrl(value: string | undefined): string | null {
+  if (!value) return null;
+  try {
+    return new URL(value).hostname;
+  } catch {
+    return null;
+  }
+}
+
+const allowedDevOrigins = Array.from(
+  new Set(
+    [
+      "auroral-superethically-hans.ngrok-free.dev",
+      hostnameFromUrl(process.env.NEXT_PUBLIC_URL),
+      hostnameFromUrl(process.env.APP_URL),
+      hostnameFromUrl(process.env.BPOINT_REDIRECT_BASE_URL),
+    ].filter((origin): origin is string => Boolean(origin)),
+  ),
+);
+
 const nextConfig: NextConfig = {
+  allowedDevOrigins,
   turbopack: {
     root: findTurbopackRoot(__dirname),
   },
