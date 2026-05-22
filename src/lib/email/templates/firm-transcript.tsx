@@ -10,7 +10,7 @@ export interface FirmTranscriptEmailProps {
   matterDescription: string;
   urgency: string;
   paymentAmount: number;
-  stripeSessionId: string | null;
+  paymentRef: string | null;
   transcript?: string;
 }
 
@@ -21,7 +21,7 @@ export default function FirmTranscriptEmail({
   matterDescription,
   urgency,
   paymentAmount,
-  stripeSessionId,
+  paymentRef,
   transcript,
 }: FirmTranscriptEmailProps) {
   const fee = `$${(paymentAmount / 100).toFixed(2)} AUD`;
@@ -37,7 +37,7 @@ export default function FirmTranscriptEmail({
           { label: "Matter", value: matterDescription },
           { label: "Urgency", value: urgency },
           { label: "Payment", value: fee },
-          { label: "Stripe session", value: stripeSessionId ?? "N/A" },
+          { label: "Payment reference", value: paymentRef ?? "N/A" },
         ]}
       />
 

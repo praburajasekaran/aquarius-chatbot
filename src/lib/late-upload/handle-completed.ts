@@ -237,7 +237,7 @@ export async function handleUploadCompleted(
 async function lookupRecordBySessionId(
   sessionId: string
 ): Promise<UploadTokenRecord | null> {
-  const tokenHash = await redis.get<string>(`stripe-session:${sessionId}`);
+  const tokenHash = await redis.get<string>(`payment-session:${sessionId}`);
   if (!tokenHash || tokenHash === "pending") return null;
   return getRecordByHash(tokenHash);
 }

@@ -4,4 +4,4 @@ const openrouter = createOpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY,
 });
 
-export const chatModel = openrouter("anthropic/claude-haiku-4.5");
+export const chatModel = openrouter("google/gemini-2.5-flash");

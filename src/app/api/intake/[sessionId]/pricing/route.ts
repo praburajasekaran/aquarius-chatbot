@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getIntake } from "@/lib/intake";
-import { PRICING } from "@/lib/stripe";
+import { PRICING } from "@/lib/pricing";
 import { pricingProbeLimiter } from "@/lib/rate-limit";
 
 export async function GET(

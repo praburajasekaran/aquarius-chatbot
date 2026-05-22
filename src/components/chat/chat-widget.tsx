@@ -136,6 +136,20 @@ function terminalReplyText(messages: ChatMessage[]): string {
   return "Thanks — your session is locked in. Anything else can be raised directly with your lawyer when you speak.";
 }
 
+function latestPaymentToolCallId(messages: ChatMessage[]): string | null {
+  for (let mi = messages.length - 1; mi >= 0; mi--) {
+    const message = messages[mi];
+    if (message.role !== "assistant") continue;
+    for (let pi = message.parts.length - 1; pi >= 0; pi--) {
+      const part = message.parts[pi] as { type?: string; toolCallId?: string };
+      if (part.type === "tool-initiatePayment" && part.toolCallId) {
+        return part.toolCallId;
+      }
+    }
+  }
+  return null;
+}
+
 // Auto-continuation condition. Fires only when one of the whitelisted client
 // tools in the last assistant message has entered a resolved state, meaning
 // the user has just completed an action (paid, uploaded, booked, etc.) and
@@ -236,6 +250,26 @@ export function ChatWidget() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  const processedPaymentReturnRef = useRef(false);
+  useEffect(() => {
+    if (processedPaymentReturnRef.current) return;
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const payment = params.get("payment");
+    if (payment !== "success" && payment !== "failed") return;
+
+    const toolCallId = latestPaymentToolCallId(messages);
+    if (!toolCallId) return;
+
+    processedPaymentReturnRef.current = true;
+    window.history.replaceState({}, "", window.location.pathname);
+    addToolOutput({
+      tool: "initiatePayment",
+      toolCallId,
+      output: { status: payment === "success" ? "completed" : "failed" },
+    });
+  }, [messages, addToolOutput]);
 
   useEffect(() => {
     if (status !== "ready") return;

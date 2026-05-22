@@ -1,10 +1,12 @@
 import { tool } from "ai";
 import { z } from "zod";
 import { redis } from "@/lib/kv";
-import { PRICING } from "@/lib/stripe";
+import { PRICING } from "@/lib/pricing";
 import { createIntake } from "@/lib/intake";
 import { sendClientInquiryEmail, sendFirmLeadEmail } from "@/lib/resend";
 import { validateEmail, validatePhone } from "@/lib/validators";
+import { scheduleEmailReminder } from "@/lib/email-reminders/dispatch";
+import { logActivity } from "@/lib/digest/activity-log";
 
 // Defense-in-depth caps. The model can pass arbitrary strings here (it's a
 // tool call, not a server-validated form) so we re-validate before any of
@@ -114,6 +116,36 @@ export const selectUrgency = tool({
       });
     } catch (err) {
       console.error("[selectUrgency] failed to send firm lead email", err);
+    }
+
+    // PAY-01: schedule both payment-abandonment reminders AFTER inquiry/firm
+    // emails succeed (or fail silently above). Reminder failures must NOT
+    // propagate — the inquiry email is the more visible channel; failure
+    // there surfaces visibly to the visitor; reminder failure is internal-only.
+    try {
+      await scheduleEmailReminder("payment-abandonment-1h", sessionId, 3600);
+      await scheduleEmailReminder("payment-abandonment-24h", sessionId, 86400);
+    } catch (err) {
+      console.error(
+        "[selectUrgency] failed to schedule payment-abandonment reminders",
+        {
+          event: "selectUrgency_reminder_schedule_failed",
+          sessionId,
+          err: err instanceof Error ? err.message : String(err),
+        }
+      );
+    }
+
+    // Decision 3 (04-CONTEXT.md): Phase 4 owns the activity log helper +
+    // wires every Phase 4 event. logActivity is internally isolated — this
+    // try/catch is defence-in-depth.
+    try {
+      await logActivity("lead_created", sessionId, {
+        urgency,
+        displayPrice: pricing.displayPrice,
+      });
+    } catch {
+      /* logActivity is internally isolated; defence-in-depth */
     }
 
     const costDisclosure =

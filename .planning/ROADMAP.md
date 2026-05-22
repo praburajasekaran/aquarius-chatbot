@@ -1,148 +1,164 @@
-# Roadmap: Aquarius Lawyers Chatbot — ClickSend SMS Integration
+# Roadmap: Aquarius Lawyers Chatbot — Lifecycle Email Flow + Re-engagement (v1.1)
 
-**Milestone:** ClickSend SMS nudges for post-payment document-upload flow
-**Core Value:** Paying clients reliably get their documents to the firm — because their mobile buzzed, not because they happened to check an email.
-**Granularity:** Coarse (3 phases, ~1-day feature)
-**Coverage:** 22/22 v1 requirements mapped
+**Milestone:** Lifecycle email flow + abandonment re-engagement + firm daily digest
+**Core Value:** Every visitor who shows intent gets a humane chance to convert; every paying client reaches a complete handoff to the firm; the firm sees one coherent morning summary instead of inbox noise.
+**Granularity:** Coarse (3 phases, ~2-3 days of focused work)
+**Coverage:** 24/24 v1.1 requirements mapped
+**Phase numbering:** Continues from v1.0 (last phase = 3); v1.1 phases are 4, 5, 6.
 
 ---
 
 ## Phases
 
-- [x] **Phase 1: Dispatch Foundation** - Isolated SMS module: E.164 normalisation, landline detection, ClickSend client, compliance copy, unit tests — no existing files touched *(completed 2026-04-27)*
-- [x] **Phase 2: QStash Scheduler** - 24h delayed reminder: schedule on payment, signature-verified delivery webhook, upload-gate cancellation hook *(completed 2026-04-27)*
-- [ ] **Phase 3: Provider-Agnostic Seam** - Wire everything into the app: `handleIntakePaid()` orchestrator, Stripe webhook refactor, upload-route cancel hooks, integration tests
-- [ ] **Phase 4: Unanswered Question Reporting** - Monthly email report of KB gaps: log unmatched questions to Redis, Vercel Cron aggregation, Resend email report
+- [ ] **Phase 4: Re-engagement Framework + Payment Abandonment** — Generalised reminder module, two-key idempotency, HMAC unsubscribe, payment-abandonment email pair (1h hybrid + 24h follow-up), scheduling at intake, cancellation on payment-success
+- [ ] **Phase 5: Appointment Abandonment** — Appointment-abandonment email (4h + 24h variants), scheduling at upload-success (non-urgent only), cancellation on Calendly booking, integration test for cancel race
+- [ ] **Phase 6: Firm Daily Digest + Happy-Path Audit** — Activity log, daily aggregator, 9am AEST QStash cron, digest email template, audit + diagram-alignment pass on five existing happy-path emails
 
 ---
 
 ## Phase Details
 
-### Phase 1: Dispatch Foundation
-**Goal**: The SMS dispatch module exists as a fully-tested, independently-mergeable library that can send or skip an immediate SMS given an E.164 phone number — with no touch to any existing file.
-**Depends on**: Nothing (first phase; all files are new)
-**Requirements**: SMS-02, SMS-03, SMS-04, COMP-01, COMP-02, OPS-03, TEST-01
-**New files**:
-- `src/lib/sms/dispatch.ts` — ClickSend fetch client, `toE164AU()`, `isLandline()`, `sendSms()`
-- `src/lib/sms/copy.ts` — `immediateCopy()` and `reminderCopy()` as locked named constants with DCEM compliance comment
-- `src/lib/sms/__tests__/dispatch.test.ts` — unit tests with mocked `fetch`
-**Success Criteria** (what must be TRUE):
-  1. A unit test calling `sendSms()` with `CLICKSEND_*` env vars absent logs a structured warning and makes zero `fetch` calls.
-  2. `toE164AU("0412 345 678")` returns `+61412345678`; `toE164AU("+61412345678")` returns the same value (idempotent); both assertions pass in the test suite.
-  3. A number starting with `02`, `03`, `07`, or `08` is detected as a landline and emits a structured log event with `reason: "landline"` — verified by the unit test asserting `fetch` is never called.
-  4. The SMS copy constant in `copy.ts` contains the firm name, the upload link placeholder, and a DCEM classification comment — and does NOT contain "Reply STOP" (alpha-tag incompatibility).
-  5. Phone numbers are logged in masked form only (`+61*****XXXX`); the raw E.164 number never appears in any log output — verified by unit test spy on `console.info`.
-**Plans**: 2 plans
-  - [x] 01-01-PLAN.md — Wave 0: Vitest infra + 6 failing test stubs (RED)
-  - [x] 01-02-PLAN.md — Wave 1: copy.ts and dispatch.ts implementation (GREEN)
+### Phase 4: Re-engagement Framework + Payment Abandonment
 
-### Phase 2: QStash Scheduler
-**Goal**: A cancellable 24h SMS reminder is scheduled at payment time and delivered exactly once — skipped if the client already uploaded, and cancelled when they upload before the window closes.
-**Depends on**: Phase 1 (uses `sendSms()` and `reminderCopy()` from `src/lib/sms/`)
-**Requirements**: SCHED-01, SCHED-02, SCHED-03, SCHED-04, SCHED-05
-**New files**:
-- `src/lib/sms/reminder.ts` — `scheduleReminderSms()`, `cancelPendingReminder()`, QStash client
-- `src/app/api/webhooks/sms-reminder/route.ts` — QStash delivery target, signature verification, upload-state gate
-**Success Criteria** (what must be TRUE):
-  1. `scheduleReminderSms()` called with missing `QSTASH_TOKEN` logs a structured warning and returns without throwing — the app does not break.
-  2. After `scheduleReminderSms()` succeeds, a Redis key `sms-reminder:{sessionId}` exists with a QStash message ID value and a TTL of approximately 26 hours.
-  3. A POST to `/api/webhooks/sms-reminder` without a valid QStash signature returns a non-200 response — the handler never reaches the upload-state check or SMS dispatch.
-  4. A POST to `/api/webhooks/sms-reminder` with a valid signature and a session whose `uploadRefs` is non-empty returns `"skipped"` — no ClickSend API call is made.
-  5. `cancelPendingReminder(sessionId)` reads the stored QStash message ID from Redis and calls `client.messages.cancel()` — verified by unit test with mocked QStash client.
-**Plans**: 2 plans
-  - [x] 02-01-PLAN.md — Wave 0: install @upstash/qstash + 5 failing test stubs (RED) *(completed 2026-04-27)*
-  - [x] 02-02-PLAN.md — Wave 1: reminder.ts + sms-reminder route.ts implementation (GREEN) *(completed 2026-04-27)*
+**Goal**: A reusable email-reminder framework exists, the payment-abandonment flow is live end-to-end, and the unsubscribe mechanism works — including the two-key idempotency pattern and absent-safe degradation that v1.0 proved out for SMS.
 
-### Phase 3: Provider-Agnostic Seam
-**Goal**: The SMS feature is live end-to-end: payment success triggers immediate SMS and schedules the reminder, document upload cancels the reminder, and the Stripe webhook no longer contains any inline fan-out logic — all via a single `handleIntakePaid()` entry point that neither Stripe nor Bpoint types can leak through.
-**Depends on**: Phase 1, Phase 2
-**Requirements**: EVENT-01, EVENT-02, EVENT-03, SMS-01, SMS-05, COMP-03, OPS-01, OPS-02, TEST-02, TEST-03
+**Depends on**: v1.0 Phase 1 (`src/lib/sms/copy.ts` DCEM pattern), v1.0 Phase 2 (`@upstash/qstash` install, `verifySignatureAppRouter` usage). Both already shipped.
+
+**Requirements**: INFRA-01, INFRA-02, INFRA-03, INFRA-04, INFRA-05, INFRA-06, INFRA-07, PAY-01, PAY-02, PAY-03, PAY-04, OPS-V1.1-01, OPS-V1.1-02, TEST-V1.1-01
+
+**New files**:
+- `src/lib/email-reminders/dispatch.ts` — `scheduleEmailReminder()`, `cancelEmailReminder()`, delivery handler
+- `src/lib/email-reminders/state.ts` — Redis helpers for `email-reminder:{type}:{sessionId}` (cancel-lookup) and `email-reminder-sent:{type}:{sessionId}` (delivery NX) and per-session `*-completed:{sessionId}` keys
+- `src/lib/email-reminders/copy.ts` — locked copy strings for payment-1h hybrid template + payment-24h template + LSS-options explainer block (DCEM-classification comment)
+- `src/lib/email-reminders/unsubscribe.ts` — HMAC sign + verify using `EMAIL_REMINDER_UNSUBSCRIBE_SECRET`
+- `src/app/api/webhooks/email-reminder/route.ts` — QStash delivery target with signature verification + delivery-time cancel/unsub gate
+- `src/app/api/email/unsubscribe/route.ts` — one-click unsubscribe endpoint
+- `src/lib/email/templates/reengagement-payment.tsx` — single React Email template that renders both 1h hybrid and 24h variants by prop
+- `src/lib/email-reminders/__tests__/dispatch.test.ts` — unit tests for schedule, cancel, NX dedup, unsubscribe HMAC, absent-env graceful degradation
+
 **Mutates existing files**:
-- `src/app/api/webhooks/stripe/route.ts` — replace inline fan-out with `handleIntakePaid()` call
-- `src/app/api/late-upload/session/route.ts` — add `cancelPendingReminder()` call on successful upload
-- `src/app/api/upload/route.ts` (if it exists) — add `cancelPendingReminder()` call
-**New files**:
-- `src/lib/intake-paid.ts` — `handleIntakePaid(event: IntakePaidEvent)` orchestrator
-- `src/types/index.ts` additions — `IntakePaidEvent` interface
-- `src/lib/sms/__tests__/reminder.test.ts` — integration tests for retry dedup and upload-gate cancel
-**Success Criteria** (what must be TRUE):
-  1. An SMS arrives on a test AU mobile number within 30 seconds of a simulated payment-success event fired through `handleIntakePaid()` in a staging environment with `CLICKSEND_*` vars set.
-  2. A simulated payment webhook retry (second POST of the same event) results in exactly one SMS send — verified by the Redis `sms-immediate:{sessionId}` NX key guard and the integration test asserting a single `fetch` call.
-  3. `src/lib/sms/dispatch.ts` contains zero imports from the Stripe SDK — `grep -r "from 'stripe'" src/lib/sms/` returns no matches.
-  4. The app boots and all non-SMS flows (chat, payment, email, upload) operate correctly when `CLICKSEND_USERNAME`, `CLICKSEND_API_KEY`, `CLICKSEND_SENDER_ID`, and `QSTASH_TOKEN` are all absent from the environment.
-  5. An integration test simulating a client uploading before the 24h window results in `cancelPendingReminder()` being called and the reminder handler returning `"skipped"` rather than dispatching a second SMS.
-**Plans**: 2 plans
-  - [ ] 03-01-PLAN.md — Wave 0: sms-immediate NX dedup + in-chat upload cancel hook
-  - [ ] 03-02-PLAN.md — Wave 1: Integration tests (TEST-02 retry dedup, TEST-03 upload-gate cancel)
+- `src/lib/tools/select-urgency.ts` — add 2x `scheduleEmailReminder()` calls after `sendClientInquiryEmail`/`sendFirmLeadEmail` succeed (failure-isolated; reminder failure must not propagate up)
+- `src/lib/intake/handle-paid.ts` — add 2x `cancelEmailReminder('payment-abandonment-1h' | '-24h', ...)` calls + write `payment-completed:{sessionId}` Redis key
 
-### Phase 4: Unanswered Question Reporting
-**Goal**: When visitors ask questions not covered by the knowledge base, the question is logged to Redis. A monthly Vercel Cron job compiles a report and emails it to the firm, giving the Aquarius team visibility into knowledge base gaps.
-**Depends on**: Nothing (new feature, zero existing file mutations beyond `match-question.ts`)
-**Requirements**: REPORT-01, REPORT-02, REPORT-03, REPORT-04, REPORT-05
-**New files**:
-- `src/lib/tools/log-unanswered.ts` — `logUnanswered(question, sessionId)` — ZADD to `unanswered:{YYYY-MM}` sorted set
-- `src/lib/email/templates/unanswered-report.tsx` — React email template for the monthly report
-- `src/app/api/cron/unanswered-report/route.ts` — Vercel Cron GET handler
-**Modified files**:
-- `src/lib/tools/match-question.ts` — add `logUnanswered()` call in unmatched branch
-- `vercel.json` — add cron job entry
 **Success Criteria** (what must be TRUE):
-  1. Asking a question not in the knowledge base results in a Redis `ZADD` to `unanswered:{YYYY-MM}` — verified by integration test showing the key exists after a no-match
-  2. `GET /api/cron/unanswered-report` returns 200 and sends an email to `FIRM_NOTIFY_EMAIL` containing all unique unanswered questions from the prior month
-  3. The report email renders zero questions gracefully ("No unanswered questions this month") when the sorted set is empty
-  4. `matchQuestion` continues to function normally when Redis is unavailable — `logUnanswered` catches and swallows errors
-  5. Asking the same question twice in a month results in one entry in the sorted set (ZADD idempotency via member uniqueness)
-**Plans**: 1 plan
-  - [ ] 04-01-PLAN.md — Full feature: log-unanswered.ts, match-question integration, report template, cron endpoint, vercel.json
+  1. A unit test calling `scheduleEmailReminder()` with `QSTASH_TOKEN` absent logs a structured warning and makes zero network calls — same shape as v1.0 SMS.
+  2. After `scheduleEmailReminder('payment-abandonment-1h', sessionId, 3600)` succeeds, Redis key `email-reminder:payment-abandonment-1h:{sessionId}` exists with a QStash messageId value and TTL ≈ 3h.
+  3. A POST to `/api/webhooks/email-reminder` without a valid QStash signature returns non-200; the handler never reaches the cancellation/unsubscribe gate or Resend dispatch.
+  4. A POST to `/api/webhooks/email-reminder` with valid signature, but where `payment-completed:{sessionId}` exists OR `unsubscribe:{sessionId}` exists, returns `"skipped"` and emits `email_reminder_skipped` log — no Resend call is made.
+  5. `cancelEmailReminder('payment-abandonment-1h', sessionId)` called twice (idempotent) — first call cancels QStash + clears Redis key; second call is a no-op without throwing.
+  6. A unit test of unsubscribe-link verification: a token signed with the wrong secret OR for a different sessionId is rejected with non-200; a correctly signed token sets `unsubscribe:{sessionId}` Redis key.
+  7. End-to-end manual test: complete intake on staging → wait 1h → 1h hybrid email arrives with Aquarius logo, payment-resume link works, LSS explainer block is visible, unsubscribe link resolves to confirmation page; `email-reminder-sent:payment-abandonment-1h:{sessionId}` Redis key now exists with TTL ≈ 7d.
+
+**Plans**: TBD (typically 2 — Wave 0 RED test stubs + Wave 1 GREEN implementation)
+
+---
+
+### Phase 5: Appointment Abandonment
+
+**Goal**: Non-urgent visitors who pay + upload but don't book a Calendly slot receive a 4h prefilled-link nudge and a 24h follow-up — both cancelled instantly when they book. Urgent visitors are never scheduled. The framework from Phase 4 is reused without modification.
+
+**Depends on**: Phase 4 (uses `scheduleEmailReminder`, `cancelEmailReminder`, the email-reminder webhook, and the unsubscribe gate)
+
+**Requirements**: APT-01, APT-02, APT-03, TEST-V1.1-02
+
+**New files**:
+- `src/lib/email/templates/reengagement-appointment.tsx` — single React Email template that renders both 4h and 24h variants by `delay` prop
+- `src/lib/email-reminders/__tests__/appointment.test.ts` — integration test simulating Calendly booking before reminder fires
+
+**Mutates existing files**:
+- `src/lib/late-upload/handle-completed.ts` — add `scheduleEmailReminder('appointment-abandonment-4h' | '-24h', ...)` calls when intake `urgency === "non-urgent"` (gate explicit; never schedule for urgent)
+- `src/app/api/webhooks/calendly/route.ts` — add 2x `cancelEmailReminder('appointment-abandonment-*', ...)` calls + write `booked:{sessionId}` Redis key
+- `src/lib/email-reminders/copy.ts` — add appointment-4h and appointment-24h locked copy strings
+
+**Success Criteria** (what must be TRUE):
+  1. After a non-urgent late-upload completion, Redis keys `email-reminder:appointment-abandonment-4h:{sessionId}` and `email-reminder:appointment-abandonment-24h:{sessionId}` both exist.
+  2. After an urgent late-upload completion, neither appointment-abandonment Redis key exists — verified by integration test asserting zero scheduling calls reach QStash for urgent intakes.
+  3. After a Calendly `invitee.created` webhook, both appointment-abandonment reminders are cancelled and `booked:{sessionId}` Redis key exists.
+  4. The integration test simulates: non-urgent flow → upload completes → schedule both appointment reminders → simulate Calendly book at T+3h → both QStash jobs cancelled. If QStash still delivers (race), the delivery handler reads `booked:{sessionId}` and short-circuits with `email_reminder_skipped`.
+  5. The 4h appointment-abandonment email renders the prefilled Calendly URL with visitor name + email properly URL-encoded; clicking arrives at a Calendly slot picker (not a generic page).
+
+**Plans**: TBD (typically 1 — most of the framework is from Phase 4)
+
+---
+
+### Phase 6: Firm Daily Digest + Happy-Path Audit
+
+**Goal**: The firm receives one coherent 9am AEST email summarising the previous 24h of activity, suppressed on quiet days. The five existing happy-path emails are audited against the lifecycle diagram and any gaps fixed inline.
+
+**Depends on**: Phase 4 (email-reminder webhook signature pattern is reused for the cron webhook). Independent of Phase 5.
+
+**Requirements**: DIG-01, DIG-02, DIG-03, DIG-04, DIG-05, DIG-06
+
+**New files**:
+- `src/lib/digest/aggregate.ts` — `aggregateActivity(fromIso, toIso)` reads Redis activity list, groups by event type, returns structured summary
+- `src/lib/digest/activity-log.ts` — `logActivity(event, sessionId, payload)` appends JSON to Redis list `activity:{YYYY-MM-DD-AEST}` with 14d TTL
+- `src/app/api/cron/daily-digest/route.ts` — QStash cron target; reads previous 24h, calls aggregator, sends digest email if non-empty
+- `src/lib/email/templates/firm-daily-digest.tsx` — React Email template with conditional sections
+- `src/lib/digest/__tests__/aggregate.test.ts` — unit tests for grouping, empty-day suppression, 24h timestamp window
+- `scripts/setup-daily-digest-cron.ts` — one-shot script to publish the QStash cron schedule (or document the manual setup in README)
+
+**Mutates existing files**:
+- `src/lib/tools/select-urgency.ts` — add `logActivity('lead_created', ...)` call
+- `src/lib/intake/handle-paid.ts` — add `logActivity('payment_completed', ...)` call
+- `src/lib/late-upload/handle-completed.ts` — add `logActivity('upload_completed', ...)` call
+- `src/app/api/webhooks/calendly/route.ts` — add `logActivity('appointment_booked', ...)` call
+- `src/lib/email-reminders/dispatch.ts` (delivery handler) — add `logActivity('payment_abandoned_1h' | '_24h' | 'appointment_abandoned_4h' | '_24h', ...)` calls when reminder actually sends (not when skipped)
+- `src/app/api/email/unsubscribe/route.ts` — add `logActivity('unsubscribed', ...)` call
+- The five existing happy-path templates: any audit-surfaced fixes (likely small — e.g. ensuring matter description is present, fee formatting, etc.)
+
+**Success Criteria** (what must be TRUE):
+  1. After 5 mock events spanning 24h, calling `aggregateActivity()` returns counts matching the events: e.g. 2 leads, 1 payment, 1 booking, 1 abandonment.
+  2. A digest run on a quiet day (zero activity) emits `digest_skipped_empty` log and makes zero Resend calls.
+  3. A digest run on a busy day produces an email with sections for each non-empty category; sections with zero activity are entirely absent (not rendered as "0 events").
+  4. The QStash cron runs at 9am AEST (15:00 UTC during AEST or 14:00 UTC during AEDT — verify with timezone-aware scheduling).
+  5. The audit pass produces a written checklist (in the phase plan or a follow-up todo) confirming each of the five existing happy-path emails matches the diagram. Any inline fixes are commit-traceable.
+
+**Plans**: TBD (typically 2 — activity log + aggregator first, then digest template + cron + audit)
 
 ---
 
 ## Progress
 
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 1. Dispatch Foundation | 2/2 | Complete | 2026-04-27 |
-| 2. QStash Scheduler | 2/2 | Complete | 2026-04-27 |
-| 3. Provider-Agnostic Seam | 2/2 | Planned | 2026-05-12 |
-| 4. Unanswered Question Reporting | 1/1 | Planned | 2026-05-12 |
+| Phase | Plans Complete | Status | Started | Completed |
+|-------|----------------|--------|---------|-----------|
+| 4. Re-engagement Framework + Payment | 0/? | Not started | — | — |
+| 5. Appointment Abandonment | 0/? | Not started | — | — |
+| 6. Firm Digest + Happy-Path Audit | 0/? | Not started | — | — |
 
 ---
 
 ## Coverage
 
-All 27 v1 requirements mapped. No orphans.
+All 24 v1.1 requirements mapped. No orphans.
 
 | Requirement | Phase |
 |-------------|-------|
-| SMS-02 | 1 |
-| SMS-03 | 1 |
-| SMS-04 | 1 |
-| COMP-01 | 1 |
-| COMP-02 | 1 |
-| OPS-03 | 1 |
-| TEST-01 | 1 |
-| SCHED-01 | 2 |
-| SCHED-02 | 2 |
-| SCHED-03 | 2 |
-| SCHED-04 | 2 |
-| SCHED-05 | 2 |
-| EVENT-01 | 3 |
-| EVENT-02 | 3 |
-| EVENT-03 | 3 |
-| SMS-01 | 3 |
-| SMS-05 | 3 |
-| COMP-03 | 3 |
-| OPS-01 | 3 |
-| OPS-02 | 3 |
-| TEST-02 | 3 |
-| TEST-03 | 3 |
-| REPORT-01 | 4 |
-| REPORT-02 | 4 |
-| REPORT-03 | 4 |
-| REPORT-04 | 4 |
-| REPORT-05 | 4 |
+| INFRA-01 | 4 |
+| INFRA-02 | 4 |
+| INFRA-03 | 4 |
+| INFRA-04 | 4 |
+| INFRA-05 | 4 |
+| INFRA-06 | 4 |
+| INFRA-07 | 4 |
+| PAY-01 | 4 |
+| PAY-02 | 4 |
+| PAY-03 | 4 |
+| PAY-04 | 4 |
+| APT-01 | 5 |
+| APT-02 | 5 |
+| APT-03 | 5 |
+| DIG-01 | 6 |
+| DIG-02 | 6 |
+| DIG-03 | 6 |
+| DIG-04 | 6 |
+| DIG-05 | 6 |
+| DIG-06 | 6 |
+| OPS-V1.1-01 | 4 |
+| OPS-V1.1-02 | 4 |
+| TEST-V1.1-01 | 4 |
+| TEST-V1.1-02 | 5 |
 
 ---
 
-*Roadmap created: 2026-04-24*
-*Last updated: 2026-05-12 after planning phase 03 (provider-agnostic-seam — 2 plans)*
+*Roadmap created: 2026-05-07*
+*Phases continue numbering from v1.0 (last phase = 3); v1.1 starts at 4.*

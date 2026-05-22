@@ -63,7 +63,7 @@ export async function sendTranscriptEmail({
   matterDescription,
   urgency,
   paymentAmount,
-  stripeSessionId,
+  paymentRef,
   transcript,
 }: {
   clientName: string;
@@ -72,7 +72,7 @@ export async function sendTranscriptEmail({
   matterDescription: string;
   urgency: string;
   paymentAmount: number;
-  stripeSessionId: string | null;
+  paymentRef: string | null;
   transcript?: string;
 }) {
   const from = process.env.RESEND_FROM_EMAIL;
@@ -102,11 +102,11 @@ export async function sendTranscriptEmail({
         matterDescription,
         urgency,
         paymentAmount,
-        stripeSessionId,
+        paymentRef,
         transcript,
       }),
     },
-    { event: "sendTranscriptEmail", sessionId: stripeSessionId ?? undefined }
+    { event: "sendTranscriptEmail", sessionId: paymentRef ?? undefined }
   );
 }
 
@@ -226,7 +226,7 @@ export async function sendBookingNotificationEmail({
   eventStartTime,
   eventUri,
   inviteeUri,
-  stripeSessionId,
+  paymentRef,
 }: {
   clientName: string;
   clientEmail: string;
@@ -235,7 +235,7 @@ export async function sendBookingNotificationEmail({
   eventStartTime: string;
   eventUri: string;
   inviteeUri: string;
-  stripeSessionId?: string | null;
+  paymentRef?: string | null;
 }) {
   const from = process.env.RESEND_FROM_EMAIL;
   if (!from) {
@@ -285,12 +285,12 @@ export async function sendBookingNotificationEmail({
         startTimeLocal: startLocal,
         eventUri,
         inviteeUri,
-        stripeSessionId,
+        paymentRef,
       }),
     },
     {
       event: "sendBookingNotificationEmail",
-      sessionId: stripeSessionId ?? undefined,
+      sessionId: paymentRef ?? undefined,
     }
   );
 }

@@ -18,6 +18,7 @@ function makeRequest(body: unknown): Request {
 
 describe("DELETE /api/chat/session", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     vi.mocked(deleteSession).mockResolvedValue(undefined);
     vi.mocked(redis.del).mockResolvedValue(0);
   });

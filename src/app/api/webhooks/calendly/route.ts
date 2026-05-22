@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
       eventStartTime: invitee.scheduled_event.start_time,
       eventUri: invitee.scheduled_event.uri,
       inviteeUri: invitee.uri,
-      stripeSessionId: intake?.stripeSessionId ?? null,
+      paymentRef: intake?.paymentRef ?? null,
     });
   } catch (err) {
     console.error("[calendly-webhook] failed to send firm notification", err);

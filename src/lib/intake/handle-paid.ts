@@ -12,10 +12,12 @@ import { IMMEDIATE_SMS_COPY, URGENT_FIRM_SMS_COPY } from "@/lib/sms/copy";
 import { assertNoResendTracking } from "@/lib/email/assert-no-tracking";
 import PaymentReceipt from "@/lib/email/payment-receipt";
 import { BRANDING } from "@/lib/branding";
+import { cancelEmailReminder } from "@/lib/email-reminders/dispatch";
+import { logActivity } from "@/lib/digest/activity-log";
 
 const DEDUPE_TTL_SECONDS = 60 * 60 * 24 * 7;
 
-export type IntakePaidSource = "stripe" | "demo-bypass" | "bpoint";
+export type IntakePaidSource = "bpoint";
 
 export interface HandleIntakePaidArgs {
   /** Chat session ID (canonical reference shared across kv, intake, upload-tokens). */
@@ -39,14 +41,12 @@ export interface HandleIntakePaidResult {
  * Provider-agnostic post-payment fan-out (PHASE-03).
  *
  * Called by:
- *   - POST /api/intake/bypass-paid       (demo bypass success button)
- *   - POST /api/webhooks/stripe          (legacy Stripe path — to be migrated)
- *   - (future) POST /api/webhooks/bpoint (BPoint receipt webhook)
+ *   - GET  /api/checkout/confirm         (BPoint browser return)
+ *   - POST /api/webhooks/bpoint          (BPoint safety-net callback)
  *
  * Side-effects, in order:
  *   1. Mark session paid                        (kv.updateSession)
- *   2. Idempotency guard via `stripe-session:{sessionId}` NX SET
- *      (key name kept for compat with handleUploadCompleted's lookup)
+ *   2. Idempotency guard via `payment-session:{sessionId}` NX SET
  *   3. Mint upload token + persist hash in dedupe key
  *   4. Email payment receipt to client          (Resend, best-effort)
  *   5. Email firm transcript notification       (Resend, best-effort)
@@ -77,7 +77,7 @@ export async function handleIntakePaid(
   try {
     const sessionData = {
       paymentStatus: "paid" as const,
-      stripeSessionId: paymentRef,
+      paymentRef,
       paymentAmount,
     };
     const existing = await getSession(sessionId);
@@ -98,14 +98,10 @@ export async function handleIntakePaid(
 
   // 2 + 3. Dedupe and upload-token mint, atomically.
   //
-  // Key name `stripe-session:` is intentionally retained because
-  // src/lib/late-upload/handle-completed.ts looks up the upload-token hash
-  // by this key. Renaming requires touching that lookup too.
-  //
   // Old behaviour was a two-step "SET NX 'pending'" → mint → "SET hash"
   // sequence. If the function timed out between those (Resend, SMS, and
   // QStash calls each take meaningful time), the dedupe key was left at
-  // "pending" for the full 7-day TTL. Stripe retries would then see
+  // "pending" for the full 7-day TTL. Payment retries would then see
   // "duplicate" and return early — but no upload token had ever been
   // created or emailed, leaving the client in a paid-no-token deadlock
   // recoverable only by manual Redis surgery.
@@ -116,7 +112,7 @@ export async function handleIntakePaid(
   // those before returning. We also detect legacy "pending" values left
   // by the old code path and clear them so existing stuck records can
   // self-heal.
-  const dedupeKey = `stripe-session:${sessionId}`;
+  const dedupeKey = `payment-session:${sessionId}`;
   const { rawToken } = await createUploadToken({
     matterRef: sessionId,
     clientEmail,
@@ -247,7 +243,7 @@ export async function handleIntakePaid(
         matterDescription: intake.matterDescription ?? "N/A",
         urgency: intake.urgency ?? "N/A",
         paymentAmount,
-        stripeSessionId: paymentRef,
+        paymentRef,
         transcript: storedTranscript ?? undefined,
       });
     } catch (err) {
@@ -311,6 +307,57 @@ export async function handleIntakePaid(
         }
       );
     }
+  }
+
+  // PAY-02: cancel both pending payment-abandonment reminders. Each call is
+  // idempotent and absent-env-safe (returns early when QSTASH_TOKEN missing).
+  // Cancellation runs LAST in the fan-out so it executes even if a prior
+  // best-effort step (receipt, transcript, SMS) failed.
+  try {
+    await cancelEmailReminder("payment-abandonment-1h", sessionId);
+  } catch (err) {
+    console.error("[intake] cancel 1h email reminder threw", {
+      event: "intake_email_reminder_cancel_failed",
+      type: "payment-abandonment-1h",
+      sessionId,
+      err: err instanceof Error ? err.message : String(err),
+    });
+  }
+  try {
+    await cancelEmailReminder("payment-abandonment-24h", sessionId);
+  } catch (err) {
+    console.error("[intake] cancel 24h email reminder threw", {
+      event: "intake_email_reminder_cancel_failed",
+      type: "payment-abandonment-24h",
+      sessionId,
+      err: err instanceof Error ? err.message : String(err),
+    });
+  }
+
+  // PAY-02 + Decision 6 (defence-in-depth): durable cancellation-state guard
+  // read at delivery time by the email-reminder route handler. Even if cancel
+  // races with delivery, the delivery handler short-circuits when this key
+  // is set. TTL = 26h (93600s) — covers the 24h reminder window with grace.
+  try {
+    await redis.set(`payment-completed:${sessionId}`, "1", { ex: 26 * 3600 });
+  } catch (err) {
+    console.error("[intake] payment-completed key write failed", {
+      event: "intake_payment_completed_key_failed",
+      sessionId,
+      err: err instanceof Error ? err.message : String(err),
+    });
+  }
+
+  // Decision 3 (04-CONTEXT.md): log payment_completed activity. logActivity
+  // is internally isolated — this try/catch is defence-in-depth.
+  try {
+    await logActivity("payment_completed", sessionId, {
+      paymentRef,
+      paymentAmount,
+      source,
+    });
+  } catch {
+    /* logActivity is internally isolated; defence-in-depth */
   }
 
   console.info("[intake] paid fan-out complete", {

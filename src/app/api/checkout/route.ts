@@ -1,17 +1,43 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createCheckoutSession, PRICING } from "@/lib/stripe";
+import { createAuthKey, getBpointRedirectBaseUrl } from "@/lib/bpoint";
+import { PRICING } from "@/lib/pricing";
 import { getIntake, updateIntake } from "@/lib/intake";
+import { redis } from "@/lib/kv";
 import { parseJsonBody } from "@/lib/api/parse";
 
 const Body = z.object({
   sessionId: z.string().min(1),
+  forceNew: z.boolean().optional(),
 });
+const AUTHKEY_CLAIM_TTL_SECONDS = 30 * 60;
+
+function authKeyClaimKey(sessionId: string): string {
+  return `bpoint-authkey:${sessionId}`;
+}
+
+function browserReturnUrlBase(req: Request): string | undefined {
+  const origin = req.headers.get("origin");
+  if (!origin) return undefined;
+  try {
+    const url = new URL(origin);
+    if (url.protocol === "https:") return url.origin;
+    if (
+      url.protocol === "http:" &&
+      (url.hostname === "localhost" || url.hostname === "127.0.0.1")
+    ) {
+      return url.origin;
+    }
+  } catch {
+    return undefined;
+  }
+  return undefined;
+}
 
 export async function POST(req: Request) {
   const parsed = await parseJsonBody(req, Body);
   if (!parsed.ok) return parsed.response;
-  const { sessionId } = parsed.data;
+  const { sessionId, forceNew } = parsed.data;
 
   let intake;
   try {
@@ -32,30 +58,60 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid_urgency" }, { status: 422 });
   }
 
-  let checkoutSession;
+  if (intake.bpointAuthKey && !forceNew) {
+    return NextResponse.json({ authKey: intake.bpointAuthKey });
+  }
+
+  let authKey: string;
   try {
-    checkoutSession = await createCheckoutSession({
+    const appUrl = getBpointRedirectBaseUrl();
+    authKey = await createAuthKey({
       sessionId,
       urgency: intake.urgency,
-      returnUrlBase: process.env.NEXT_PUBLIC_URL ?? "",
+      customerEmail: intake.clientEmail,
+      redirectionUrlBase: appUrl,
+      browserReturnUrlBase: browserReturnUrlBase(req),
+      webhookUrlBase: appUrl,
     });
+
+    const claimed = forceNew
+      ? await redis.set(authKeyClaimKey(sessionId), authKey, {
+          ex: AUTHKEY_CLAIM_TTL_SECONDS,
+        })
+      : await redis.set(authKeyClaimKey(sessionId), authKey, {
+          nx: true,
+          ex: AUTHKEY_CLAIM_TTL_SECONDS,
+        });
+    if (!forceNew && claimed !== "OK") {
+      const existingAuthKey =
+        (await redis.get<string>(authKeyClaimKey(sessionId))) ??
+        (await getIntake(sessionId))?.bpointAuthKey;
+      if (existingAuthKey) {
+        return NextResponse.json({ authKey: existingAuthKey });
+      }
+    }
   } catch (err) {
-    console.error("[checkout] stripe session creation failed", {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[checkout] BPoint AuthKey creation failed", {
       event: "checkout_create_failed",
       sessionId,
-      err: err instanceof Error ? err.message : String(err),
+      err: message,
     });
     return NextResponse.json(
-      { error: "checkout_create_failed" },
+      {
+        error: message.includes("redirect base URL")
+          ? "bpoint_redirect_url_invalid"
+          : "checkout_create_failed",
+      },
       { status: 502 }
     );
   }
 
   try {
-    await updateIntake(sessionId, { stripeSessionId: checkoutSession.id });
+    await updateIntake(sessionId, { bpointAuthKey: authKey });
   } catch (err) {
-    console.error("[checkout] failed to persist stripeSessionId to intake", err);
+    console.error("[checkout] failed to persist bpointAuthKey to intake", err);
   }
 
-  return NextResponse.json({ clientSecret: checkoutSession.client_secret });
+  return NextResponse.json({ authKey });
 }

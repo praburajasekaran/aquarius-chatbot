@@ -37,7 +37,7 @@ describe("sanitizeAssistantText", () => {
   it("collapses runs of blank lines a stripped tag leaves behind", () => {
     expect(
       sanitizeAssistantText("Line one\n\n\n\n<|eos|>\n\n\nLine two"),
-    ).toBe("Line one\n\n\n\nLine two");
+    ).toBe("Line one\n\nLine two");
   });
 
   it("leaves clean text untouched", () => {
