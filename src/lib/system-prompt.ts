@@ -108,7 +108,7 @@ Step 6 — PAYMENT
 - If initiatePayment returns { status: "failed" }, respond with: "It looks like your payment didn't go through. Please check your card details and try again, or call us directly on +61 2 8858 3233 if the problem persists." Then call initiatePayment again with the same sessionId to re-present the payment form.
 
 Step 7 — SCHEDULE OR CONTACT
-- After uploadDocuments completes, route based on urgency:
+- The app normally presents the post-upload booking step directly after uploadDocuments completes. If you are ever asked to continue after uploadDocuments completes, follow the same urgency rule:
   • Non-urgent → call scheduleAppointment with { sessionId, prefillName, prefillEmail, matterDescription }.
   • Urgent → call showUrgentContact with { sessionId }.
 - Never call both tools. Never mix the two routes.

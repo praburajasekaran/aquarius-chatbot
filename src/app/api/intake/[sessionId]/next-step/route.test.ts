@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getIntakeMock } = vi.hoisted(() => ({
-  getIntakeMock: vi.fn(),
+const { resolvePostUploadBookingStepMock } = vi.hoisted(() => ({
+  resolvePostUploadBookingStepMock: vi.fn(),
 }));
 
-vi.mock("@/lib/intake", () => ({
-  getIntake: getIntakeMock,
+vi.mock("@/lib/post-upload-booking/resolve-post-upload-booking-step", () => ({
+  resolvePostUploadBookingStep: resolvePostUploadBookingStepMock,
 }));
 
 vi.mock("@/lib/rate-limit", () => ({
@@ -24,16 +24,16 @@ function request() {
 
 describe("GET /api/intake/[sessionId]/next-step", () => {
   beforeEach(() => {
-    getIntakeMock.mockReset();
+    resolvePostUploadBookingStepMock.mockReset();
   });
 
-  it("returns schedule input for non-urgent intake", async () => {
-    getIntakeMock.mockResolvedValue({
+  it("returns public session booking step data", async () => {
+    resolvePostUploadBookingStepMock.mockResolvedValue({
+      kind: "session-booking",
       sessionId: "s_test",
-      clientName: "Test Client",
-      clientEmail: "test@example.com",
-      matterDescription: "Traffic matter",
-      urgency: "non-urgent",
+      prefillName: "Test Client",
+      prefillEmail: "test@example.com",
+      matterSummary: "Traffic matter",
     });
 
     const res = await GET(request(), {
@@ -42,20 +42,21 @@ describe("GET /api/intake/[sessionId]/next-step", () => {
 
     expect(res.status).toBe(200);
     await expect(res.json()).resolves.toEqual({
-      route: "schedule",
-      input: {
-        sessionId: "s_test",
-        prefillName: "Test Client",
-        prefillEmail: "test@example.com",
-        matterDescription: "Traffic matter",
-      },
+      kind: "session-booking",
+      sessionId: "s_test",
+      prefillName: "Test Client",
+      prefillEmail: "test@example.com",
+      matterSummary: "Traffic matter",
+    });
+    expect(resolvePostUploadBookingStepMock).toHaveBeenCalledWith({
+      sessionId: "s_test",
     });
   });
 
-  it("returns urgent contact input for urgent intake", async () => {
-    getIntakeMock.mockResolvedValue({
+  it("returns public urgent contact step data", async () => {
+    resolvePostUploadBookingStepMock.mockResolvedValue({
+      kind: "urgent-contact",
       sessionId: "s_urgent",
-      urgency: "urgent",
     });
 
     const res = await GET(request(), {
@@ -64,8 +65,22 @@ describe("GET /api/intake/[sessionId]/next-step", () => {
 
     expect(res.status).toBe(200);
     await expect(res.json()).resolves.toEqual({
-      route: "urgent",
-      input: { sessionId: "s_urgent" },
+      kind: "urgent-contact",
+      sessionId: "s_urgent",
     });
+  });
+
+  it("hides unavailable reasons from the browser", async () => {
+    resolvePostUploadBookingStepMock.mockResolvedValue({
+      kind: "unavailable",
+      reason: "missing-intake",
+    });
+
+    const res = await GET(request(), {
+      params: Promise.resolve({ sessionId: "s_missing" }),
+    });
+
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toEqual({ kind: "unavailable" });
   });
 });
