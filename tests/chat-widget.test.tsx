@@ -8,6 +8,7 @@ import { render, waitFor } from "@testing-library/react";
 const messageListSpy = vi.fn();
 const addToolOutputSpy = vi.fn();
 const sendMessageSpy = vi.fn();
+const setMessagesSpy = vi.fn();
 let mockMessages: Array<Record<string, unknown>> = [];
 vi.mock("@/components/chat/message-list", () => ({
   MessageList: (props: Record<string, unknown>) => {
@@ -31,7 +32,7 @@ vi.mock("@ai-sdk/react", () => ({
     sendMessage: sendMessageSpy,
     addToolOutput: addToolOutputSpy,
     status: "ready",
-    setMessages: vi.fn(),
+    setMessages: setMessagesSpy,
     stop: vi.fn(),
   }),
 }));
@@ -58,6 +59,8 @@ describe("ChatWidget URL signal", () => {
     messageListSpy.mockReset();
     addToolOutputSpy.mockReset();
     sendMessageSpy.mockReset();
+    setMessagesSpy.mockReset();
+    vi.stubGlobal("fetch", vi.fn());
     mockMessages = [
       {
         id: "assistant-payment",
@@ -69,6 +72,7 @@ describe("ChatWidget URL signal", () => {
   });
   afterEach(() => {
     replaceStateSpy.mockRestore();
+    vi.unstubAllGlobals();
     vi.clearAllMocks();
   });
 
@@ -117,7 +121,7 @@ describe("ChatWidget URL signal", () => {
     expect(replaceStateSpy).not.toHaveBeenCalled();
   });
 
-  it("continues when document upload has resolved and the chat is ready", async () => {
+  it("appends Calendly scheduling directly when document upload resolves for a non-urgent intake", async () => {
     setSearch("");
     mockMessages = [
       {
@@ -126,21 +130,59 @@ describe("ChatWidget URL signal", () => {
         parts: [
           {
             type: "tool-uploadDocuments",
-            state: "output-available",
+            state: "input-available",
             toolCallId: "upload-1",
             input: { sessionId: "s_test" },
-            output: { uploaded: 1 },
           },
         ],
       },
     ];
+    vi.mocked(fetch).mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          route: "schedule",
+          input: {
+            sessionId: "s_test",
+            prefillName: "Test Client",
+            prefillEmail: "test@example.com",
+            matterDescription: "Traffic matter",
+          },
+        }),
+        { status: 200 }
+      )
+    );
 
     vi.resetModules();
     const { ChatWidget } = await import("@/components/chat/chat-widget");
     render(<ChatWidget />);
+    const latestProps = messageListSpy.mock.calls.at(-1)?.[0] as {
+      onUploadComplete: (toolCallId: string, uploaded: number) => void;
+    };
+
+    latestProps.onUploadComplete("upload-1", 1);
 
     await waitFor(() => {
-      expect(sendMessageSpy).toHaveBeenCalledWith();
+      expect(setMessagesSpy).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: expect.stringMatching(/^post_upload_schedule_/),
+            role: "assistant",
+            parts: [
+              expect.objectContaining({
+                type: "tool-scheduleAppointment",
+                state: "input-available",
+                input: {
+                  sessionId: "s_test",
+                  prefillName: "Test Client",
+                  prefillEmail: "test@example.com",
+                  matterDescription: "Traffic matter",
+                },
+              }),
+            ],
+          }),
+        ])
+      );
     });
+    expect(sendMessageSpy).not.toHaveBeenCalled();
   });
 });

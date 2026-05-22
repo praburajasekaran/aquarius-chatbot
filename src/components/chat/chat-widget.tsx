@@ -71,7 +71,6 @@ const INITIAL_WELCOME_CHIPS = [
 // are already resolved by the time the client sees the message.
 const CLIENT_TOOLS_REQUIRING_CONTINUATION = new Set([
   "tool-initiatePayment",
-  "tool-uploadDocuments",
   "tool-scheduleAppointment",
   "tool-showUrgentContact",
 ]);
@@ -448,6 +447,91 @@ export function ChatWidget() {
 
   const isLoading = status === "streaming" || status === "submitted";
 
+  async function resolveUploadAndAppendNextStep(
+    toolCallId: string,
+    uploaded: number
+  ) {
+    const resolvedMessages = messages.map((message) => {
+      if (message.role !== "assistant") return message;
+      const parts = message.parts.map((part) => {
+        const maybeTool = part as { toolCallId?: string };
+        if (maybeTool.toolCallId !== toolCallId) return part;
+        return {
+          ...part,
+          state: "output-available",
+          output: { uploaded },
+        };
+      });
+      return { ...message, parts } as ChatMessage;
+    });
+
+    setMessages(resolvedMessages);
+
+    try {
+      const res = await fetch(
+        `/api/intake/${encodeURIComponent(sessionId)}/next-step`
+      );
+      if (!res.ok) throw new Error(`next_step_${res.status}`);
+      const data = (await res.json()) as
+        | {
+            route: "schedule";
+            input: {
+              sessionId: string;
+              prefillName: string;
+              prefillEmail: string;
+              matterDescription: string;
+            };
+          }
+        | { route: "urgent"; input: { sessionId: string } };
+
+      const stamp = `${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+      const nextStepMessage: ChatMessage =
+        data.route === "schedule"
+          ? {
+              id: `post_upload_schedule_${stamp}`,
+              role: "assistant",
+              parts: [
+                {
+                  type: "tool-scheduleAppointment",
+                  state: "input-available",
+                  toolCallId: `post_upload_schedule_${stamp}`,
+                  input: data.input,
+                },
+              ],
+            }
+          : {
+              id: `post_upload_urgent_${stamp}`,
+              role: "assistant",
+              parts: [
+                {
+                  type: "tool-showUrgentContact",
+                  state: "input-available",
+                  toolCallId: `post_upload_urgent_${stamp}`,
+                  input: data.input,
+                },
+              ],
+            };
+
+      setMessages([...resolvedMessages, nextStepMessage]);
+    } catch (err) {
+      console.error("[chat] post-upload next step failed", {
+        sessionId,
+        err: err instanceof Error ? err.message : String(err),
+      });
+      const fallback: ChatMessage = {
+        id: `post_upload_error_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+        role: "assistant",
+        parts: [
+          {
+            type: "text",
+            text: "Thanks — your documents were submitted, but booking is temporarily unavailable. Please contact Aquarius Lawyers directly to schedule your session.",
+          },
+        ],
+      };
+      setMessages([...resolvedMessages, fallback]);
+    }
+  }
+
   const rawSuggestions = useMemo(() => {
     // Before any message is sent, show the welcome chips alongside the
     // static initial greeting rendered by MessageList.
@@ -509,19 +593,11 @@ export function ChatWidget() {
   }
 
   function handleUploadComplete(toolCallId: string, uploaded: number) {
-    addToolOutput({
-      tool: "uploadDocuments",
-      toolCallId,
-      output: { uploaded },
-    });
+    void resolveUploadAndAppendNextStep(toolCallId, uploaded);
   }
 
   function handleUploadSkip(toolCallId: string) {
-    addToolOutput({
-      tool: "uploadDocuments",
-      toolCallId,
-      output: { uploaded: 0 },
-    });
+    void resolveUploadAndAppendNextStep(toolCallId, 0);
   }
 
   function handleScheduleBooked(
