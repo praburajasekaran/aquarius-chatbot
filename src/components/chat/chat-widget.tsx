@@ -234,7 +234,6 @@ export function ChatWidget() {
 
   const { messages, sendMessage, addToolOutput, status, setMessages, stop } = useChat<ChatMessage>({
     transport,
-    sendAutomaticallyWhen: shouldAutoContinue,
     messages: initialMessages,
     // Without onError, useChat swallows server failures: status flips to
     // "error" but the existing UI only watches "streaming"/"submitted",
@@ -388,6 +387,24 @@ export function ChatWidget() {
     channel.close();
   }, [status, sessionId]);
 
+  // Continue after the visitor resolves a client-side tool (payment, upload,
+  // Calendly booking, urgent acknowledgement). We keep this in React state
+  // instead of relying on the SDK's internal `sendAutomaticallyWhen` callback:
+  // tool output can be added near the end of a stream, and the internal
+  // callback may miss the final ready-state transition. This effect observes
+  // the actual rendered transcript and submits it once per resolved assistant
+  // message when the chat is ready.
+  const continuedForMessageRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (status !== "ready") return;
+    const last = messages[messages.length - 1];
+    if (!last || last.role !== "assistant") return;
+    if (!shouldAutoContinue({ messages })) return;
+    if (continuedForMessageRef.current === last.id) return;
+    continuedForMessageRef.current = last.id;
+    void sendMessage();
+  }, [messages, status, sendMessage]);
+
   // Append the canned booking-closing reply once the booking flow is
   // terminal. The LLM was supposed to emit this via auto-continue per Step 7
   // of the system prompt, but DeepSeek mis-handles Step 8 and re-emits the
@@ -421,27 +438,6 @@ export function ChatWidget() {
     };
     setMessages([...messages, closing]);
   }, [messages, setMessages]);
-
-  // Resume continuation after hydration. The AI SDK's sendAutomaticallyWhen
-  // callback fires only on session-internal mutations (sendMessage,
-  // addToolOutput). When we hydrate via the `messages: initialMessages` prop
-  // after a page reload, the SDK doesn't re-evaluate that callback — so a
-  // rehydrated chat ending in a resolved client tool would sit idle. Calling
-  // sendMessage() with no arguments posts the current state to the transport
-  // without injecting a phantom user message, allowing the assistant to
-  // produce the next turn (e.g., reveal the urgent contact card after a
-  // resolved payment).
-  const hasResumedAfterHydration = useRef(false);
-  useEffect(() => {
-    if (hasResumedAfterHydration.current) return;
-    hasResumedAfterHydration.current = true;
-    if (shouldAutoContinue({ messages: initialMessages })) {
-      void sendMessage();
-    }
-    // We deliberately depend on nothing — this is a strict mount-only effect.
-    // initialMessages is captured at first render and never changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const lastAssistantMessageId = useMemo(() => {
     for (let i = messages.length - 1; i >= 0; i--) {

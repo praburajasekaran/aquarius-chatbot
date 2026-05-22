@@ -7,6 +7,7 @@ import { render, waitFor } from "@testing-library/react";
 // The asserted prop surface is failureReason + onPaymentComplete + onRetryRequested.
 const messageListSpy = vi.fn();
 const addToolOutputSpy = vi.fn();
+const sendMessageSpy = vi.fn();
 let mockMessages: Array<Record<string, unknown>> = [];
 vi.mock("@/components/chat/message-list", () => ({
   MessageList: (props: Record<string, unknown>) => {
@@ -27,7 +28,7 @@ vi.mock("@/components/chat/message-input", () => ({
 vi.mock("@ai-sdk/react", () => ({
   useChat: () => ({
     messages: mockMessages,
-    sendMessage: vi.fn(),
+    sendMessage: sendMessageSpy,
     addToolOutput: addToolOutputSpy,
     status: "ready",
     setMessages: vi.fn(),
@@ -37,9 +38,7 @@ vi.mock("@ai-sdk/react", () => ({
 
 // Mock ai — chat-widget imports DefaultChatTransport + lastAssistantMessageIsCompleteWithToolCalls
 vi.mock("ai", () => ({
-  DefaultChatTransport: class {
-    constructor(_opts: unknown) {}
-  },
+  DefaultChatTransport: class {},
   lastAssistantMessageIsCompleteWithToolCalls: vi.fn(),
 }));
 
@@ -58,6 +57,7 @@ describe("ChatWidget URL signal", () => {
   beforeEach(() => {
     messageListSpy.mockReset();
     addToolOutputSpy.mockReset();
+    sendMessageSpy.mockReset();
     mockMessages = [
       {
         id: "assistant-payment",
@@ -115,5 +115,32 @@ describe("ChatWidget URL signal", () => {
     render(<ChatWidget />);
     expect(addToolOutputSpy).not.toHaveBeenCalled();
     expect(replaceStateSpy).not.toHaveBeenCalled();
+  });
+
+  it("continues when document upload has resolved and the chat is ready", async () => {
+    setSearch("");
+    mockMessages = [
+      {
+        id: "assistant-upload",
+        role: "assistant",
+        parts: [
+          {
+            type: "tool-uploadDocuments",
+            state: "output-available",
+            toolCallId: "upload-1",
+            input: { sessionId: "s_test" },
+            output: { uploaded: 1 },
+          },
+        ],
+      },
+    ];
+
+    vi.resetModules();
+    const { ChatWidget } = await import("@/components/chat/chat-widget");
+    render(<ChatWidget />);
+
+    await waitFor(() => {
+      expect(sendMessageSpy).toHaveBeenCalledWith();
+    });
   });
 });
