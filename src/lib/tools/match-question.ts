@@ -2,11 +2,10 @@ import { tool } from "ai";
 import { z } from "zod";
 import type { QAPair } from "@/types";
 import qaData from "@/lib/knowledge-base/criminal-law.json";
-import { logUnanswered } from "@/lib/tools/log-unanswered";
 
 const knowledgeBase: QAPair[] = qaData;
 
-function findBestMatch(query: string): QAPair | null {
+export function findBestMatch(query: string): QAPair | null {
   const queryLower = query.toLowerCase();
   const queryWords = queryLower.split(/\s+/);
 
@@ -43,7 +42,7 @@ function findBestMatch(query: string): QAPair | null {
 
 export const matchQuestion = tool({
   description:
-    "Match a visitor's question to the approved criminal law Q&A knowledge base. Use this tool whenever a visitor asks a question about criminal law.",
+    "Match a visitor information question to the approved knowledge base. Use this tool whenever a visitor asks a substantive information question, even outside the current criminal-law coverage area.",
   inputSchema: z.object({
     question: z.string().describe("The visitor's question"),
   }),
@@ -58,10 +57,6 @@ export const matchQuestion = tool({
         answer: match.answer,
       };
     }
-
-    // Log unanswered question for monthly firm report.
-    logUnanswered(question).catch(() => {});
-
     return {
       matched: false,
       fallback: true,

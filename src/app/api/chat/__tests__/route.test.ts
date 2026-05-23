@@ -1,10 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+const mocks = vi.hoisted(() => ({
+  logUnanswered: vi.fn(async () => undefined),
+}));
+
 // Mock external boundaries before importing the route. chatModel calls
 // createOpenRouter at module load, redis touches Upstash, streamText would
 // hit the provider — none of those should run under test.
 vi.mock("@/lib/openrouter", () => ({
   chatModel: { __mock: "chatModel" },
+}));
+
+vi.mock("@/lib/tools/log-unanswered", () => ({
+  logUnanswered: mocks.logUnanswered,
 }));
 
 vi.mock("@/lib/rate-limit", () => ({
@@ -62,6 +70,7 @@ function makeRequest(body: unknown): Request {
 describe("POST /api/chat — orphan tool parts", () => {
   beforeEach(() => {
     streamTextSpy.mockClear();
+    mocks.logUnanswered.mockClear();
   });
 
   it("does not throw when an assistant message contains an input-available tool part", async () => {
@@ -170,5 +179,40 @@ describe("POST /api/chat — orphan tool parts", () => {
     };
     const allContent = JSON.stringify(passed.messages);
     expect(allContent).toContain("call_resolved_1");
+  });
+
+
+  it("logs each repeated unmatched visitor question before streaming", async () => {
+    const question = "Do you help with divorce property settlement?";
+
+    await POST(
+      makeRequest({
+        sessionId: "s_repeat",
+        messages: [{ id: "u1", role: "user", parts: [{ type: "text", text: question }] }],
+      }),
+    );
+    await POST(
+      makeRequest({
+        sessionId: "s_repeat",
+        messages: [{ id: "u2", role: "user", parts: [{ type: "text", text: question }] }],
+      }),
+    );
+
+    expect(mocks.logUnanswered).toHaveBeenCalledTimes(2);
+    expect(mocks.logUnanswered).toHaveBeenNthCalledWith(1, question, "s_repeat");
+    expect(mocks.logUnanswered).toHaveBeenNthCalledWith(2, question, "s_repeat");
+  });
+
+  it("does not log matched knowledge-base questions at the route level", async () => {
+    await POST(
+      makeRequest({
+        sessionId: "s_match",
+        messages: [
+          { id: "u1", role: "user", parts: [{ type: "text", text: "Can I get bail?" }] },
+        ],
+      }),
+    );
+
+    expect(mocks.logUnanswered).not.toHaveBeenCalled();
   });
 });

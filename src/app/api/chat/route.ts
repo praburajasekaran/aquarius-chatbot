@@ -9,6 +9,8 @@ import { after, NextResponse } from "next/server";
 import { z } from "zod";
 import { chatModel } from "@/lib/openrouter";
 import { tools, type ChatMessage } from "@/lib/tools";
+import { findBestMatch } from "@/lib/tools/match-question";
+import { logUnanswered } from "@/lib/tools/log-unanswered";
 import { systemPrompt } from "@/lib/system-prompt";
 import { redis } from "@/lib/kv";
 import { parseJsonBody } from "@/lib/api/parse";
@@ -112,6 +114,41 @@ function sanitizeMessageHistory(messages: ChatMessage[]): ChatMessage[] {
   });
 }
 
+function getLatestUserText(messages: ChatMessage[]): string | null {
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const message = messages[i];
+    if (message.role !== "user") continue;
+    const text = message.parts
+      .filter((p): p is { type: "text"; text: string } => p.type === "text")
+      .map((p) => p.text.trim())
+      .filter(Boolean)
+      .join(" ")
+      .trim();
+    return text || null;
+  }
+  return null;
+}
+
+function isSubstantiveVisitorQuestion(text: string): boolean {
+  const normalized = text.trim().toLowerCase();
+  if (!normalized) return false;
+  return (
+    normalized.endsWith("?") ||
+    /^(what|when|how|why|can|will|should|does|do|is|are|am)\b/.test(normalized)
+  );
+}
+
+async function logUnmatchedVisitorQuestion(
+  messages: ChatMessage[],
+  sessionId?: string,
+) {
+  const latestUserText = getLatestUserText(messages);
+  if (!latestUserText || !isSubstantiveVisitorQuestion(latestUserText)) return;
+  if (findBestMatch(latestUserText)) return;
+
+  await logUnanswered(latestUserText, sessionId ?? "unknown");
+}
+
 export async function POST(req: Request) {
   const ip =
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
@@ -138,6 +175,8 @@ export async function POST(req: Request) {
     parsed.data.messages as unknown as ChatMessage[],
   );
   const sessionId = parsed.data.sessionId;
+
+  await logUnmatchedVisitorQuestion(messages, sessionId);
 
   if (sessionId) {
     const transcript = formatTranscript(messages);

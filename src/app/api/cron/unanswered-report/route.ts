@@ -1,22 +1,22 @@
 import { NextResponse } from "next/server";
-import { redis } from "@/lib/kv";
 import { sendAndLog } from "@/lib/resend";
 import UnansweredReportEmail from "@/lib/email/templates/unanswered-report";
+import { readKnowledgeGapsForMonth } from "@/lib/tools/log-unanswered";
 
-function getLastMonthKey(): { key: string; label: string } {
+function getLastMonth(): { monthId: string; label: string } {
   const now = new Date();
   const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const yyyy = lastMonth.getFullYear();
   const mm = String(lastMonth.getMonth() + 1).padStart(2, "0");
-  const key = `unanswered:${yyyy}-${mm}`;
+  const monthId = `${yyyy}-${mm}`;
   const label = lastMonth.toLocaleDateString("en-AU", {
     month: "long",
     year: "numeric",
   });
-  return { key, label };
+  return { monthId, label };
 }
 
-function parseExplicitMonthKey(monthParam: string): { key: string; label: string } {
+function parseExplicitMonth(monthParam: string): { monthId: string; label: string } {
   // Accepts ?month=YYYY-MM for testing (bypasses "last month" logic)
   const match = monthParam.match(/^(\d{4})-(0[1-9]|1[0-2])$/);
   if (!match) {
@@ -24,24 +24,24 @@ function parseExplicitMonthKey(monthParam: string): { key: string; label: string
   }
   const yyyy = parseInt(match[1], 10);
   const mmNum = parseInt(match[2], 10);
-  const key = `unanswered:${match[1]}-${match[2]}`;
+  const monthId = `${match[1]}-${match[2]}`;
   const date = new Date(yyyy, mmNum - 1, 1);
   const label = date.toLocaleDateString("en-AU", {
     month: "long",
     year: "numeric",
   });
-  return { key, label };
+  return { monthId, label };
 }
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const explicitMonth = searchParams.get("month");
-  let key: string;
+  let monthId: string;
   let label: string;
 
   if (explicitMonth) {
     try {
-      ({ key, label } = parseExplicitMonthKey(explicitMonth));
+      ({ monthId, label } = parseExplicitMonth(explicitMonth));
     } catch (err) {
       return NextResponse.json(
         { error: err instanceof Error ? err.message : "Invalid month" },
@@ -49,7 +49,7 @@ export async function GET(request: Request) {
       );
     }
   } else {
-    ({ key, label } = getLastMonthKey());
+    ({ monthId, label } = getLastMonth());
   }
 
   // Auth only required for automated cron (no ?month param). The ?month= param
@@ -69,11 +69,11 @@ export async function GET(request: Request) {
   }
 
   const from = process.env.RESEND_FROM_EMAIL;
-  const to = process.env.FIRM_NOTIFY_EMAIL;
+  const to = process.env.KNOWLEDGE_GAP_REPORT_EMAIL;
 
   if (!from || !to) {
-    console.error("[cron] RESEND_FROM_EMAIL or FIRM_NOTIFY_EMAIL not set", {
-      event: "unanswered_report_config_missing",
+    console.error("[cron] RESEND_FROM_EMAIL or KNOWLEDGE_GAP_REPORT_EMAIL not set", {
+      event: "knowledge_gap_report_config_missing",
     });
     return NextResponse.json(
       { error: "Email configuration missing" },
@@ -81,54 +81,43 @@ export async function GET(request: Request) {
     );
   }
 
-  let questionCount = 0;
-  const questions: Array<{ text: string; firstSeen: string }> = [];
+  let gaps: Awaited<ReturnType<typeof readKnowledgeGapsForMonth>> = [];
 
   try {
-    const rawResults = await redis.zrange(key, 0, -1, {
-      withScores: true,
-    });
-    const results = rawResults as unknown as Array<{
-      member: string;
-      score: number;
-    }>;
-    questionCount = results.length;
-    questions.push(
-      ...results.map(({ member, score }) => ({
-        text: member,
-        firstSeen: new Date(score).toISOString(),
-      }))
-    );
+    gaps = await readKnowledgeGapsForMonth(monthId);
   } catch (err) {
-    console.error("[cron] failed to read unanswered questions", {
-      event: "unanswered_report_read_failed",
-      key,
+    console.error("[cron] failed to read knowledge gaps", {
+      event: "knowledge_gap_report_read_failed",
+      monthId,
       err: err instanceof Error ? err.message : String(err),
     });
     return NextResponse.json(
-      { error: "Failed to read unanswered questions" },
+      { error: "Failed to read knowledge gaps" },
       { status: 500 }
     );
   }
+
+  const totalTimesAsked = gaps.reduce((sum, gap) => sum + gap.timesAsked, 0);
 
   try {
     await sendAndLog(
       {
         from,
         to,
-        subject: `Unanswered Questions Report — ${label}`,
+        subject: `Knowledge Gap Report — ${label}`,
         react: UnansweredReportEmail({
           month: label,
-          questionCount,
-          questions,
+          gapCount: gaps.length,
+          totalTimesAsked,
+          gaps,
         }),
       },
-      { event: "sendUnansweredReport" }
+      { event: "sendKnowledgeGapReport" }
     );
   } catch (err) {
-    console.error("[cron] failed to send unanswered report email", {
-      event: "unanswered_report_send_failed",
-      key,
+    console.error("[cron] failed to send knowledge gap report email", {
+      event: "knowledge_gap_report_send_failed",
+      monthId,
       err: err instanceof Error ? err.message : String(err),
     });
     return NextResponse.json(
@@ -140,6 +129,7 @@ export async function GET(request: Request) {
   return NextResponse.json({
     status: "ok",
     month: label,
-    questionCount,
+    gapCount: gaps.length,
+    totalTimesAsked,
   });
 }
