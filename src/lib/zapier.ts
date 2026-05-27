@@ -1,6 +1,6 @@
 export async function sendToZapier(
   url: string,
-  payload: Record<string, unknown>
+  payload: object
 ) {
   if (!url) throw new Error("Zapier webhook URL not configured");
 
