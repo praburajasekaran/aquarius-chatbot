@@ -1,7 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import crypto from "node:crypto";
 import { z } from "zod";
-import { setMatterForSession } from "@/lib/session-matter-map";
+import {
+  isValidSmokeballMatterId,
+  setMatterForSession,
+} from "@/lib/session-matter-map";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,7 +26,9 @@ export const dynamic = "force-dynamic";
 
 const PayloadSchema = z.object({
   sessionId: z.string().min(1),
-  smokeballMatterId: z.string().min(1),
+  smokeballMatterId: z.string().refine(isValidSmokeballMatterId, {
+    message: "must be a real Smokeball matter ID",
+  }),
 });
 
 function timingSafeEqualString(a: string, b: string): boolean {

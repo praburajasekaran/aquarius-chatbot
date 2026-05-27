@@ -1,6 +1,9 @@
 import type { IntakeRecord } from "@/lib/intake";
 import { sendFirmIntegrationAlertEmail } from "@/lib/resend";
-import { getMatterForSession } from "@/lib/session-matter-map";
+import {
+  getMatterForSession,
+  isValidSmokeballMatterId,
+} from "@/lib/session-matter-map";
 import { sendToZapier } from "@/lib/zapier";
 
 export interface AppointmentNoteInput {
@@ -144,7 +147,9 @@ export async function waitForMatterMapping(
       });
       return null;
     });
-    if (mapping?.smokeballMatterId) return mapping.smokeballMatterId;
+    if (isValidSmokeballMatterId(mapping?.smokeballMatterId)) {
+      return mapping.smokeballMatterId.trim();
+    }
     if (attempt < attempts - 1) await sleep(delayMs);
   }
 

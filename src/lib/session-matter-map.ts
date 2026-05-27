@@ -22,6 +22,18 @@ export interface SessionMatterMapping {
   capturedAt: string;
 }
 
+export function isValidSmokeballMatterId(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  const normalized = value.trim().toLowerCase();
+  return (
+    normalized.length > 0 &&
+    normalized !== "null" &&
+    normalized !== "undefined" &&
+    normalized !== "none" &&
+    normalized !== "n/a"
+  );
+}
+
 function mappingKey(sessionId: string): string {
   return `${PREFIX}${sessionId}`;
 }
@@ -30,8 +42,12 @@ export async function setMatterForSession(
   sessionId: string,
   smokeballMatterId: string
 ): Promise<SessionMatterMapping> {
+  if (!isValidSmokeballMatterId(smokeballMatterId)) {
+    throw new Error("invalid_smokeball_matter_id");
+  }
+
   const mapping: SessionMatterMapping = {
-    smokeballMatterId,
+    smokeballMatterId: smokeballMatterId.trim(),
     capturedAt: new Date().toISOString(),
   };
   await redis.set(mappingKey(sessionId), mapping, { ex: TTL_SECONDS });
