@@ -1,7 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import crypto from "node:crypto";
 import { getIntake } from "@/lib/intake";
-import { sendBookingNotificationEmail } from "@/lib/resend";
+import {
+  sendBookingNotificationEmail,
+  sendFirmIntegrationAlertEmail,
+} from "@/lib/resend";
+import { deliverAppointmentNoteToSmokeball } from "@/lib/smokeball/appointment-note";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -87,6 +91,41 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     console.error("[calendly-webhook] failed to send firm notification", err);
+  }
+
+  if (sessionId) {
+    await deliverAppointmentNoteToSmokeball({
+      sessionId,
+      clientName: invitee.name,
+      clientEmail: invitee.email,
+      eventStartTime: invitee.scheduled_event.start_time,
+      eventUri: invitee.scheduled_event.uri,
+      inviteeUri: invitee.uri,
+      intake,
+    });
+  } else {
+    console.error("[calendly-webhook] no sessionId tracking value", {
+      event: "calendly_missing_session_tracking",
+      inviteeUri: invitee.uri,
+      eventUri: invitee.scheduled_event.uri,
+    });
+    try {
+      await sendFirmIntegrationAlertEmail({
+        title: "Smokeball appointment note needs manual follow-up",
+        reason:
+          "Calendly booking did not include utm_content, so the app cannot resolve a Matter Reference.",
+        sessionId: "(missing)",
+        clientName: invitee.name,
+        clientEmail: invitee.email,
+        details: {
+          "Appointment start": invitee.scheduled_event.start_time,
+          "Calendly event": invitee.scheduled_event.uri,
+          "Calendly invitee": invitee.uri,
+        },
+      });
+    } catch (err) {
+      console.error("[calendly-webhook] failed to send manual follow-up alert", err);
+    }
   }
 
   return NextResponse.json({ ok: true });

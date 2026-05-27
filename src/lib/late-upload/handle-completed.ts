@@ -115,7 +115,7 @@ export async function handleUploadCompleted(
         size_bytes: sizeBytes,
       },
       uploaded_at: uploadedAt,
-      source: "chatbot/late-upload",
+      source: "website chatbot",
     });
   } catch (err) {
     attachZapStatus = "failed";

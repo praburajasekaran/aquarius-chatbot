@@ -40,7 +40,7 @@ reach Smokeball even if every other safeguard fails.
 
 ## 2. Zapier wiring
 
-Four Zaps. The first three live in production; the fourth is the dev tripwire.
+Five Zaps. The first four live in production; the fifth is the dev tripwire.
 
 ```
 ┌───────────────────────────────────────────────────────────────────────────┐
@@ -64,7 +64,14 @@ Four Zaps. The first three live in production; the fourth is the dev tripwire.
 │   Trigger: Catch Hook  →  (action TBD — Google Sheet append or email)    │
 │   Status: 🟡 URL captured, action deferred post-demo (durable audit log)  │
 ├───────────────────────────────────────────────────────────────────────────┤
-│ Zap #4 (DEV)   ujp9qvr                                                    │
+│ Zap #4 (PROD)                                                             │
+│   Trigger: Catch Hook  →  Smokeball Add Note to Matter                    │
+│   Matter ID = smokeball_matter_id from the app's session mapping. Payload │
+│   is booking-only: matter_ref, client_name, client_email,                 │
+│   appointment_start_time(_local), Calendly URLs, matter_note_title, and   │
+│   matter_note_body for the matter notes/memos area.                       │
+├───────────────────────────────────────────────────────────────────────────┤
+│ Zap #5 (DEV)   ujp9qvr                                                    │
 │   Trigger: Catch Hook  →  Email prabu@motionify.co with full payload      │
 │   No filter, no Smokeball action — physically cannot pollute prod.        │
 │   Status: ✅ published                                                    │
@@ -146,6 +153,7 @@ Not `meta.testPayload`. See field-binding gotcha in §2.
    mapping captured back to Redis → client confirmation email via Resend
 6. Optional: demo late-upload magic-link flow (Zap #2)
 7. Optional: demo Calendly booking → webhook fires → booking confirmation email
+   plus Zap #4 Appointment Note once the Smokeball matter mapping is available
 
 **Fallbacks built in:**
 - ClickSend alpha tag not approved → numeric sender

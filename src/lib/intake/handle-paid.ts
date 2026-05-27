@@ -4,10 +4,16 @@ import {
   hashToken,
   revokeTokenByHash,
 } from "@/lib/upload-tokens";
-import { sendAndLog, sendTranscriptEmail } from "@/lib/resend";
+import {
+  sendAndLog,
+  sendFirmIntegrationAlertEmail,
+  sendTranscriptEmail,
+} from "@/lib/resend";
 import { getIntake } from "@/lib/intake";
+import { buildCreateMatterZapPayload } from "@/lib/smokeball/create-matter";
 import { sendSms } from "@/lib/sms/dispatch";
 import { scheduleReminderSms } from "@/lib/sms/reminder";
+import { sendToZapier } from "@/lib/zapier";
 import { IMMEDIATE_SMS_COPY, URGENT_FIRM_SMS_COPY } from "@/lib/sms/copy";
 import { assertNoResendTracking } from "@/lib/email/assert-no-tracking";
 import PaymentReceipt from "@/lib/email/payment-receipt";
@@ -186,7 +192,55 @@ export async function handleIntakePaid(
     .get<string>(`transcript:${sessionId}`)
     .catch(() => null);
 
-  // 4. Receipt email — best-effort
+  // 4. Smokeball create-matter Zap — best-effort with firm alert on hard failure.
+  // This intentionally excludes the full transcript; Zap #1 receives only the
+  // Matter Summary and payment/contact metadata.
+  if (intake) {
+    const createMatterUrl = process.env.ZAPIER_WEBHOOK_URL;
+    try {
+      if (!createMatterUrl) throw new Error("ZAPIER_WEBHOOK_URL not configured");
+      await sendToZapier(
+        createMatterUrl,
+        buildCreateMatterZapPayload({
+          sessionId,
+          paymentRef,
+          paymentAmount,
+          intake,
+        })
+      );
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      console.error("[intake] create-matter Zap failed", {
+        event: "intake_create_matter_zap_failed",
+        sessionId,
+        paymentRef,
+        err: reason,
+      });
+      try {
+        await sendFirmIntegrationAlertEmail({
+          title: "Smokeball matter creation failed",
+          reason,
+          sessionId,
+          clientName: intake.clientName,
+          clientEmail: intake.clientEmail,
+          details: {
+            "Payment reference": paymentRef,
+            Urgency: intake.urgency,
+            "Matter summary": intake.matterDescription,
+          },
+        });
+      } catch (alertErr) {
+        console.error("[intake] create-matter firm alert failed", {
+          event: "intake_create_matter_alert_failed",
+          sessionId,
+          err:
+            alertErr instanceof Error ? alertErr.message : String(alertErr),
+        });
+      }
+    }
+  }
+
+  // 5. Receipt email — best-effort
   const from = process.env.RESEND_FROM_EMAIL;
   if (from) {
     try {
@@ -233,7 +287,7 @@ export async function handleIntakePaid(
     );
   }
 
-  // 5. Firm transcript — best-effort, requires intake record
+  // 6. Firm transcript — best-effort, requires intake record
   if (intake) {
     try {
       await sendTranscriptEmail({
@@ -259,7 +313,7 @@ export async function handleIntakePaid(
     });
   }
 
-  // 6 + 7. Client SMS dispatch — both functions are absent-env-safe and never throw
+  // 7 + 8. Client SMS dispatch — both functions are absent-env-safe and never throw
   const phone = intake?.clientPhone;
   if (phone) {
     await sendSms(phone, IMMEDIATE_SMS_COPY(uploadLink));
@@ -283,7 +337,7 @@ export async function handleIntakePaid(
     });
   }
 
-  // 8. Urgent-only firm staff SMS (PHASE-03)
+  // 9. Urgent-only firm staff SMS (PHASE-03)
   // Fires to the on-call mobile when an URGENT matter completes payment.
   // sendSms is absent-env-safe — missing FIRM_NOTIFY_PHONE or CLICKSEND_*
   // simply skips the dispatch. Non-urgent matters stay email-only.

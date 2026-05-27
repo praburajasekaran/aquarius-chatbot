@@ -77,7 +77,7 @@ Eight tools defined in [src/lib/tools/index.ts](src/lib/tools/index.ts). Server-
 | `collectDetails` | server | Validation only. **No external effects.** |
 | `selectUrgency` | server | Writes Redis `intake:{sessionId}` (TTL 7d). Sends **client inquiry email** + **firm lead email**. |
 | `initiatePayment` | client (PaymentCard) | Creates Stripe Checkout session OR demo button. Writes `intake.stripeSessionId`. |
-| `uploadDocuments` | client (DocumentUpload) | `POST /api/upload` per batch → Vercel Blob → updates Redis `session.uploadRefs` → **fires Zapier ATTACH + AUDIT zaps** (one each per file, `source: "chatbot/in-chat-upload"`). |
+| `uploadDocuments` | client (DocumentUpload) | `POST /api/upload` per batch → Vercel Blob → updates Redis `session.uploadRefs` → **fires Zapier ATTACH + AUDIT zaps** (one each per file, `source: "website chatbot"`). |
 | `showOptions` | server | Renders chips. **No effects.** |
 | `scheduleAppointment` | client (CalendlyEmbed) | Renders Calendly iframe. The inline widget itself doesn't post to your server — Calendly's own webhook does. |
 | `showUrgentContact` | client (UrgentContactCard) | Renders firm phone card. **No effects.** |
@@ -166,7 +166,7 @@ After payment, the LLM calls `uploadDocuments`. This renders `<DocumentUpload>`.
 
 - `POST /api/upload` (multipart) → Vercel Blob (`uploads/{sessionId}/{ts}-{name}`).
 - Updates Redis `session.uploadRefs` (limit 5 files, 10MB each, types: PDF/JPG/PNG/DOCX).
-- **Fires Zapier ATTACH zap** (`ZAPIER_ATTACH_WEBHOOK_URL`) — one POST per uploaded file, mirroring the late-upload payload (`matter_ref = sessionId`, `source: "chatbot/in-chat-upload"`).
+- **Fires Zapier ATTACH zap** (`ZAPIER_ATTACH_WEBHOOK_URL`) — one POST per uploaded file, mirroring the late-upload payload (`matter_ref = sessionId`, `source: "website chatbot"`).
 - **Fires Zapier AUDIT zap** (`ZAPIER_AUDIT_WEBHOOK_URL`) — one POST per file, `event: "in_chat_upload.completed"` plus `attach_zap_status`.
 - **No firm email** at this step. The firm transcript email already fired at §2.7-#5; per-file emails would be noise.
 
@@ -212,7 +212,7 @@ This is the path that delivers documents to Smokeball.
 | 1 | Magic-byte sniff | `fileTypeFromBuffer` | Mismatch → blob deleted, no events. |
 | 2 | `head()` blob meta | Vercel Blob | Read size. |
 | 3 | Lookup `session-matter:{sessionId}` (90d TTL) → renew | Upstash | Captured by Zap #1's tail webhook (§2.11). |
-| 4 | **Zapier ATTACH** | `ZAPIER_ATTACH_WEBHOOK_URL` | Payload: `{ matter_ref, smokeball_matter_id, session_id, client_email, client_name, file: { url, name, content_type, size_bytes }, uploaded_at, source: "chatbot/late-upload" }`. Two attempts. → Smokeball matter file attach. |
+| 4 | **Zapier ATTACH** | `ZAPIER_ATTACH_WEBHOOK_URL` | Payload: `{ matter_ref, smokeball_matter_id, session_id, client_email, client_name, file: { url, name, content_type, size_bytes }, uploaded_at, source: "website chatbot" }`. Two attempts. → Smokeball matter file attach. |
 | 5 | **Zapier AUDIT** | `ZAPIER_AUDIT_WEBHOOK_URL` | Payload: `event: "late_upload.completed"` plus all metadata + `attach_zap_status`. |
 | 6 | **Email → firm** (`FIRM_NOTIFY_EMAIL`) | Resend (plaintext) | Subject: `[Upload] {name} — {filename}` *or* `[Upload — MANUAL REQUIRED] ...` if attach zap failed or matter mapping was missing. Body includes Smokeball matter ID (or "(not captured — attach manually)"), file URL, status. |
 | 7 | **Email → client** (out-of-band confirmation) | Resend | Subject: `We received a file for your matter`. Body invites them to reply if not theirs. |
@@ -280,7 +280,7 @@ This is the path that delivers documents to Smokeball.
    ✅ **Verify:**
    - Vercel Blob: files at `uploads/{sessionId}/...`.
    - Redis: `session.uploadRefs` has the URLs.
-   - Zapier history: ATTACH zap fires (one per file) with `source: "chatbot/in-chat-upload"`, `smokeball_matter_id: null` (or the captured ID if Zap #1 already finished).
+   - Zapier history: ATTACH zap fires (one per file) with `source: "website chatbot"`, `smokeball_matter_id: null` (or the captured ID if Zap #1 already finished).
    - Zapier history: AUDIT zap fires with `event: "in_chat_upload.completed"`.
    - Vercel logs: `[in-chat-upload] zapier delivery complete` with `file_count` matching what you uploaded.
    - **No firm email** at this step (by design — files arrive in Smokeball via the ATTACH zap).

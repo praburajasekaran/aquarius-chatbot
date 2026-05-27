@@ -3,6 +3,7 @@ import { Resend } from "resend";
 import { BRANDING } from "@/lib/branding";
 import ClientInquiryEmail from "@/lib/email/templates/client-inquiry";
 import FirmBookingNotificationEmail from "@/lib/email/templates/firm-booking-notification";
+import FirmIntegrationAlertEmail from "@/lib/email/templates/firm-integration-alert";
 import FirmLeadEmail from "@/lib/email/templates/firm-lead";
 import FirmTranscriptEmail from "@/lib/email/templates/firm-transcript";
 
@@ -18,6 +19,19 @@ export const resend: Resend = new Proxy({} as Resend, {
   },
 });
 
+const RATE_LIMIT_RETRY_DELAYS_MS = [750, 1500] as const;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRateLimitError(error: { name?: string; message?: string }): boolean {
+  return (
+    error.name === "rate_limit_exceeded" ||
+    /too many requests|rate limit/i.test(error.message ?? "")
+  );
+}
+
 // The Resend SDK's `emails.send()` returns `{ data, error }` and does NOT throw
 // on application-level rejections (unverified sender, suppression list, rate
 // limits, schema errors). Without inspection these failures are invisible —
@@ -32,28 +46,51 @@ export async function sendAndLog(
   payload: CreateEmailOptions,
   context: { event: string; sessionId?: string }
 ): Promise<CreateEmailResponseSuccess> {
-  const { data, error } = await resend.emails.send(payload);
-  if (error) {
-    console.error("[resend] send failed", {
-      event: "resend_send_failed",
+  let lastError: { name?: string; message?: string } | null = null;
+
+  for (let attempt = 0; attempt <= RATE_LIMIT_RETRY_DELAYS_MS.length; attempt++) {
+    const { data, error } = await resend.emails.send(payload);
+    if (!error) {
+      console.info("[resend] sent", {
+        event: "resend_sent",
+        caller: context.event,
+        sessionId: context.sessionId,
+        to: payload.to,
+        subject: payload.subject,
+        id: data?.id,
+        attempt: attempt + 1,
+      });
+      // data is non-null when error is null per Resend SDK contract
+      return data as CreateEmailResponseSuccess;
+    }
+
+    lastError = error;
+    const retryDelay = RATE_LIMIT_RETRY_DELAYS_MS[attempt];
+    if (!isRateLimitError(error) || retryDelay === undefined) break;
+
+    console.warn("[resend] rate limited, retrying", {
+      event: "resend_rate_limit_retry",
       caller: context.event,
       sessionId: context.sessionId,
       to: payload.to,
       subject: payload.subject,
-      error: { name: error.name, message: error.message },
+      attempt: attempt + 1,
+      retryDelayMs: retryDelay,
     });
-    throw new Error(`Resend rejected: ${error.name} — ${error.message}`);
+    await sleep(retryDelay);
   }
-  console.info("[resend] sent", {
-    event: "resend_sent",
+
+  console.error("[resend] send failed", {
+    event: "resend_send_failed",
     caller: context.event,
     sessionId: context.sessionId,
     to: payload.to,
     subject: payload.subject,
-    id: data?.id,
+    error: { name: lastError?.name, message: lastError?.message },
   });
-  // data is non-null when error is null per Resend SDK contract
-  return data as CreateEmailResponseSuccess;
+  throw new Error(
+    `Resend rejected: ${lastError?.name} — ${lastError?.message}`
+  );
 }
 
 export async function sendTranscriptEmail({
@@ -292,5 +329,62 @@ export async function sendBookingNotificationEmail({
       event: "sendBookingNotificationEmail",
       sessionId: paymentRef ?? undefined,
     }
+  );
+}
+
+export async function sendFirmIntegrationAlertEmail({
+  title,
+  reason,
+  sessionId,
+  clientName,
+  clientEmail,
+  smokeballMatterId,
+  details,
+}: {
+  title: string;
+  reason: string;
+  sessionId: string;
+  clientName?: string | null;
+  clientEmail?: string | null;
+  smokeballMatterId?: string | null;
+  details?: Record<string, string | number | boolean | null | undefined>;
+}) {
+  const from = process.env.RESEND_FROM_EMAIL;
+  if (!from) {
+    console.warn(
+      "[resend] RESEND_FROM_EMAIL not set — sendFirmIntegrationAlertEmail skipped",
+      { event: "firm_integration_alert_skipped", reason: "no_from", sessionId }
+    );
+    return;
+  }
+  const to = process.env.FIRM_NOTIFY_EMAIL;
+  if (!to) {
+    console.error(
+      "[resend] FIRM_NOTIFY_EMAIL not set — sendFirmIntegrationAlertEmail skipped",
+      {
+        event: "firm_notify_email_missing",
+        caller: "sendFirmIntegrationAlertEmail",
+        sessionId,
+      }
+    );
+    return;
+  }
+
+  return sendAndLog(
+    {
+      from,
+      to,
+      subject: title,
+      react: FirmIntegrationAlertEmail({
+        title,
+        reason,
+        sessionId,
+        clientName,
+        clientEmail,
+        smokeballMatterId,
+        details,
+      }),
+    },
+    { event: "sendFirmIntegrationAlertEmail", sessionId }
   );
 }
