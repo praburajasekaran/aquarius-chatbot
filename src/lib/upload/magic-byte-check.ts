@@ -1,10 +1,18 @@
 import { fileTypeFromBuffer } from "file-type";
 import {
-  ALLOWED_CONTENT_TYPES,
-  type AllowedContentType,
+  isAllowedContentType,
+  normalizeContentType,
 } from "@/lib/allowed-types";
 
 const HEAD_BYTES = 4096;
+const HEIF_FAMILY = new Set([
+  "image/heic",
+  "image/heic-sequence",
+  "image/heif",
+  "image/heif-sequence",
+]);
+const RTF_TYPES = new Set(["application/rtf", "text/rtf"]);
+const TEXT_TYPES = new Set(["text/plain"]);
 
 export interface MagicByteResult {
   ok: boolean;
@@ -13,10 +21,26 @@ export interface MagicByteResult {
   reason?: string;
 }
 
-function isAllowed(mime: string): boolean {
-  return (ALLOWED_CONTENT_TYPES as readonly string[]).includes(
-    mime as AllowedContentType,
-  );
+function contentTypesMatch(detected: string, declared: string): boolean {
+  const normalizedDetected = normalizeContentType(detected);
+  const normalizedDeclared = normalizeContentType(declared);
+  if (normalizedDetected === normalizedDeclared) return true;
+  if (HEIF_FAMILY.has(normalizedDetected) && HEIF_FAMILY.has(normalizedDeclared)) {
+    return true;
+  }
+  if (RTF_TYPES.has(normalizedDetected) && RTF_TYPES.has(normalizedDeclared)) {
+    return true;
+  }
+  return normalizedDetected === "application/x-cfb" && normalizedDeclared === "application/msword";
+}
+
+function looksLikePlainText(buf: Buffer): boolean {
+  if (buf.length === 0) return true;
+  for (const byte of buf) {
+    if (byte === 0) return false;
+    if (byte < 32 && byte !== 9 && byte !== 10 && byte !== 13) return false;
+  }
+  return true;
 }
 
 /**
@@ -34,7 +58,8 @@ export async function checkMagicBytes(
     | { kind: "buffer"; buf: Buffer; declared: string },
 ): Promise<MagicByteResult> {
   const declared = source.declared;
-  const declaredOk = isAllowed(declared);
+  const normalizedDeclared = normalizeContentType(declared);
+  const declaredOk = isAllowedContentType(declared);
   if (!declaredOk) {
     return { ok: false, detected: null, declared, reason: "declared_disallowed" };
   }
@@ -53,9 +78,12 @@ export async function checkMagicBytes(
 
   const detected = await fileTypeFromBuffer(buf);
   if (!detected) {
+    if (TEXT_TYPES.has(normalizedDeclared) && looksLikePlainText(buf)) {
+      return { ok: true, detected: "text/plain", declared };
+    }
     return { ok: false, detected: null, declared, reason: "no_detection" };
   }
-  if (!isAllowed(detected.mime)) {
+  if (!isAllowedContentType(detected.mime) && !contentTypesMatch(detected.mime, declared)) {
     return {
       ok: false,
       detected: detected.mime,
@@ -63,7 +91,7 @@ export async function checkMagicBytes(
       reason: "detected_disallowed",
     };
   }
-  if (detected.mime !== declared) {
+  if (!contentTypesMatch(detected.mime, normalizedDeclared)) {
     return {
       ok: false,
       detected: detected.mime,

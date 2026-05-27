@@ -11,9 +11,10 @@ import {
   AlertCircle,
   Plus,
 } from "lucide-react";
-import { ALLOWED_CONTENT_TYPES, MAX_BYTES } from "@/lib/allowed-types";
+import { MAX_BYTES, resolveUploadContentType } from "@/lib/allowed-types";
 
-const ALLOWED_EXTENSIONS = ".pdf,.jpg,.jpeg,.png,.docx";
+const ALLOWED_EXTENSIONS = ".pdf,.jpg,.jpeg,.heic,.heif,.png,.doc,.docx,.rtf,.txt";
+const ALLOWED_TYPES_LABEL = "PDF, JPG, HEIC/HEIF, PNG, DOC, DOCX, RTF, TXT";
 const MAX_FILES_PER_BATCH = 10;
 
 interface TrackedFile {
@@ -49,8 +50,8 @@ export function LateUploadClient({
   const isUploading = files.some((f) => f.status === "uploading");
 
   function validate(file: File): string | null {
-    if (!(ALLOWED_CONTENT_TYPES as readonly string[]).includes(file.type)) {
-      return "Unsupported file type. Allowed: PDF, JPG, PNG, DOCX.";
+    if (!resolveUploadContentType(file.type, file.name)) {
+      return `Unsupported file type. Allowed: ${ALLOWED_TYPES_LABEL}.`;
     }
     if (file.size > MAX_BYTES) {
       return `File exceeds ${MAX_BYTES / (1024 * 1024)} MB limit.`;
@@ -87,6 +88,8 @@ export function LateUploadClient({
   async function uploadOne(tracked: TrackedFile): Promise<void> {
     const file = fileObjectsRef.current.get(tracked.key);
     if (!file) return;
+    const contentType = resolveUploadContentType(file.type, file.name);
+    if (!contentType) return;
 
     setFiles((prev) =>
       prev.map((f) =>
@@ -98,7 +101,7 @@ export function LateUploadClient({
       await upload(file.name, file, {
         access: "public",
         handleUploadUrl: "/api/late-upload/session",
-        contentType: file.type,
+        contentType,
       });
       setFiles((prev) =>
         prev.map((f) =>
@@ -201,7 +204,7 @@ export function LateUploadClient({
             <span className="text-brand font-medium">browse</span>
           </p>
           <p className="text-xs text-gray-500 mt-1">
-            PDF, JPG, PNG, DOCX · max {MAX_BYTES / (1024 * 1024)} MB per file
+            {ALLOWED_TYPES_LABEL} · max {MAX_BYTES / (1024 * 1024)} MB per file
           </p>
           <input
             ref={inputRef}
