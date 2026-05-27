@@ -1,14 +1,16 @@
 import path from "node:path";
 import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
-import { validateFileType, validateFileSize } from "@/lib/validators";
+import { validateFileSize } from "@/lib/validators";
 import { createSession, getSession, updateSession } from "@/lib/kv";
 import { deliverInChatUploadsToZapier } from "@/lib/in-chat-upload/deliver-to-zapier";
 import { inChatUploadLimiter } from "@/lib/rate-limit";
 import { checkMagicBytes } from "@/lib/upload/magic-byte-check";
+import { resolveUploadContentType } from "@/lib/allowed-types";
 
 const MAX_FILES_PER_SESSION = 5;
 const MAX_SESSION_ID_LENGTH = 200;
+const ALLOWED_TYPES_LABEL = "PDF, JPG, HEIC/HEIF, PNG, DOC, DOCX, RTF, TXT";
 
 function safeFilename(name: string): string {
   // Strip any directory components — uploads must land flat under
@@ -85,11 +87,12 @@ export async function POST(req: Request) {
 
     for (const file of filesToProcess) {
       const cleanName = safeFilename(file.name);
+      const contentType = resolveUploadContentType(file.type, cleanName);
 
-      if (!validateFileType(file.type)) {
+      if (!contentType) {
         errors.push({
           name: cleanName,
-          reason: "Invalid file type. Allowed: PDF, JPG, PNG, DOCX",
+          reason: `Invalid file type. Allowed: ${ALLOWED_TYPES_LABEL}`,
         });
         continue;
       }
@@ -110,7 +113,7 @@ export async function POST(req: Request) {
       const magic = await checkMagicBytes({
         kind: "blob",
         blob: file,
-        declared: file.type,
+        declared: contentType,
       });
       if (!magic.ok) {
         console.warn("[upload] magic-byte mismatch", {
@@ -123,7 +126,7 @@ export async function POST(req: Request) {
         });
         errors.push({
           name: cleanName,
-          reason: "File contents don't match its type. Allowed: PDF, JPG, PNG, DOCX",
+          reason: `File contents don't match its type. Allowed: ${ALLOWED_TYPES_LABEL}`,
         });
         continue;
       }
@@ -132,12 +135,12 @@ export async function POST(req: Request) {
         const blob = await put(
           `uploads/${sessionId}/${Date.now()}-${cleanName}`,
           file,
-          { access: "public", contentType: file.type }
+          { access: "public", contentType }
         );
         successful.push({
           url: blob.url,
           name: cleanName,
-          contentType: file.type,
+          contentType,
           sizeBytes: file.size,
         });
       } catch (err) {

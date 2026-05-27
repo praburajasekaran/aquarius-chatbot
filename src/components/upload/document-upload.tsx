@@ -9,16 +9,12 @@ import {
   Loader2,
   AlertCircle,
 } from "lucide-react";
+import { resolveUploadContentType } from "@/lib/allowed-types";
 
 const MAX_FILES = 5;
 const MAX_SIZE_MB = 10;
-const ALLOWED_TYPES = [
-  "application/pdf",
-  "image/jpeg",
-  "image/png",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-];
-const ALLOWED_EXTENSIONS = ".pdf,.jpg,.jpeg,.png,.docx";
+const ALLOWED_EXTENSIONS = ".pdf,.jpg,.jpeg,.heic,.heif,.png,.doc,.docx,.rtf,.txt";
+const ALLOWED_TYPES_LABEL = "PDF, JPG, HEIC/HEIF, PNG, DOC, DOCX, RTF, TXT";
 
 interface UploadedFile {
   name: string;
@@ -57,8 +53,8 @@ export function DocumentUpload({
   const allDone = files.length > 0 && files.every((f) => f.status === "done");
 
   function validateClientSide(file: File): string | null {
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      return "Invalid file type. Allowed: PDF, JPG, PNG, DOCX";
+    if (!resolveUploadContentType(file.type, file.name)) {
+      return `Invalid file type. Allowed: ${ALLOWED_TYPES_LABEL}`;
     }
     if (file.size > MAX_SIZE_MB * 1024 * 1024) {
       return `File exceeds ${MAX_SIZE_MB}MB limit`;
@@ -232,7 +228,7 @@ export function DocumentUpload({
       {/* text-sm secondary text; gray-700 = 10.31:1 AAA */}
       <p className="text-sm text-gray-700">
         Attach relevant documents (charge sheets, court notices, photos). Optional
-        — you can skip if you have none. PDF, JPG, PNG, DOCX · max 10MB each ·
+        — you can skip if you have none. {ALLOWED_TYPES_LABEL} · max 10MB each ·
         up to {MAX_FILES} files.
       </p>
 

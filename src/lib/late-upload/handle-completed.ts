@@ -1,13 +1,10 @@
 import { del, head } from "@vercel/blob";
 import type { PutBlobResult } from "@vercel/blob";
-import { fileTypeFromBuffer } from "file-type";
 import { sendAndLog } from "@/lib/resend";
 import { sendToZapier } from "@/lib/zapier";
 import { redis } from "@/lib/kv";
-import {
-  ALLOWED_CONTENT_TYPES,
-  type AllowedContentType,
-} from "@/lib/allowed-types";
+import { normalizeContentType } from "@/lib/allowed-types";
+import { checkMagicBytes } from "@/lib/upload/magic-byte-check";
 import { getRecordByHash } from "@/lib/upload-tokens";
 import { touchMatterForSession } from "@/lib/session-matter-map";
 import { cancelPendingReminder } from "@/lib/sms/reminder";
@@ -42,26 +39,23 @@ export async function handleUploadCompleted(
   }
 
   // --- magic-byte validation ---
-  let magicOk = false;
   try {
     const res = await fetch(blob.url, {
       headers: { Range: `bytes=0-${HEAD_BYTES - 1}` },
     });
     const buf = Buffer.from(await res.arrayBuffer());
-    const detected = await fileTypeFromBuffer(buf);
+    const magic = await checkMagicBytes({
+      kind: "buffer",
+      buf,
+      declared: blob.contentType,
+    });
 
-    const declared = blob.contentType;
-    const declaredOk = isAllowed(declared);
-    const detectedOk = detected ? isAllowed(detected.mime) : false;
-    const mimesAgree = detected ? detected.mime === declared : false;
-
-    magicOk = declaredOk && detectedOk && mimesAgree;
-
-    if (!magicOk) {
+    if (!magic.ok) {
       console.error("[late-upload] magic-byte mismatch — deleting blob", {
         matterRef,
-        declared,
-        detected: detected?.mime ?? "unknown",
+        declared: magic.declared,
+        detected: magic.detected ?? "unknown",
+        reason: magic.reason,
       });
       await safeDel(blob.url);
       return;
@@ -83,6 +77,7 @@ export async function handleUploadCompleted(
 
   const uploadedAt = new Date().toISOString();
   const fileName = blob.pathname.split("/").pop() ?? "file";
+  const contentType = normalizeContentType(blob.contentType);
 
   // Resolve the Smokeball matter ID captured by Zap #1's tail webhook.
   // Missing mapping is not fatal — we still fire the Zap with matter_ref only
@@ -111,7 +106,7 @@ export async function handleUploadCompleted(
       file: {
         url: blob.url,
         name: fileName,
-        content_type: blob.contentType,
+        content_type: contentType,
         size_bytes: sizeBytes,
       },
       uploaded_at: uploadedAt,
@@ -162,7 +157,7 @@ export async function handleUploadCompleted(
             matterRef,
             smokeballMatterId,
             fileName,
-            contentType: blob.contentType,
+            contentType,
             sizeBytes,
             url: blob.url,
             attachZapStatus,
@@ -248,8 +243,4 @@ async function safeDel(url: string): Promise<void> {
   } catch (err) {
     console.error("[late-upload] del() failed", { url, err });
   }
-}
-
-function isAllowed(mime: string): boolean {
-  return (ALLOWED_CONTENT_TYPES as readonly string[]).includes(mime as AllowedContentType);
 }
