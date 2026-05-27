@@ -9,6 +9,17 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/session-matter-map", () => ({
   getMatterForSession: mocks.getMatterForSession,
+  isValidSmokeballMatterId: (value: unknown) => {
+    if (typeof value !== "string") return false;
+    const normalized = value.trim().toLowerCase();
+    return (
+      normalized.length > 0 &&
+      normalized !== "null" &&
+      normalized !== "undefined" &&
+      normalized !== "none" &&
+      normalized !== "n/a"
+    );
+  },
 }));
 
 vi.mock("@/lib/resend", () => ({
@@ -115,6 +126,22 @@ describe("Smokeball appointment note delivery", () => {
 
     await expect(
       deliverAppointmentNoteToSmokeball(input, { attempts: 2, delayMs: 0 })
+    ).resolves.toBe("skipped");
+
+    expect(mocks.sendToZapier).not.toHaveBeenCalled();
+    expect(mocks.sendFirmIntegrationAlertEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "Smokeball appointment note needs manual follow-up",
+        sessionId: "sess-1",
+      })
+    );
+  });
+
+  it("treats a null-like matter mapping as missing", async () => {
+    mocks.getMatterForSession.mockResolvedValue({ smokeballMatterId: "null" });
+
+    await expect(
+      deliverAppointmentNoteToSmokeball(input, { attempts: 1, delayMs: 0 })
     ).resolves.toBe("skipped");
 
     expect(mocks.sendToZapier).not.toHaveBeenCalled();
