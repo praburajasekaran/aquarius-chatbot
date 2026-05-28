@@ -192,8 +192,9 @@ Ordered by risk / dependency.
 
 - [ ] Ring CBA Merchant Services → confirm **BPoint Iframe Fields** is enabled on the
       facility (SCI is enabled; Iframe Fields is a separate config flag)
-- [ ] Ping when ClickSend alpha sender ID `AquariusLaw` is approved — will flip
-      `CLICKSEND_SENDER_ID` in Vercel prod env
+- [ ] Configure the approved ClickSend alpha sender ID `AquariusLaw` in Vercel prod:
+      `CLICKSEND_SENDER_ID=AquariusLaw`, `CLICKSEND_SENDER_COUNTRY=AU`,
+      `CLICKSEND_SENDER_TYPE=alpha_tag`
 - [ ] Smokeball field mapping (reply by Thursday or defaults ship):
   - Which field receives the urgency tag?
   - Which field receives the BPoint receipt number (Trust Accounting reconciliation)?

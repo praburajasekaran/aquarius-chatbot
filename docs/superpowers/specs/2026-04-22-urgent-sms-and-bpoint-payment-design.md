@@ -99,7 +99,9 @@ URGENT — Aquarius chatbot intake. Client: <name> (<phone>, <email>). Session <
 |---|---|
 | `CLICKSEND_USERNAME` | ClickSend account username |
 | `CLICKSEND_API_KEY` | ClickSend API key |
-| `CLICKSEND_SENDER_ID` | AU-registered alpha sender or `AQUARIUS` |
+| `CLICKSEND_SENDER_ID` | Approved AU alpha sender, `AquariusLaw` |
+| `CLICKSEND_SENDER_COUNTRY` | ClickSend sender country, `AU` |
+| `CLICKSEND_SENDER_TYPE` | ClickSend sender type, `alpha_tag` |
 | `URGENT_SMS_RECIPIENT` | Default `+61450533474`; env-overridable for testing |
 
 ### Failure Handling
@@ -312,7 +314,9 @@ BPOINT_ENV=sandbox             # "sandbox" | "prod"
 
 CLICKSEND_USERNAME=
 CLICKSEND_API_KEY=
-CLICKSEND_SENDER_ID=           # blank = shared number; "AquariusLaw" once approved
+CLICKSEND_SENDER_ID=AquariusLaw
+CLICKSEND_SENDER_COUNTRY=AU
+CLICKSEND_SENDER_TYPE=alpha_tag
 URGENT_SMS_RECIPIENT=          # E.164 solicitor mobile
 
 CALENDLY_PERSONAL_ACCESS_TOKEN=

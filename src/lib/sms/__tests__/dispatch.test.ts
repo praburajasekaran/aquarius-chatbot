@@ -22,6 +22,8 @@ describe("sendSms — landline skip (SMS-04 + OPS-03)", () => {
     process.env.CLICKSEND_USERNAME = "user";
     process.env.CLICKSEND_API_KEY = "key";
     process.env.CLICKSEND_SENDER_ID = "AquariusLaw";
+    process.env.CLICKSEND_SENDER_COUNTRY = "AU";
+    process.env.CLICKSEND_SENDER_TYPE = "alpha_tag";
     infoSpy = vi.spyOn(console, "info").mockImplementation(() => {});
     warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -31,6 +33,8 @@ describe("sendSms — landline skip (SMS-04 + OPS-03)", () => {
     delete process.env.CLICKSEND_USERNAME;
     delete process.env.CLICKSEND_API_KEY;
     delete process.env.CLICKSEND_SENDER_ID;
+    delete process.env.CLICKSEND_SENDER_COUNTRY;
+    delete process.env.CLICKSEND_SENDER_TYPE;
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
@@ -67,6 +71,8 @@ describe("sendSms — masked logging on successful send (OPS-03)", () => {
     process.env.CLICKSEND_USERNAME = "user";
     process.env.CLICKSEND_API_KEY = "key";
     process.env.CLICKSEND_SENDER_ID = "AquariusLaw";
+    process.env.CLICKSEND_SENDER_COUNTRY = "AU";
+    process.env.CLICKSEND_SENDER_TYPE = "alpha_tag";
     infoSpy = vi.spyOn(console, "info").mockImplementation(() => {});
     vi.spyOn(console, "warn").mockImplementation(() => {});
     vi.spyOn(console, "error").mockImplementation(() => {});
@@ -76,6 +82,8 @@ describe("sendSms — masked logging on successful send (OPS-03)", () => {
     delete process.env.CLICKSEND_USERNAME;
     delete process.env.CLICKSEND_API_KEY;
     delete process.env.CLICKSEND_SENDER_ID;
+    delete process.env.CLICKSEND_SENDER_COUNTRY;
+    delete process.env.CLICKSEND_SENDER_TYPE;
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
@@ -86,6 +94,33 @@ describe("sendSms — masked logging on successful send (OPS-03)", () => {
     expect(flat).not.toContain("+61412345678");
     // Masked form: at least one '*' between +61 and last 4 digits 5678
     expect(flat).toMatch(/\+61\*+5678/);
+  });
+
+  it("uses the approved AU Alpha Tag sender via ClickSend senders array", async () => {
+    await sendSms("+61412345678", "hello");
+
+    expect(fetch).toHaveBeenCalledWith(
+      "https://rest.clicksend.com/v3/sms/send",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          senders: [
+            {
+              country_code: "AU",
+              sender_type: "alpha_tag",
+              sender_id: "AquariusLaw",
+            },
+          ],
+          messages: [
+            {
+              to: "+61412345678",
+              body: "hello",
+              source: "aquariuslaw-app",
+            },
+          ],
+        }),
+      })
+    );
   });
 });
 
