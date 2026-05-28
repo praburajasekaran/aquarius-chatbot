@@ -60,6 +60,8 @@ export async function sendSms(to: string, body: string): Promise<void> {
   const username = process.env.CLICKSEND_USERNAME;
   const apiKey = process.env.CLICKSEND_API_KEY;
   const senderId = process.env.CLICKSEND_SENDER_ID ?? "AquariusLaw";
+  const senderCountry = process.env.CLICKSEND_SENDER_COUNTRY ?? "AU";
+  const senderType = process.env.CLICKSEND_SENDER_TYPE ?? "alpha_tag";
 
   if (!username || !apiKey) {
     console.warn("[sms] CLICKSEND_* env vars missing — SMS skipped", {
@@ -100,11 +102,18 @@ export async function sendSms(to: string, body: string): Promise<void> {
         Authorization: `Basic ${auth}`,
       },
       body: JSON.stringify({
+        senders: [
+          {
+            country_code: senderCountry,
+            sender_type: senderType,
+            sender_id: senderId,
+          },
+        ],
         messages: [
           {
             to: e164,
             body,
-            from: senderId,
+            source: "aquariuslaw-app",
           },
         ],
       }),
