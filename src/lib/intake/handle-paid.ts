@@ -248,10 +248,12 @@ export async function handleIntakePaid(
       // PaymentReceipt only renders the Calendly block when both `urgency`
       // is "non-urgent" AND `calendlyUrl` is set, so a missing env var just
       // drops that block instead of failing the entire receipt send.
-      const calendlyUrl = process.env.CALENDLY_BOOKING_URL;
+      const calendlyUrl =
+        process.env.CALENDLY_BOOKING_URL ??
+        process.env.NEXT_PUBLIC_CALENDLY_BOOKING_URL;
       if (!calendlyUrl) {
         console.warn(
-          "[intake] CALENDLY_BOOKING_URL not set — receipt sent without booking link",
+          "[intake] Calendly booking URL not set — receipt sent without booking link",
           { event: "intake_receipt_no_calendly", sessionId }
         );
       }

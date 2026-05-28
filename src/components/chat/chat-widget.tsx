@@ -176,6 +176,32 @@ function uploadToolSessionId(
   return null;
 }
 
+function selectedUrgencyFromMessages(
+  messages: ChatMessage[]
+): "urgent" | "non-urgent" | null {
+  for (let mi = messages.length - 1; mi >= 0; mi--) {
+    const message = messages[mi];
+    if (message.role !== "assistant") continue;
+    for (let pi = message.parts.length - 1; pi >= 0; pi--) {
+      const part = message.parts[pi] as {
+        type?: string;
+        input?: { urgency?: unknown };
+        output?: { urgency?: unknown };
+      };
+      if (part.type !== "tool-selectUrgency") continue;
+      const urgency = part.output?.urgency ?? part.input?.urgency;
+      if (urgency === "urgent" || urgency === "non-urgent") return urgency;
+    }
+  }
+  return null;
+}
+
+function postUploadFallbackBookingUrl(messages: ChatMessage[]): string | null {
+  if (selectedUrgencyFromMessages(messages) !== "non-urgent") return null;
+  const url = process.env.NEXT_PUBLIC_CALENDLY_BOOKING_URL;
+  return typeof url === "string" && url.length > 0 ? url : null;
+}
+
 // Auto-continuation condition. Fires only when one of the whitelisted client
 // tools in the last assistant message has entered a resolved state, meaning
 // the user has just completed an action (paid, uploaded, booked, etc.) and
@@ -501,7 +527,11 @@ export function ChatWidget() {
       );
       if (!res.ok) throw new Error(`next_step_${res.status}`);
       const data = (await res.json()) as PublicPostUploadBookingStep;
-      const nextStepMessage = postUploadBookingStepToChatMessage(data);
+      const nextStepMessage = postUploadBookingStepToChatMessage(
+        data,
+        undefined,
+        postUploadFallbackBookingUrl(messages)
+      );
 
       setMessages([...resolvedMessages, nextStepMessage]);
     } catch (err) {
@@ -509,13 +539,16 @@ export function ChatWidget() {
         sessionId: bookingSessionId,
         err: err instanceof Error ? err.message : String(err),
       });
+      const fallbackBookingUrl = postUploadFallbackBookingUrl(messages);
       const fallback: ChatMessage = {
         id: `post_upload_error_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
         role: "assistant",
         parts: [
           {
             type: "text",
-            text: `Thanks — your documents were submitted, but the next step is temporarily unavailable. Please contact Aquarius Lawyers directly on ${FIRM_CONTACT.phone}.`,
+            text: fallbackBookingUrl
+              ? `Thanks — your documents were submitted. If the booking widget does not appear, please book your Legal Strategy Session here: ${fallbackBookingUrl}. You can also contact Aquarius Lawyers directly on ${FIRM_CONTACT.phone}.`
+              : `Thanks — your documents were submitted, but the next step is temporarily unavailable. Please contact Aquarius Lawyers directly on ${FIRM_CONTACT.phone}.`,
           },
         ],
       };

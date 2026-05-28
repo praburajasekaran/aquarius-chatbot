@@ -83,4 +83,23 @@ describe("postUploadBookingStepToChatMessage", () => {
       ],
     });
   });
+
+  it("includes a direct booking link when the widget handoff is unavailable for a non-urgent visitor", () => {
+    expect(
+      postUploadBookingStepToChatMessage(
+        { kind: "unavailable" },
+        "fixed",
+        "https://calendly.test/book"
+      )
+    ).toEqual({
+      id: "post_upload_unavailable_fixed",
+      role: "assistant",
+      parts: [
+        {
+          type: "text",
+          text: "Thanks — your documents were submitted. If the booking widget does not appear, please book your Legal Strategy Session here: https://calendly.test/book. You can also contact Aquarius Lawyers directly on +61 2 8858 3233.",
+        },
+      ],
+    });
+  });
 });
