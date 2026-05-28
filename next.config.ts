@@ -85,6 +85,10 @@ const nextConfig: NextConfig = {
         source: "/api/late-upload/:path*",
         headers: [{ key: "Cache-Control", value: "no-store" }],
       },
+      {
+        source: "/upload/api/late-upload/:path*",
+        headers: [{ key: "Cache-Control", value: "no-store" }],
+      },
     ];
   },
 };
