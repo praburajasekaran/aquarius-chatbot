@@ -80,7 +80,17 @@ export const selectUrgency = tool({
         amountCents: pricing.amount,
       });
     } catch (err) {
-      console.error("[selectUrgency] failed to create intake record", err);
+      console.error("[selectUrgency] failed to create intake record", {
+        event: "selectUrgency_intake_create_failed",
+        sessionId,
+        err: err instanceof Error ? err.message : String(err),
+      });
+      return {
+        ok: false,
+        error: "intake_save_failed",
+        message:
+          "I couldn't securely save your details, so I can't take payment yet. Please try again in a moment, or call Aquarius Lawyers directly.",
+      } as const;
     }
 
     try {

@@ -99,6 +99,8 @@ describe("handleIntakePaid Smokeball fan-out", () => {
     process.env.APP_URL = "https://app.test";
     process.env.ZAPIER_WEBHOOK_URL = "https://zap.test/create";
     delete process.env.RESEND_FROM_EMAIL;
+    delete process.env.CALENDLY_BOOKING_URL;
+    delete process.env.NEXT_PUBLIC_CALENDLY_BOOKING_URL;
     mocks.getSession.mockResolvedValue(null);
     mocks.createSession.mockResolvedValue(undefined);
     mocks.updateSession.mockResolvedValue(undefined);
@@ -177,6 +179,30 @@ describe("handleIntakePaid Smokeball fan-out", () => {
         sessionId: "sess-1",
         clientEmail: "taylor@example.com",
       })
+    );
+  });
+
+  it("uses the public Calendly URL in the payment receipt when the server URL is not configured", async () => {
+    process.env.RESEND_FROM_EMAIL = "noreply@app.test";
+    delete process.env.CALENDLY_BOOKING_URL;
+    process.env.NEXT_PUBLIC_CALENDLY_BOOKING_URL = "https://calendly.test/book";
+    mocks.getIntake.mockResolvedValue(intake({ urgency: "non-urgent" }));
+    mocks.sendAndLog.mockResolvedValue({ id: "email-1" });
+
+    await handleIntakePaid({
+      sessionId: "sess-1",
+      paymentRef: "BPOINT-1",
+      paymentAmount: 72600,
+      clientEmail: "taylor@example.com",
+      clientName: "Taylor Smith",
+      source: "bpoint",
+    });
+
+    const receiptCall = mocks.sendAndLog.mock.calls.find(
+      ([, context]) => context.event === "intake_receipt"
+    );
+    expect(JSON.stringify(receiptCall?.[0].react)).toContain(
+      "https://calendly.test/book"
     );
   });
 });

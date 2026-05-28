@@ -8,7 +8,8 @@ function stamp() {
 
 export function postUploadBookingStepToChatMessage(
   step: PublicPostUploadBookingStep,
-  idSuffix: string = stamp()
+  idSuffix: string = stamp(),
+  fallbackBookingUrl?: string | null
 ): ChatMessage {
   if (step.kind === "session-booking") {
     const id = `post_upload_schedule_${idSuffix}`;
@@ -53,7 +54,9 @@ export function postUploadBookingStepToChatMessage(
     parts: [
       {
         type: "text",
-        text: `Thanks — your documents were submitted, but the next step is temporarily unavailable. Please contact Aquarius Lawyers directly on ${FIRM_CONTACT.phone}.`,
+        text: fallbackBookingUrl
+          ? `Thanks — your documents were submitted. If the booking widget does not appear, please book your Legal Strategy Session here: ${fallbackBookingUrl}. You can also contact Aquarius Lawyers directly on ${FIRM_CONTACT.phone}.`
+          : `Thanks — your documents were submitted, but the next step is temporarily unavailable. Please contact Aquarius Lawyers directly on ${FIRM_CONTACT.phone}.`,
       },
     ],
   };

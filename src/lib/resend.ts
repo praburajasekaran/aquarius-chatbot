@@ -171,7 +171,9 @@ export async function sendClientInquiryEmail({
   }
   const appUrl = process.env.NEXT_PUBLIC_URL ?? "";
   const resumeUrl = `${appUrl}/api/checkout/resume?session=${encodeURIComponent(sessionId)}`;
-  const calendlyUrl = process.env.CALENDLY_BOOKING_URL;
+  const calendlyUrl =
+    process.env.CALENDLY_BOOKING_URL ??
+    process.env.NEXT_PUBLIC_CALENDLY_BOOKING_URL;
   if (!calendlyUrl) {
     throw new Error("CALENDLY_BOOKING_URL not set");
   }
