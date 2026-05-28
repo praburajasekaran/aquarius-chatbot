@@ -100,7 +100,7 @@ export function LateUploadClient({
     try {
       await upload(file.name, file, {
         access: "public",
-        handleUploadUrl: "/api/late-upload/session",
+        handleUploadUrl: "/upload/api/late-upload/session",
         contentType,
       });
       setFiles((prev) =>
