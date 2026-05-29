@@ -9,10 +9,13 @@ import {
   Loader2,
   AlertCircle,
 } from "lucide-react";
-import { resolveUploadContentType } from "@/lib/allowed-types";
+import {
+  MAX_BYTES,
+  formatUploadLimit,
+  resolveUploadContentType,
+} from "@/lib/allowed-types";
 
 const MAX_FILES = 5;
-const MAX_SIZE_MB = 10;
 const ALLOWED_EXTENSIONS = ".pdf,.jpg,.jpeg,.heic,.heif,.png,.doc,.docx,.rtf,.txt";
 const ALLOWED_TYPES_LABEL = "PDF, JPG, HEIC/HEIF, PNG, DOC, DOCX, RTF, TXT";
 
@@ -56,8 +59,8 @@ export function DocumentUpload({
     if (!resolveUploadContentType(file.type, file.name)) {
       return `Invalid file type. Allowed: ${ALLOWED_TYPES_LABEL}`;
     }
-    if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-      return `File exceeds ${MAX_SIZE_MB}MB limit`;
+    if (file.size > MAX_BYTES) {
+      return `File exceeds ${formatUploadLimit()} limit`;
     }
     return null;
   }
@@ -228,7 +231,7 @@ export function DocumentUpload({
       {/* text-sm secondary text; gray-700 = 10.31:1 AAA */}
       <p className="text-sm text-gray-700">
         Attach relevant documents (charge sheets, court notices, photos). Optional
-        — you can skip if you have none. {ALLOWED_TYPES_LABEL} · max 10MB each ·
+        — you can skip if you have none. {ALLOWED_TYPES_LABEL} · max {formatUploadLimit()} each ·
         up to {MAX_FILES} files.
       </p>
 

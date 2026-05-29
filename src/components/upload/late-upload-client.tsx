@@ -11,7 +11,11 @@ import {
   AlertCircle,
   Plus,
 } from "lucide-react";
-import { MAX_BYTES, resolveUploadContentType } from "@/lib/allowed-types";
+import {
+  MAX_BYTES,
+  formatUploadLimit,
+  resolveUploadContentType,
+} from "@/lib/allowed-types";
 
 const ALLOWED_EXTENSIONS = ".pdf,.jpg,.jpeg,.heic,.heif,.png,.doc,.docx,.rtf,.txt";
 const ALLOWED_TYPES_LABEL = "PDF, JPG, HEIC/HEIF, PNG, DOC, DOCX, RTF, TXT";
@@ -54,7 +58,7 @@ export function LateUploadClient({
       return `Unsupported file type. Allowed: ${ALLOWED_TYPES_LABEL}.`;
     }
     if (file.size > MAX_BYTES) {
-      return `File exceeds ${MAX_BYTES / (1024 * 1024)} MB limit.`;
+      return `File exceeds ${formatUploadLimit()} limit.`;
     }
     return null;
   }
@@ -204,7 +208,7 @@ export function LateUploadClient({
             <span className="text-brand font-medium">browse</span>
           </p>
           <p className="text-xs text-gray-500 mt-1">
-            {ALLOWED_TYPES_LABEL} · max {MAX_BYTES / (1024 * 1024)} MB per file
+            {ALLOWED_TYPES_LABEL} · max {formatUploadLimit()} per file
           </p>
           <input
             ref={inputRef}

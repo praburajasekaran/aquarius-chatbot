@@ -16,7 +16,11 @@ export const ALLOWED_CONTENT_TYPES = [
 
 export type AllowedContentType = (typeof ALLOWED_CONTENT_TYPES)[number];
 
-export const MAX_BYTES = 10 * 1024 * 1024;
+export const MAX_BYTES = 20 * 1024 * 1024;
+
+export function formatUploadLimit(bytes: number = MAX_BYTES): string {
+  return `${bytes / (1024 * 1024)} MB`;
+}
 
 const EXTENSION_CONTENT_TYPES: Record<string, string> = {
   ".pdf": "application/pdf",
