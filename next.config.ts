@@ -30,7 +30,7 @@ const frameAncestors = (
 ).trim();
 const csp = [
   `frame-ancestors ${frameAncestors}`,
-  "frame-src 'self' https://www.bpoint.com.au https://calendly.com https://*.calendly.com",
+  "frame-src 'self' https://www.bpoint.com.au https://www.bpoint.uat.linkly.com.au https://calendly.com https://*.calendly.com",
 ].join("; ");
 // X-Frame-Options is a binary toggle, not a list — only ALLOWALL or
 // SAMEORIGIN/DENY make sense. If the operator has restricted

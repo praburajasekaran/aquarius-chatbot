@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { createAuthKey, getBpointRedirectBaseUrl } from "@/lib/bpoint";
+import {
+  createAuthKey,
+  getBpointIframeUrl,
+  getBpointRedirectBaseUrl,
+} from "@/lib/bpoint";
 import { PRICING } from "@/lib/pricing";
 import { getIntake, updateIntake } from "@/lib/intake";
 import { redis } from "@/lib/kv";
@@ -59,7 +63,10 @@ export async function POST(req: Request) {
   }
 
   if (intake.bpointAuthKey && !forceNew) {
-    return NextResponse.json({ authKey: intake.bpointAuthKey });
+    return NextResponse.json({
+      authKey: intake.bpointAuthKey,
+      iframeUrl: getBpointIframeUrl(intake.bpointAuthKey),
+    });
   }
 
   let authKey: string;
@@ -87,7 +94,10 @@ export async function POST(req: Request) {
         (await redis.get<string>(authKeyClaimKey(sessionId))) ??
         (await getIntake(sessionId))?.bpointAuthKey;
       if (existingAuthKey) {
-        return NextResponse.json({ authKey: existingAuthKey });
+        return NextResponse.json({
+          authKey: existingAuthKey,
+          iframeUrl: getBpointIframeUrl(existingAuthKey),
+        });
       }
     }
   } catch (err) {
@@ -113,5 +123,5 @@ export async function POST(req: Request) {
     console.error("[checkout] failed to persist bpointAuthKey to intake", err);
   }
 
-  return NextResponse.json({ authKey });
+  return NextResponse.json({ authKey, iframeUrl: getBpointIframeUrl(authKey) });
 }

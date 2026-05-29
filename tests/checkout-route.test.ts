@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   createAuthKey: vi.fn(),
+  getBpointIframeUrl: vi.fn(),
   getBpointRedirectBaseUrl: vi.fn(),
   getIntake: vi.fn(),
   redisGet: vi.fn(),
@@ -11,6 +12,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/bpoint", () => ({
   createAuthKey: mocks.createAuthKey,
+  getBpointIframeUrl: mocks.getBpointIframeUrl,
   getBpointRedirectBaseUrl: mocks.getBpointRedirectBaseUrl,
 }));
 
@@ -61,6 +63,9 @@ describe("POST /api/checkout", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getBpointRedirectBaseUrl.mockReturnValue("https://app.test");
+    mocks.getBpointIframeUrl.mockImplementation(
+      (authKey: string) => `https://bpoint.test/iframe/${authKey}`
+    );
     mocks.createAuthKey.mockResolvedValue("AK-new");
     mocks.redisGet.mockResolvedValue(null);
     mocks.redisSet.mockResolvedValue("OK");
@@ -73,7 +78,10 @@ describe("POST /api/checkout", () => {
     const res = await POST(makeReq({ sessionId: "s1" }));
 
     expect(res.status).toBe(200);
-    await expect(res.json()).resolves.toEqual({ authKey: "AK-existing" });
+    await expect(res.json()).resolves.toEqual({
+      authKey: "AK-existing",
+      iframeUrl: "https://bpoint.test/iframe/AK-existing",
+    });
     expect(mocks.createAuthKey).not.toHaveBeenCalled();
     expect(mocks.updateIntake).not.toHaveBeenCalled();
   });
@@ -86,7 +94,10 @@ describe("POST /api/checkout", () => {
     const res = await POST(makeReq({ sessionId: "s1" }));
 
     expect(res.status).toBe(200);
-    await expect(res.json()).resolves.toEqual({ authKey: "AK-winning" });
+    await expect(res.json()).resolves.toEqual({
+      authKey: "AK-winning",
+      iframeUrl: "https://bpoint.test/iframe/AK-winning",
+    });
     expect(mocks.createAuthKey).toHaveBeenCalledTimes(1);
     expect(mocks.updateIntake).not.toHaveBeenCalled();
   });
@@ -97,7 +108,10 @@ describe("POST /api/checkout", () => {
     const res = await POST(makeReq({ sessionId: "s1" }));
 
     expect(res.status).toBe(200);
-    await expect(res.json()).resolves.toEqual({ authKey: "AK-new" });
+    await expect(res.json()).resolves.toEqual({
+      authKey: "AK-new",
+      iframeUrl: "https://bpoint.test/iframe/AK-new",
+    });
     expect(mocks.createAuthKey).toHaveBeenCalledTimes(1);
     expect(mocks.updateIntake).toHaveBeenCalledWith("s1", {
       bpointAuthKey: "AK-new",
@@ -110,7 +124,10 @@ describe("POST /api/checkout", () => {
     const res = await POST(makeReq({ sessionId: "s1", forceNew: true }));
 
     expect(res.status).toBe(200);
-    await expect(res.json()).resolves.toEqual({ authKey: "AK-new" });
+    await expect(res.json()).resolves.toEqual({
+      authKey: "AK-new",
+      iframeUrl: "https://bpoint.test/iframe/AK-new",
+    });
     expect(mocks.createAuthKey).toHaveBeenCalledTimes(1);
     expect(mocks.updateIntake).toHaveBeenCalledWith("s1", {
       bpointAuthKey: "AK-new",
