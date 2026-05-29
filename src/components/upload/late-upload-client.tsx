@@ -46,13 +46,13 @@ export function LateUploadClient({
   const fileObjectsRef = useRef<Map<string, File>>(new Map());
   const keyCounterRef = useRef(0);
   const [files, setFiles] = useState<TrackedFile[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<TrackedFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
-  const [batchesDone, setBatchesDone] = useState(0);
 
   const pendingCount = files.filter((f) => f.status === "pending").length;
   const isUploading = files.some((f) => f.status === "uploading");
-  const submittedCount = files.filter((f) => f.status === "done").length;
+  const submittedCount = uploadedFiles.length;
 
   function validate(file: File): string | null {
     if (!resolveUploadContentType(file.type, file.name)) {
@@ -108,11 +108,11 @@ export function LateUploadClient({
         handleUploadUrl: "/upload/api/late-upload/session",
         contentType,
       });
-      setFiles((prev) =>
-        prev.map((f) =>
-          f.key === tracked.key ? { ...f, status: "done" } : f
-        )
-      );
+      setFiles((prev) => prev.filter((f) => f.key !== tracked.key));
+      setUploadedFiles((prev) => [
+        ...prev,
+        { ...tracked, status: "done", errorMessage: undefined },
+      ]);
       fileObjectsRef.current.delete(tracked.key);
     } catch (err) {
       const msg =
@@ -131,14 +131,13 @@ export function LateUploadClient({
     setGlobalError(null);
     const pending = files.filter((f) => f.status === "pending");
     await Promise.all(pending.map(uploadOne));
-    setBatchesDone((n) => n + 1);
   }
 
   function startNewBatch() {
     setFiles([]);
     fileObjectsRef.current.clear();
     setGlobalError(null);
-    inputRef.current?.focus();
+    inputRef.current?.click();
   }
 
   function onDrop(e: React.DragEvent) {
@@ -151,9 +150,6 @@ export function LateUploadClient({
     addFiles(e.target.files);
     e.target.value = "";
   }
-
-  const allDoneInBatch =
-    files.length > 0 && files.every((f) => f.status === "done");
 
   return (
     <section
@@ -170,14 +166,7 @@ export function LateUploadClient({
         Matter reference: <span className="font-mono text-gray-900">{matterRef}</span>
       </div>
 
-      {batchesDone > 0 && files.length === 0 && (
-        <div className="rounded-lg bg-green-50 border border-green-200 p-4 text-sm text-green-800">
-          Thanks — your documents have been received. You can add more any time
-          in the next 7 days using the same link from your email.
-        </div>
-      )}
-
-      {allDoneInBatch && (
+      {submittedCount > 0 && (
         <div className="rounded-lg bg-green-50 border border-green-200 p-4 text-sm text-green-800">
           <p className="font-medium">Documents submitted</p>
           <p className="mt-1">
@@ -188,7 +177,7 @@ export function LateUploadClient({
         </div>
       )}
 
-      {files.length === 0 && (
+      {files.length === 0 && uploadedFiles.length === 0 && (
         <div
           onDragOver={(e) => {
             e.preventDefault();
@@ -234,53 +223,19 @@ export function LateUploadClient({
         onChange={onInputChange}
       />
 
-      {files.length > 0 && (
-        <ul className="space-y-2" aria-live="polite">
-          {files.map((f) => (
-            <li
-              key={f.key}
-              className="flex items-center gap-3 text-sm bg-gray-50 rounded-lg px-3 py-2"
-            >
-              <FileText className="h-4 w-4 shrink-0 text-gray-400" aria-hidden />
-              <span className="flex-1 truncate text-gray-800">{f.name}</span>
-              <span className="text-xs text-gray-500 shrink-0">
-                {formatSize(f.size)}
-              </span>
+      {uploadedFiles.length > 0 && (
+        <FileList
+          files={uploadedFiles}
+          ariaLabel="Uploaded files"
+        />
+      )}
 
-              {f.status === "uploading" && (
-                <Loader2
-                  className="h-4 w-4 shrink-0 animate-spin text-brand"
-                  aria-label="Uploading"
-                />
-              )}
-              {f.status === "done" && (
-                <CheckCircle
-                  className="h-4 w-4 shrink-0 text-green-600"
-                  aria-label="Uploaded"
-                />
-              )}
-              {f.status === "error" && (
-                <AlertCircle
-                  className="h-4 w-4 shrink-0 text-red-500"
-                  aria-label="Failed"
-                />
-              )}
-              {(f.status === "pending" || f.status === "error") && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    removeFile(f.key);
-                  }}
-                  className="shrink-0 p-1 text-gray-400 hover:text-gray-700 min-h-[44px] min-w-[44px] flex items-center justify-center"
-                  aria-label={`Remove ${f.name}`}
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </li>
-          ))}
-        </ul>
+      {files.length > 0 && (
+        <FileList
+          files={files}
+          ariaLabel="Files ready to submit"
+          onRemove={removeFile}
+        />
       )}
 
       {files.some((f) => f.status === "error" && f.errorMessage) && (
@@ -302,7 +257,7 @@ export function LateUploadClient({
       )}
 
       <div className="flex flex-col gap-2 sm:flex-row">
-        {pendingCount > 0 && !allDoneInBatch && (
+        {pendingCount > 0 && (
           <button
             type="button"
             onClick={handleUpload}
@@ -323,7 +278,7 @@ export function LateUploadClient({
           </button>
         )}
 
-        {files.length > 0 && pendingCount > 0 && !allDoneInBatch && (
+        {files.length > 0 && pendingCount > 0 && (
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
@@ -335,7 +290,7 @@ export function LateUploadClient({
           </button>
         )}
 
-        {allDoneInBatch && (
+        {uploadedFiles.length > 0 && pendingCount === 0 && !isUploading && (
           <button
             type="button"
             onClick={startNewBatch}
@@ -347,5 +302,64 @@ export function LateUploadClient({
         )}
       </div>
     </section>
+  );
+}
+
+function FileList({
+  files,
+  ariaLabel,
+  onRemove,
+}: {
+  files: TrackedFile[];
+  ariaLabel: string;
+  onRemove?: (key: string) => void;
+}) {
+  return (
+    <ul className="space-y-2" aria-label={ariaLabel} aria-live="polite">
+      {files.map((f) => (
+        <li
+          key={f.key}
+          className="flex items-center gap-3 text-sm bg-gray-50 rounded-lg px-3 py-2"
+        >
+          <FileText className="h-4 w-4 shrink-0 text-gray-400" aria-hidden />
+          <span className="flex-1 truncate text-gray-800">{f.name}</span>
+          <span className="text-xs text-gray-500 shrink-0">
+            {formatSize(f.size)}
+          </span>
+
+          {f.status === "uploading" && (
+            <Loader2
+              className="h-4 w-4 shrink-0 animate-spin text-brand"
+              aria-label="Uploading"
+            />
+          )}
+          {f.status === "done" && (
+            <CheckCircle
+              className="h-4 w-4 shrink-0 text-green-600"
+              aria-label="Uploaded"
+            />
+          )}
+          {f.status === "error" && (
+            <AlertCircle
+              className="h-4 w-4 shrink-0 text-red-500"
+              aria-label="Failed"
+            />
+          )}
+          {onRemove && (f.status === "pending" || f.status === "error") && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onRemove(f.key);
+              }}
+              className="shrink-0 p-1 text-gray-400 hover:text-gray-700 min-h-[44px] min-w-[44px] flex items-center justify-center"
+              aria-label={`Remove ${f.name}`}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </li>
+      ))}
+    </ul>
   );
 }
