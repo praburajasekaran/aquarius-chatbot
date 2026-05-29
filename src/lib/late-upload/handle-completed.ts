@@ -14,6 +14,7 @@ import FirmUploadNotificationEmail from "@/lib/email/templates/firm-upload-notif
 import ClientUploadConfirmationEmail, {
   clientUploadConfirmationText,
 } from "@/lib/email/templates/client-upload-confirmation";
+import { logOpsEvent } from "@/lib/ops-events";
 
 export interface HandleCompletedArgs {
   blob: PutBlobResult;
@@ -78,6 +79,20 @@ export async function handleUploadCompleted(
   const uploadedAt = new Date().toISOString();
   const fileName = blob.pathname.split("/").pop() ?? "file";
   const contentType = normalizeContentType(blob.contentType);
+
+  await logOpsEvent({
+    severity: "info",
+    event: "late_upload_success",
+    area: "upload.late",
+    message: "Late upload completed",
+    sessionId,
+    metadata: {
+      fileCount: 1,
+      totalBytes: sizeBytes,
+      maxFileBytes: sizeBytes,
+      contentType,
+    },
+  });
 
   // Resolve the Smokeball matter ID captured by Zap #1's tail webhook.
   // Missing mapping is not fatal — we still fire the Zap with matter_ref only

@@ -6,7 +6,8 @@ import { createSession, getSession, updateSession } from "@/lib/kv";
 import { deliverInChatUploadsToZapier } from "@/lib/in-chat-upload/deliver-to-zapier";
 import { inChatUploadLimiter } from "@/lib/rate-limit";
 import { checkMagicBytes } from "@/lib/upload/magic-byte-check";
-import { resolveUploadContentType } from "@/lib/allowed-types";
+import { formatUploadLimit, resolveUploadContentType } from "@/lib/allowed-types";
+import { logOpsEvent } from "@/lib/ops-events";
 
 const MAX_FILES_PER_SESSION = 5;
 const MAX_SESSION_ID_LENGTH = 200;
@@ -100,7 +101,7 @@ export async function POST(req: Request) {
       if (!validateFileSize(file.size)) {
         errors.push({
           name: cleanName,
-          reason: "File exceeds 10MB limit",
+          reason: `File exceeds ${formatUploadLimit()} limit`,
         });
         continue;
       }
@@ -162,6 +163,19 @@ export async function POST(req: Request) {
     if (uploadedRefs.length > 0) {
       await updateSession(sessionId, {
         uploadRefs: [...session.uploadRefs, ...uploadedRefs],
+      });
+
+      await logOpsEvent({
+        severity: "info",
+        event: "in_chat_upload_success",
+        area: "upload.in_chat",
+        message: "Inline chat upload completed",
+        sessionId,
+        metadata: {
+          fileCount: successful.length,
+          totalBytes: successful.reduce((sum, file) => sum + file.sizeBytes, 0),
+          maxFileBytes: Math.max(...successful.map((file) => file.sizeBytes)),
+        },
       });
 
       try {

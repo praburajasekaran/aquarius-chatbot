@@ -67,3 +67,10 @@ export const eventsLimiter = new Ratelimit({
   prefix: "events-rl:ip",
   analytics: true,
 });
+
+export const clientErrorLimiter = new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(30, "1 m"),
+  prefix: "client-error-rl:ip",
+  analytics: true,
+});

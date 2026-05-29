@@ -1,4 +1,5 @@
 import { isAllowedContentType } from "@/lib/allowed-types";
+import { MAX_BYTES } from "@/lib/allowed-types";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Reject control characters (incl. CR/LF) anywhere in the address — prevents
@@ -25,12 +26,10 @@ export function normalizePhone(phone: string): string {
   return phone.replace(/[\s\-()]/g, "");
 }
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-
 export function validateFileType(mimeType: string): boolean {
   return isAllowedContentType(mimeType);
 }
 
 export function validateFileSize(sizeBytes: number): boolean {
-  return sizeBytes <= MAX_FILE_SIZE;
+  return sizeBytes <= MAX_BYTES;
 }
