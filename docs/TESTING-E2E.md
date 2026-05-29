@@ -166,7 +166,7 @@ After payment, the LLM calls `uploadDocuments`. This renders `<DocumentUpload>`.
 
 - `POST /api/upload` (multipart) → Vercel Blob (`uploads/{sessionId}/{ts}-{name}`).
 - Updates Redis `session.uploadRefs` (limit 5 files, 10MB each, types: PDF/JPG/PNG/DOCX).
-- **Fires Zapier ATTACH zap** (`ZAPIER_ATTACH_WEBHOOK_URL`) — one POST per uploaded file, mirroring the late-upload payload (`matter_ref = sessionId`, `source: "website chatbot"`).
+- **Fires Zapier ATTACH zap** (`ZAPIER_ATTACH_WEBHOOK_URL`) — one POST per uploaded file, mirroring the late-upload payload (`matter_ref = sessionId`, `source: "website chatbot"`). Map Smokeball's File input to the flattened `file_url` field.
 - **Fires Zapier AUDIT zap** (`ZAPIER_AUDIT_WEBHOOK_URL`) — one POST per file, `event: "in_chat_upload.completed"` plus `attach_zap_status`.
 - **No firm email** at this step. The firm transcript email already fired at §2.7-#5; per-file emails would be noise.
 
@@ -212,7 +212,7 @@ This is the path that delivers documents to Smokeball.
 | 1 | Magic-byte sniff | `fileTypeFromBuffer` | Mismatch → blob deleted, no events. |
 | 2 | `head()` blob meta | Vercel Blob | Read size. |
 | 3 | Lookup `session-matter:{sessionId}` (90d TTL) → renew | Upstash | Captured by Zap #1's tail webhook (§2.11). |
-| 4 | **Zapier ATTACH** | `ZAPIER_ATTACH_WEBHOOK_URL` | Payload: `{ matter_ref, smokeball_matter_id, session_id, client_email, client_name, file: { url, name, content_type, size_bytes }, uploaded_at, source: "website chatbot" }`. Two attempts. → Smokeball matter file attach. |
+| 4 | **Zapier ATTACH** | `ZAPIER_ATTACH_WEBHOOK_URL` | Payload: `{ matter_ref, smokeball_matter_id, session_id, client_email, client_name, file: { url, name, content_type, size_bytes }, file_url, file_name, file_content_type, file_size_bytes, uploaded_at, source: "website chatbot" }`. Map Smokeball's File input to `file_url`. Two attempts. → Smokeball matter file attach. |
 | 5 | **Zapier AUDIT** | `ZAPIER_AUDIT_WEBHOOK_URL` | Payload: `event: "late_upload.completed"` plus all metadata + `attach_zap_status`. |
 | 6 | **Email → firm** (`FIRM_NOTIFY_EMAIL`) | Resend (plaintext) | Subject: `[Upload] {name} — {filename}` *or* `[Upload — MANUAL REQUIRED] ...` if attach zap failed or matter mapping was missing. Body includes Smokeball matter ID (or "(not captured — attach manually)"), file URL, status. |
 | 7 | **Email → client** (out-of-band confirmation) | Resend | Subject: `We received a file for your matter`. Body invites them to reply if not theirs. |
