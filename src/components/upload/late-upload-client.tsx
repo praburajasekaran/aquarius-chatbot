@@ -222,16 +222,17 @@ export function LateUploadClient({
           <p className="text-xs text-gray-500 mt-1">
             {ALLOWED_TYPES_LABEL} · max {formatUploadLimit()} per file
           </p>
-          <input
-            ref={inputRef}
-            type="file"
-            multiple
-            accept={ALLOWED_EXTENSIONS}
-            className="hidden"
-            onChange={onInputChange}
-          />
         </div>
       )}
+
+      <input
+        ref={inputRef}
+        type="file"
+        multiple
+        accept={ALLOWED_EXTENSIONS}
+        className="hidden"
+        onChange={onInputChange}
+      />
 
       {files.length > 0 && (
         <ul className="space-y-2" aria-live="polite">
