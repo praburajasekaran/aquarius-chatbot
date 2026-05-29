@@ -26,7 +26,9 @@ describe("LateUploadClient", () => {
       type: "application/pdf",
     });
     await user.upload(input as HTMLInputElement, file);
-    await user.click(screen.getByRole("button", { name: /upload 1 file/i }));
+    await user.click(
+      screen.getByRole("button", { name: /submit documents/i })
+    );
 
     await waitFor(() => expect(mocks.upload).toHaveBeenCalledTimes(1));
     expect(mocks.upload).toHaveBeenCalledWith(

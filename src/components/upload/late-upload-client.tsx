@@ -52,6 +52,7 @@ export function LateUploadClient({
 
   const pendingCount = files.filter((f) => f.status === "pending").length;
   const isUploading = files.some((f) => f.status === "uploading");
+  const submittedCount = files.filter((f) => f.status === "done").length;
 
   function validate(file: File): string | null {
     if (!resolveUploadContentType(file.type, file.name)) {
@@ -176,7 +177,18 @@ export function LateUploadClient({
         </div>
       )}
 
-      {!allDoneInBatch && (
+      {allDoneInBatch && (
+        <div className="rounded-lg bg-green-50 border border-green-200 p-4 text-sm text-green-800">
+          <p className="font-medium">Documents submitted</p>
+          <p className="mt-1">
+            We received {submittedCount} file{submittedCount !== 1 ? "s" : ""}.
+            You can add more any time in the next 7 days using the same link
+            from your email.
+          </p>
+        </div>
+      )}
+
+      {files.length === 0 && (
         <div
           onDragOver={(e) => {
             e.preventDefault();
@@ -288,7 +300,7 @@ export function LateUploadClient({
         </p>
       )}
 
-      <div className="flex gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row">
         {pendingCount > 0 && !allDoneInBatch && (
           <button
             type="button"
@@ -303,10 +315,22 @@ export function LateUploadClient({
               </>
             ) : (
               <>
-                <UploadCloud className="h-4 w-4" aria-hidden />
-                Upload {pendingCount} file{pendingCount !== 1 ? "s" : ""}
+                <CheckCircle className="h-4 w-4" aria-hidden />
+                Submit documents
               </>
             )}
+          </button>
+        )}
+
+        {files.length > 0 && pendingCount > 0 && !allDoneInBatch && (
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            disabled={isUploading}
+            className="min-h-[44px] px-4 rounded-lg border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50 transition disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            <Plus className="h-4 w-4" aria-hidden />
+            Add files
           </button>
         )}
 
