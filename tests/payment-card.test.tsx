@@ -21,7 +21,10 @@ describe("PaymentCard", () => {
       }
       return {
         ok: true,
-        json: async () => ({ authKey: "AK-1234" }),
+        json: async () => ({
+          authKey: "AK-1234",
+          iframeUrl: "https://www.bpoint.com.au/webapi/v2/txns/iframe/AK-1234",
+        }),
       } as Response;
     });
   });

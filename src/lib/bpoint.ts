@@ -9,10 +9,47 @@ interface BpointConfig {
   isTestTxn: boolean;
 }
 
+function readEnv(name: string): string | undefined {
+  const raw = process.env[name]?.trim();
+  if (!raw) return undefined;
+  const first = raw[0];
+  const last = raw[raw.length - 1];
+  if (
+    raw.length >= 2 &&
+    ((first === "\"" && last === "\"") || (first === "'" && last === "'"))
+  ) {
+    return raw.slice(1, -1).trim();
+  }
+  return raw;
+}
+
+function getBpointWebApiBaseUrl(): string {
+  const env = readEnv("BPOINT_ENV");
+  const raw =
+    readEnv("BPOINT_API_URL") ??
+    (env === "uat"
+      ? "https://www.bpoint.uat.linkly.com.au"
+      : "https://www.bpoint.com.au");
+
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    throw new Error("BPOINT_API_URL must be a valid absolute URL");
+  }
+  if (url.protocol !== "https:") {
+    throw new Error("BPOINT_API_URL must be HTTPS");
+  }
+
+  const normalized = url.toString().replace(/\/$/, "");
+  if (normalized.endsWith("/webapi/v2")) return normalized;
+  return `${normalized}/webapi/v2`;
+}
+
 function getBpointConfig(): BpointConfig {
-  const username = process.env.BPOINT_API_USERNAME;
-  const password = process.env.BPOINT_API_PASSWORD;
-  const merchantNumber = process.env.BPOINT_MERCHANT_NUMBER;
+  const username = readEnv("BPOINT_API_USERNAME");
+  const password = readEnv("BPOINT_API_PASSWORD");
+  const merchantNumber = readEnv("BPOINT_MERCHANT_NUMBER");
   if (!username) throw new Error("BPOINT_API_USERNAME is not configured");
   if (!password) throw new Error("BPOINT_API_PASSWORD is not configured");
   if (!merchantNumber) throw new Error("BPOINT_MERCHANT_NUMBER is not configured");
@@ -21,9 +58,9 @@ function getBpointConfig(): BpointConfig {
     username,
     password,
     merchantNumber,
-    billerCode: process.env.BPOINT_BILLER_CODE,
-    baseUrl: "https://www.bpoint.com.au/webapi/v2",
-    isTestTxn: process.env.BPOINT_ENV !== "prod",
+    billerCode: readEnv("BPOINT_BILLER_CODE"),
+    baseUrl: getBpointWebApiBaseUrl(),
+    isTestTxn: readEnv("BPOINT_ENV") !== "prod",
   };
 }
 
@@ -44,9 +81,9 @@ export interface CreateAuthKeyArgs {
 
 export function getBpointRedirectBaseUrl(): string {
   const raw =
-    process.env.BPOINT_REDIRECT_BASE_URL ??
-    process.env.NEXT_PUBLIC_URL ??
-    process.env.APP_URL;
+    readEnv("BPOINT_REDIRECT_BASE_URL") ??
+    readEnv("NEXT_PUBLIC_URL") ??
+    readEnv("APP_URL");
   if (!raw) {
     throw new Error("BPOINT_REDIRECT_BASE_URL or NEXT_PUBLIC_URL is required");
   }
@@ -61,6 +98,10 @@ export function getBpointRedirectBaseUrl(): string {
     throw new Error("BPoint redirect base URL must be HTTPS");
   }
   return url.origin;
+}
+
+export function getBpointIframeUrl(authKey: string): string {
+  return `${getBpointWebApiBaseUrl()}/txns/iframe/${encodeURIComponent(authKey)}`;
 }
 
 function buildMerchantReference(sessionId: string): string {

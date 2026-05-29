@@ -23,6 +23,7 @@ type PaymentState = "loading" | "ready" | "succeeded" | "failed";
 export function PaymentCard({ sessionId, onComplete, onFail }: PaymentCardProps) {
   const [pricing, setPricing] = useState<Pricing | null>(null);
   const [authKey, setAuthKey] = useState<string | null>(null);
+  const [iframeUrl, setIframeUrl] = useState<string | null>(null);
   const [state, setState] = useState<PaymentState>("loading");
   const [error, setError] = useState<string | null>(null);
   const [retryAttempt, setRetryAttempt] = useState(0);
@@ -42,6 +43,7 @@ export function PaymentCard({ sessionId, onComplete, onFail }: PaymentCardProps)
       setState("loading");
       setError(null);
       setAuthKey(null);
+      setIframeUrl(null);
       try {
         const pricingRes = await fetch(
           `/api/intake/${encodeURIComponent(sessionId)}/pricing`
@@ -61,6 +63,7 @@ export function PaymentCard({ sessionId, onComplete, onFail }: PaymentCardProps)
         });
         const checkoutData = (await checkoutRes.json().catch(() => ({}))) as {
           authKey?: string;
+          iframeUrl?: string;
           error?: string;
         };
         if (!checkoutRes.ok) {
@@ -72,10 +75,14 @@ export function PaymentCard({ sessionId, onComplete, onFail }: PaymentCardProps)
         if (!checkoutData.authKey) {
           throw new Error("checkout create returned no AuthKey");
         }
+        if (!checkoutData.iframeUrl) {
+          throw new Error("checkout create returned no iframe URL");
+        }
 
         if (cancelled) return;
         setPricing(pricingData);
         setAuthKey(checkoutData.authKey);
+        setIframeUrl(checkoutData.iframeUrl);
         setState("ready");
       } catch (err) {
         console.error("[PaymentCard] BPoint checkout setup failed", err);
@@ -98,12 +105,7 @@ export function PaymentCard({ sessionId, onComplete, onFail }: PaymentCardProps)
     };
   }, [sessionId, retryAttempt]);
 
-  const iframeSrc = useMemo(() => {
-    if (!authKey) return null;
-    return `https://www.bpoint.com.au/webapi/v2/txns/iframe/${encodeURIComponent(
-      authKey
-    )}`;
-  }, [authKey]);
+  const iframeSrc = useMemo(() => iframeUrl, [iframeUrl]);
 
   function handleBpointFrameLoad(event: SyntheticEvent<HTMLIFrameElement>) {
     try {

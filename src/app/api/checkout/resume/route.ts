@@ -1,5 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createAuthKey, getBpointRedirectBaseUrl } from "@/lib/bpoint";
+import {
+  createAuthKey,
+  getBpointIframeUrl,
+  getBpointRedirectBaseUrl,
+} from "@/lib/bpoint";
 import { getIntake, updateIntake } from "@/lib/intake";
 
 export const runtime = "nodejs";
@@ -73,7 +77,5 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  return NextResponse.redirect(
-    `https://www.bpoint.com.au/webapi/v2/txns/iframe/${encodeURIComponent(authKey)}`
-  );
+  return NextResponse.redirect(getBpointIframeUrl(authKey));
 }
