@@ -16,6 +16,7 @@ import { notifyParent, isEmbedded } from "@/lib/embed-bridge";
 import { BRANDING } from "@/lib/branding";
 import { FIRM_CONTACT } from "@/lib/contact";
 import { postUploadBookingStepToChatMessage } from "./post-upload-booking-adapter";
+import { resolvePaymentAndMaybeAppendUpload } from "./post-payment-upload-adapter";
 import type { PublicPostUploadBookingStep } from "@/lib/post-upload-booking/types";
 
 // Cross-tab signaling. Same origin only — BroadcastChannel does not cross
@@ -315,12 +316,15 @@ export function ChatWidget() {
 
     processedPaymentReturnRef.current = true;
     window.history.replaceState({}, "", window.location.pathname);
-    addToolOutput({
-      tool: "initiatePayment",
-      toolCallId,
-      output: { status: payment === "success" ? "completed" : "failed" },
-    });
-  }, [messages, addToolOutput]);
+    setMessages(
+      resolvePaymentAndMaybeAppendUpload(
+        messages,
+        toolCallId,
+        sessionId,
+        payment === "success" ? "completed" : "failed"
+      )
+    );
+  }, [messages, sessionId, setMessages]);
 
   useEffect(() => {
     if (status !== "ready") return;
@@ -601,11 +605,14 @@ export function ChatWidget() {
   }
 
   function handlePaymentComplete(toolCallId: string) {
-    addToolOutput({
-      tool: "initiatePayment",
-      toolCallId,
-      output: { status: "completed" },
-    });
+    setMessages(
+      resolvePaymentAndMaybeAppendUpload(
+        messages,
+        toolCallId,
+        sessionId,
+        "completed"
+      )
+    );
   }
 
   function handlePaymentFail(toolCallId: string) {
