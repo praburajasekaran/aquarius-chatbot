@@ -39,4 +39,23 @@ describe("LateUploadClient", () => {
       })
     );
   });
+
+  it("keeps the file picker wired after a file has been selected", async () => {
+    const user = userEvent.setup();
+    render(<LateUploadClient matterRef="s_test" clientName="Prabu" />);
+
+    const input = document.querySelector("input[type='file']");
+    expect(input).toBeInstanceOf(HTMLInputElement);
+
+    await user.upload(
+      input as HTMLInputElement,
+      new File(["%PDF-1.4\n"], "sample1.pdf", { type: "application/pdf" })
+    );
+
+    const clickSpy = vi.spyOn(HTMLInputElement.prototype, "click");
+    await user.click(screen.getByRole("button", { name: /add files/i }));
+
+    expect(clickSpy).toHaveBeenCalled();
+    clickSpy.mockRestore();
+  });
 });
