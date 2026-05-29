@@ -131,7 +131,7 @@ Step 1: Webhooks by Zapier - Catch Hook
 - Hook URL goes in `ZAPIER_ATTACH_WEBHOOK_URL`.
 - Existing status doc references prod hook suffix `e2kcqq`.
 - Expected payload sources: `src/lib/in-chat-upload/deliver-to-zapier.ts` and `src/lib/late-upload/handle-completed.ts`.
-- Expected payload fields: `matter_ref`, `smokeball_matter_id`, `session_id`, `client_email`, `client_name`, `file.url`, `file.name`, `file.content_type`, `file.size_bytes`, `uploaded_at`, `source`.
+- Expected payload fields: `matter_ref`, `smokeball_matter_id`, `session_id`, `client_email`, `client_name`, `file.url`, `file.name`, `file.content_type`, `file.size_bytes`, flattened aliases `file_url`, `file_name`, `file_content_type`, `file_size_bytes`, `uploaded_at`, `source`.
 
 Step 2: Filter by Zapier
 
@@ -142,8 +142,8 @@ Step 2: Filter by Zapier
 Step 3: Smokeball - Upload File / Attach File to Matter
 
 - Matter ID / Matter: `smokeball_matter_id`
-- File URL / File: `file.url`
-- File Name: `file.name`
+- File URL / File: `file_url` (or nested `file.url` if Zapier's field picker exposes it)
+- File Name: `file_name`
 - Content Type / MIME Type if available: `file.content_type`
 - Notes/Description if available:
 

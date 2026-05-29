@@ -87,6 +87,10 @@ describe("in-chat upload delivery", () => {
         matter_ref: "sess-1",
         smokeball_matter_id: "SMOKE-1",
         file: expect.objectContaining({ name: "file-1.pdf" }),
+        file_url: "https://blob.test/file-1.pdf",
+        file_name: "file-1.pdf",
+        file_content_type: "application/pdf",
+        file_size_bytes: 1234,
       })
     );
     expect(mocks.sendAndLog).toHaveBeenCalledOnce();
