@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { cookies } from "next/headers";
-import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
-import { z } from "zod";
+import crypto from "node:crypto";
+import path from "node:path";
+import { put } from "@vercel/blob";
 import { verifyCookie, COOKIE_NAME } from "@/lib/upload-session";
 import {
   tokenLimiter,
@@ -10,16 +11,30 @@ import {
   ipUploadLimiter,
 } from "@/lib/rate-limit";
 import { hashToken } from "@/lib/upload-tokens";
-import { ALLOWED_CONTENT_TYPES, MAX_BYTES } from "@/lib/allowed-types";
+import {
+  ALLOWED_CONTENT_TYPES,
+  MAX_BYTES,
+  resolveUploadContentType,
+} from "@/lib/allowed-types";
+import { checkMagicBytes } from "@/lib/upload/magic-byte-check";
 import { handleUploadCompleted } from "@/lib/late-upload/handle-completed";
 
 export const runtime = "nodejs";
 export const maxDuration = 15;
 
-const TokenPayloadSchema = z.object({
-  matterRef: z.string().min(1),
-  sessionId: z.string().min(1),
-});
+const ALLOWED_TYPES_LABEL = "PDF, JPG, HEIC/HEIF, PNG, DOC, DOCX, RTF, TXT";
+
+function safeFilename(name: string): string {
+  const base = path.basename(name.replace(/\\/g, "/"));
+  let cleaned = "";
+  for (const c of base) {
+    const code = c.charCodeAt(0);
+    if (code >= 32 && code !== 127) cleaned += c;
+  }
+  const trimmed = cleaned.trim();
+  if (!trimmed || trimmed === "." || trimmed === "..") return "file";
+  return trimmed.slice(0, 200);
+}
 
 export async function POST(request: NextRequest) {
   const cookieStore = await cookies();
@@ -48,42 +63,65 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "rate_limited" }, { status: 429 });
   }
 
-  let body: HandleUploadBody;
+  let formData: FormData;
   try {
-    body = (await request.json()) as HandleUploadBody;
+    formData = await request.formData();
   } catch {
     return NextResponse.json({ error: "bad_request" }, { status: 400 });
   }
 
+  const file = formData.get("file");
+  if (!(file instanceof File)) {
+    return NextResponse.json({ error: "No file provided" }, { status: 400 });
+  }
+
+  const cleanName = safeFilename(file.name);
+  const contentType = resolveUploadContentType(file.type, cleanName);
+  if (
+    !contentType ||
+    !(ALLOWED_CONTENT_TYPES as readonly string[]).includes(contentType)
+  ) {
+    return NextResponse.json(
+      { error: `Unsupported file type. Allowed: ${ALLOWED_TYPES_LABEL}.` },
+      { status: 415 }
+    );
+  }
+
+  if (file.size > MAX_BYTES) {
+    return NextResponse.json(
+      { error: "File exceeds the upload size limit." },
+      { status: 413 }
+    );
+  }
+
+  const magic = await checkMagicBytes({
+    kind: "blob",
+    blob: file,
+    declared: contentType,
+  });
+  if (!magic.ok) {
+    return NextResponse.json(
+      {
+        error: `File contents don't match its type. Allowed: ${ALLOWED_TYPES_LABEL}.`,
+      },
+      { status: 415 }
+    );
+  }
+
   try {
-    const json = await handleUpload({
-      body,
-      request,
-      onBeforeGenerateToken: async () => {
-        return {
-          allowedContentTypes: [...ALLOWED_CONTENT_TYPES],
-          maximumSizeInBytes: MAX_BYTES,
-          addRandomSuffix: true,
-          tokenPayload: JSON.stringify({
-            matterRef: session.matterRef,
-            sessionId: session.sessionId,
-          }),
-        };
-      },
-      onUploadCompleted: async ({ blob, tokenPayload }) => {
-        const parsed = TokenPayloadSchema.parse(
-          JSON.parse(tokenPayload ?? "{}")
-        );
-        await handleUploadCompleted({
-          blob,
-          matterRef: parsed.matterRef,
-          sessionId: parsed.sessionId,
-        });
-      },
+    const blob = await put(
+      `late-uploads/${session.sessionId}/${Date.now()}-${crypto.randomUUID()}-${cleanName}`,
+      file,
+      { access: "public", contentType }
+    );
+    await handleUploadCompleted({
+      blob,
+      matterRef: session.matterRef,
+      sessionId: session.sessionId,
     });
-    return NextResponse.json(json);
+    return NextResponse.json({ ok: true, url: blob.url });
   } catch (err) {
-    console.error("[late-upload] handleUpload error", err);
+    console.error("[late-upload] upload error", err);
     return NextResponse.json({ error: "upload_failed" }, { status: 500 });
   }
 }

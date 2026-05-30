@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { upload } from "@vercel/blob/client";
 import {
   UploadCloud,
   FileText,
@@ -103,11 +102,18 @@ export function LateUploadClient({
     );
 
     try {
-      await upload(file.name, file, {
-        access: "public",
-        handleUploadUrl: "/upload/api/late-upload/session",
-        contentType,
+      const formData = new FormData();
+      formData.append("file", file, file.name);
+
+      const res = await fetch("/upload/api/late-upload/session", {
+        method: "POST",
+        body: formData,
       });
+      const data = await parseUploadResponse(res);
+      if (!res.ok) {
+        throw new Error(data.error ?? "Upload failed. Please try again.");
+      }
+
       setFiles((prev) => prev.filter((f) => f.key !== tracked.key));
       setUploadedFiles((prev) => [
         ...prev,
@@ -314,6 +320,16 @@ export function LateUploadClient({
       </div>
     </section>
   );
+}
+
+async function parseUploadResponse(
+  res: Response
+): Promise<{ error?: string }> {
+  try {
+    return (await res.json()) as { error?: string };
+  } catch {
+    return {};
+  }
 }
 
 function FileList({
