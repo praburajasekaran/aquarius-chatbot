@@ -8,6 +8,10 @@ import { inChatUploadLimiter } from "@/lib/rate-limit";
 import { checkMagicBytes } from "@/lib/upload/magic-byte-check";
 import { formatUploadLimit, resolveUploadContentType } from "@/lib/allowed-types";
 import { logOpsEvent } from "@/lib/ops-events";
+import {
+  buildDocumentAccessUrl,
+  createDocumentAccessToken,
+} from "@/lib/document-access";
 
 const MAX_FILES_PER_SESSION = 5;
 const MAX_SESSION_ID_LENGTH = 200;
@@ -136,10 +140,21 @@ export async function POST(req: Request) {
         const blob = await put(
           `uploads/${sessionId}/${Date.now()}-${cleanName}`,
           file,
-          { access: "public", contentType }
+          { access: "private", contentType }
         );
+        const accessToken = await createDocumentAccessToken({
+          pathname: blob.pathname,
+          sessionId,
+          fileName: cleanName,
+          contentType,
+        });
+        const accessUrl = buildDocumentAccessUrl({
+          baseUrl: new URL(req.url).origin,
+          pathname: blob.pathname,
+          token: accessToken,
+        });
         successful.push({
-          url: blob.url,
+          url: accessUrl,
           name: cleanName,
           contentType,
           sizeBytes: file.size,

@@ -91,16 +91,13 @@ describe("/api/late-upload/session", () => {
       ) as never
     );
 
-    await expect(res.json()).resolves.toEqual({
-      ok: true,
-      url: "https://blob.test/late-uploads/sess-1/sample.pdf",
-    });
+    await expect(res.json()).resolves.toEqual({ ok: true });
     expect(mocks.put).toHaveBeenCalledWith(
       expect.stringMatching(
         /^late-uploads\/sess-1\/\d+-[0-9a-f-]+-sample\.pdf$/
       ),
       expect.any(File),
-      { access: "public", contentType: "application/pdf" }
+      { access: "private", contentType: "application/pdf" }
     );
     expect(mocks.handleUploadCompleted).toHaveBeenCalledWith({
       blob: expect.objectContaining({

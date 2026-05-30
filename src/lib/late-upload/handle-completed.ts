@@ -1,4 +1,4 @@
-import { del, head } from "@vercel/blob";
+import { del, get, head } from "@vercel/blob";
 import type { PutBlobResult } from "@vercel/blob";
 import { sendAndLog } from "@/lib/resend";
 import { sendToZapier } from "@/lib/zapier";
@@ -15,6 +15,12 @@ import ClientUploadConfirmationEmail, {
   clientUploadConfirmationText,
 } from "@/lib/email/templates/client-upload-confirmation";
 import { logOpsEvent } from "@/lib/ops-events";
+import { getIntake } from "@/lib/intake";
+import {
+  buildDocumentAccessUrl,
+  createDocumentAccessToken,
+  getAppBaseUrl,
+} from "@/lib/document-access";
 
 export interface HandleCompletedArgs {
   blob: PutBlobResult;
@@ -35,16 +41,18 @@ export async function handleUploadCompleted(
       "[late-upload] record missing on completion — deleting blob",
       { sessionId }
     );
-    await safeDel(blob.url);
+    await safeDel(blob.pathname);
     return;
   }
 
   // --- magic-byte validation ---
   try {
-    const res = await fetch(blob.url, {
-      headers: { Range: `bytes=0-${HEAD_BYTES - 1}` },
+    const privateBlob = await get(blob.pathname, {
+      access: "private",
+      useCache: false,
     });
-    const buf = Buffer.from(await res.arrayBuffer());
+    if (!privateBlob?.stream) throw new Error("private blob not found");
+    const buf = await readPrefix(privateBlob.stream, HEAD_BYTES);
     const magic = await checkMagicBytes({
       kind: "buffer",
       buf,
@@ -58,19 +66,19 @@ export async function handleUploadCompleted(
         detected: magic.detected ?? "unknown",
         reason: magic.reason,
       });
-      await safeDel(blob.url);
+      await safeDel(blob.pathname);
       return;
     }
   } catch (err) {
     console.error("[late-upload] magic-byte check failed — deleting blob", err);
-    await safeDel(blob.url);
+    await safeDel(blob.pathname);
     return;
   }
 
   // --- real size ---
   let sizeBytes: number | null = null;
   try {
-    const meta = await head(blob.url);
+    const meta = await head(blob.pathname);
     sizeBytes = meta.size;
   } catch (err) {
     console.warn("[late-upload] head() failed; proceeding without size", err);
@@ -79,6 +87,17 @@ export async function handleUploadCompleted(
   const uploadedAt = new Date().toISOString();
   const fileName = blob.pathname.split("/").pop() ?? "file";
   const contentType = normalizeContentType(blob.contentType);
+  const accessToken = await createDocumentAccessToken({
+    pathname: blob.pathname,
+    sessionId,
+    fileName,
+    contentType,
+  });
+  const documentUrl = buildDocumentAccessUrl({
+    baseUrl: getAppBaseUrl(),
+    pathname: blob.pathname,
+    token: accessToken,
+  });
 
   await logOpsEvent({
     severity: "info",
@@ -119,12 +138,12 @@ export async function handleUploadCompleted(
       client_email: record.clientEmail,
       client_name: record.clientName,
       file: {
-        url: blob.url,
+        url: documentUrl,
         name: fileName,
         content_type: contentType,
         size_bytes: sizeBytes,
       },
-      file_url: blob.url,
+      file_url: documentUrl,
       file_name: fileName,
       file_content_type: contentType,
       file_size_bytes: sizeBytes,
@@ -147,7 +166,7 @@ export async function handleUploadCompleted(
       session_id: sessionId,
       client_email: record.clientEmail,
       client_name: record.clientName,
-      file_url: blob.url,
+      file_url: documentUrl,
       file_name: fileName,
       file_content_type: contentType,
       file_size_bytes: sizeBytes,
@@ -180,7 +199,7 @@ export async function handleUploadCompleted(
             fileName,
             contentType,
             sizeBytes,
-            url: blob.url,
+            url: documentUrl,
             attachZapStatus,
             uploadedAt,
             needsManual,
@@ -254,14 +273,56 @@ async function lookupRecordBySessionId(
   sessionId: string
 ): Promise<UploadTokenRecord | null> {
   const tokenHash = await redis.get<string>(`payment-session:${sessionId}`);
-  if (!tokenHash || tokenHash === "pending") return null;
-  return getRecordByHash(tokenHash);
+  if (tokenHash && tokenHash !== "pending") {
+    const record = await getRecordByHash(tokenHash);
+    if (record) return record;
+  }
+
+  const intake = await getIntake(sessionId);
+  if (!intake) return null;
+  return {
+    matterRef: sessionId,
+    clientEmail: intake.clientEmail,
+    clientName: intake.clientName,
+    sessionId,
+    createdAt: intake.createdAt,
+  };
 }
 
-async function safeDel(url: string): Promise<void> {
+async function safeDel(pathname: string): Promise<void> {
   try {
-    await del(url);
+    await del(pathname);
   } catch (err) {
-    console.error("[late-upload] del() failed", { url, err });
+    console.error("[late-upload] del() failed", { pathname, err });
   }
+}
+
+async function readPrefix(
+  stream: ReadableStream<Uint8Array>,
+  maxBytes: number
+): Promise<Buffer> {
+  const reader = stream.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  let completed = false;
+
+  try {
+    while (total < maxBytes) {
+      const { done, value } = await reader.read();
+      if (done || !value) {
+        completed = true;
+        break;
+      }
+      const remaining = maxBytes - total;
+      const chunk =
+        value.byteLength > remaining ? value.slice(0, remaining) : value;
+      chunks.push(chunk);
+      total += chunk.byteLength;
+    }
+    if (!completed) await reader.cancel();
+  } finally {
+    reader.releaseLock();
+  }
+
+  return Buffer.concat(chunks, total);
 }

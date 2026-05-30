@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { NextRequest } from "next/server";
 import type { UploadTokenRecord } from "@/types";
 
 const mocks = vi.hoisted(() => ({
@@ -33,8 +34,10 @@ function record(overrides: Partial<UploadTokenRecord> = {}): UploadTokenRecord {
   };
 }
 
-function request(method: "GET" | "POST") {
-  return new Request("https://app.test/upload/raw-token", { method });
+function request(method: "GET" | "POST"): NextRequest {
+  return new Request("https://app.test/upload/raw-token", {
+    method,
+  }) as NextRequest;
 }
 
 describe("/upload/[token]", () => {
