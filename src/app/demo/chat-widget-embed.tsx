@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { MessageCircle, Minus } from "lucide-react";
 import { track } from "@vercel/analytics";
 
@@ -43,16 +43,33 @@ function computeInitialState(): "open" | "minimized" {
   return "open";
 }
 
+function subscribeClientSnapshot() {
+  return () => {};
+}
+
+function getClientSnapshot() {
+  return true;
+}
+
+function getServerSnapshot() {
+  return false;
+}
+
 export function ChatWidgetEmbed({ src = "/" }: { src?: string }) {
-  const [mounted, setMounted] = useState(false);
-  const [state, setState] = useState<"open" | "minimized">("minimized");
+  const mounted = useSyncExternalStore(
+    subscribeClientSnapshot,
+    getClientSnapshot,
+    getServerSnapshot
+  );
+  const [state, setState] = useState<"open" | "minimized">(() =>
+    computeInitialState()
+  );
+  const bootStateRef = useRef(state);
   const [teaserVisible, setTeaserVisible] = useState(false);
 
   // Compute initial state on client only, then mount + persist + track.
   useEffect(() => {
-    const initial = computeInitialState();
-    setState(initial);
-    setMounted(true);
+    const initial = bootStateRef.current;
     const stored = readState();
     if (initial === "open" && !stored) {
       writeState("open");

@@ -1,21 +1,22 @@
 import { NextResponse } from "next/server";
-import { head } from "@vercel/blob";
+import { get, head } from "@vercel/blob";
 import { verifySessionSecret } from "@/lib/kv";
+import { resolveDocumentAccessToken } from "@/lib/document-access";
 
 export const runtime = "nodejs";
 
 /**
  * Authenticated document proxy.
  *
- * Vercel Blob files are stored with public access so that Zapier (which
- * can't authenticate through our app) can still receive raw URLs. This
- * route provides an authenticated access path for the browser: it
- * verifies the caller owns the session before streaming the file,
- * ensuring document URLs aren't usable by anyone who stumbles across
- * them.
+ * Vercel Blob files are stored with private access. This route is the
+ * only document download surface: browser callers can use the legacy
+ * sessionSecret, while Zapier/firm notification links use a short-lived
+ * bearer token scoped to the exact blob pathname.
  *
- * Path: /api/documents/uploads/{sessionId}/{timestamp}-{filename}
- * Auth: sessionSecret via ?secret= query parameter
+ * Paths:
+ *   /api/documents/uploads/{sessionId}/{timestamp}-{filename}
+ *   /api/documents/{late-upload-blob-pathname}
+ * Auth: document token via ?token=, or legacy sessionSecret via ?secret=
  */
 export async function GET(
   req: Request,
@@ -23,6 +24,16 @@ export async function GET(
 ) {
   const { path } = await params;
   const pathname = path.join("/");
+
+  const url = new URL(req.url);
+  const accessToken = url.searchParams.get("token");
+  if (accessToken) {
+    const record = await resolveDocumentAccessToken(accessToken);
+    if (!record || record.pathname !== pathname) {
+      return NextResponse.json({ error: "not_found" }, { status: 404 });
+    }
+    return streamPrivateBlob(pathname);
+  }
 
   // Extract sessionId from the blob path. Blobs are stored as
   // uploads/{sessionId}/{timestamp}-{filename}.
@@ -35,7 +46,6 @@ export async function GET(
   }
   const sessionId = parts[1];
 
-  const url = new URL(req.url);
   const sessionSecret = url.searchParams.get("secret");
   if (!sessionSecret) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
@@ -46,18 +56,20 @@ export async function GET(
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
+  return streamPrivateBlob(pathname);
+}
+
+async function streamPrivateBlob(pathname: string): Promise<Response> {
   try {
-    const blob = await head(pathname);
-    if (!blob) {
+    const [blob, privateBlob] = await Promise.all([
+      head(pathname),
+      get(pathname, { access: "private" }),
+    ]);
+    if (!blob || !privateBlob?.stream) {
       return NextResponse.json({ error: "not_found" }, { status: 404 });
     }
 
-    const response = await fetch(blob.url);
-    if (!response.ok) {
-      return NextResponse.json({ error: "not_found" }, { status: 404 });
-    }
-
-    return new Response(response.body, {
+    return new Response(privateBlob.stream, {
       status: 200,
       headers: {
         "Content-Type": blob.contentType,

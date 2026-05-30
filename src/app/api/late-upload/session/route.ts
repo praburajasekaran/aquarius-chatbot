@@ -112,14 +112,14 @@ export async function POST(request: NextRequest) {
     const blob = await put(
       `late-uploads/${session.sessionId}/${Date.now()}-${crypto.randomUUID()}-${cleanName}`,
       file,
-      { access: "public", contentType }
+      { access: "private", contentType }
     );
     await handleUploadCompleted({
       blob,
       matterRef: session.matterRef,
       sessionId: session.sessionId,
     });
-    return NextResponse.json({ ok: true, url: blob.url });
+    return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[late-upload] upload error", err);
     return NextResponse.json({ error: "upload_failed" }, { status: 500 });
