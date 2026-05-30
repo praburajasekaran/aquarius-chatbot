@@ -107,6 +107,7 @@ describe("sendSms — masked logging on successful send (OPS-03)", () => {
           senders: [
             {
               country_code: "AU",
+              recipient_country_code: "AU",
               sender_type: "alpha_tag",
               sender_id: "AquariusLaw",
             },

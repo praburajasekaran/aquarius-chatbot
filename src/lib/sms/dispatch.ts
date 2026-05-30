@@ -59,9 +59,9 @@ export function redact(e164: string): string {
 export async function sendSms(to: string, body: string): Promise<void> {
   const username = process.env.CLICKSEND_USERNAME;
   const apiKey = process.env.CLICKSEND_API_KEY;
-  const senderId = process.env.CLICKSEND_SENDER_ID ?? "AquariusLaw";
-  const senderCountry = process.env.CLICKSEND_SENDER_COUNTRY ?? "AU";
-  const senderType = process.env.CLICKSEND_SENDER_TYPE ?? "alpha_tag";
+  const senderId = process.env.CLICKSEND_SENDER_ID?.trim() || "AquariusLaw";
+  const senderCountry = process.env.CLICKSEND_SENDER_COUNTRY?.trim() || "AU";
+  const senderType = process.env.CLICKSEND_SENDER_TYPE?.trim() || "alpha_tag";
 
   if (!username || !apiKey) {
     console.warn("[sms] CLICKSEND_* env vars missing — SMS skipped", {
@@ -105,6 +105,7 @@ export async function sendSms(to: string, body: string): Promise<void> {
         senders: [
           {
             country_code: senderCountry,
+            recipient_country_code: senderCountry,
             sender_type: senderType,
             sender_id: senderId,
           },
