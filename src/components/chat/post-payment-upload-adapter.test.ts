@@ -126,4 +126,34 @@ describe("resolvePaymentAndMaybeAppendUpload", () => {
       )
     ).toHaveLength(2);
   });
+
+  it("uses the payment tool session when the current chat session changed after redirect", () => {
+    const messages = [
+      {
+        id: "a1",
+        role: "assistant",
+        parts: [
+          {
+            type: "tool-initiatePayment",
+            state: "input-available",
+            toolCallId: "payment_1",
+            input: { sessionId: "s_paid" },
+          },
+        ],
+      },
+    ] as unknown as ChatMessage[];
+
+    const resolved = resolvePaymentAndMaybeAppendUpload(
+      messages,
+      "payment_1",
+      "s_fresh_after_redirect",
+      "completed",
+      "fixed"
+    );
+
+    expect(resolved[1].parts[0]).toMatchObject({
+      type: "tool-uploadDocuments",
+      input: { sessionId: "s_paid" },
+    });
+  });
 });

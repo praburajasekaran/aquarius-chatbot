@@ -76,17 +76,25 @@ describe("ChatWidget URL signal", () => {
     vi.clearAllMocks();
   });
 
-  it("calls handlePaymentComplete (via onPaymentComplete) when ?payment=success", async () => {
+  it("resolves the payment tool when ?payment=success", async () => {
     setSearch("?payment=success");
     vi.resetModules();
     const { ChatWidget } = await import("@/components/chat/chat-widget");
     render(<ChatWidget />);
     await waitFor(() => {
-      expect(addToolOutputSpy).toHaveBeenCalledWith({
-        tool: "initiatePayment",
-        toolCallId: "pay-1",
-        output: { status: "completed" },
-      });
+      expect(setMessagesSpy).toHaveBeenCalled();
+    });
+    const nextMessages = setMessagesSpy.mock.calls[0][0] as Array<{
+      parts: Array<Record<string, unknown>>;
+    }>;
+    expect(nextMessages[0].parts[0]).toMatchObject({
+      type: "tool-initiatePayment",
+      toolCallId: "pay-1",
+      state: "output-available",
+      output: { status: "completed" },
+    });
+    expect(nextMessages[1].parts[0]).toMatchObject({
+      type: "tool-uploadDocuments",
     });
   });
 
@@ -96,11 +104,17 @@ describe("ChatWidget URL signal", () => {
     const { ChatWidget } = await import("@/components/chat/chat-widget");
     render(<ChatWidget />);
     await waitFor(() => {
-      expect(addToolOutputSpy).toHaveBeenCalledWith({
-        tool: "initiatePayment",
-        toolCallId: "pay-1",
-        output: { status: "failed" },
-      });
+      expect(setMessagesSpy).toHaveBeenCalled();
+    });
+    const nextMessages = setMessagesSpy.mock.calls[0][0] as Array<{
+      parts: Array<Record<string, unknown>>;
+    }>;
+    expect(nextMessages).toHaveLength(1);
+    expect(nextMessages[0].parts[0]).toMatchObject({
+      type: "tool-initiatePayment",
+      toolCallId: "pay-1",
+      state: "output-available",
+      output: { status: "failed" },
     });
   });
 

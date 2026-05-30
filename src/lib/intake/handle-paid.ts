@@ -22,6 +22,7 @@ import { cancelEmailReminder } from "@/lib/email-reminders/dispatch";
 import { logActivity } from "@/lib/digest/activity-log";
 
 const DEDUPE_TTL_SECONDS = 60 * 60 * 24 * 7;
+const RECEIPT_SENT_TTL_SECONDS = 60 * 60 * 24 * 30;
 
 export type IntakePaidSource = "bpoint";
 
@@ -41,6 +42,78 @@ export interface HandleIntakePaidResult {
   status: "ok" | "duplicate";
   uploadLink?: string;
   rawToken?: string;
+}
+
+async function sendPaymentReceiptEmail({
+  sessionId,
+  clientEmail,
+  clientName,
+  paymentAmount,
+  uploadLink,
+  urgency,
+  storedTranscript,
+}: {
+  sessionId: string;
+  clientEmail: string;
+  clientName: string;
+  paymentAmount: number;
+  uploadLink: string;
+  urgency: "urgent" | "non-urgent" | null;
+  storedTranscript: string | null;
+}): Promise<boolean> {
+  const from = process.env.RESEND_FROM_EMAIL;
+  if (!from) {
+    console.warn(
+      "[intake] RESEND_FROM_EMAIL not set — receipt email skipped",
+      { sessionId }
+    );
+    return false;
+  }
+
+  try {
+    await assertNoResendTracking();
+    // PaymentReceipt only renders the Calendly block when both `urgency`
+    // is "non-urgent" AND `calendlyUrl` is set, so a missing env var just
+    // drops that block instead of failing the entire receipt send.
+    const calendlyUrl =
+      process.env.CALENDLY_BOOKING_URL ??
+      process.env.NEXT_PUBLIC_CALENDLY_BOOKING_URL;
+    if (!calendlyUrl) {
+      console.warn(
+        "[intake] Calendly booking URL not set — receipt sent without booking link",
+        { event: "intake_receipt_no_calendly", sessionId }
+      );
+    }
+    await sendAndLog(
+      {
+        from,
+        to: clientEmail,
+        subject: `Your payment receipt — ${BRANDING.firmName}`,
+        react: PaymentReceipt({
+          name: clientName || undefined,
+          matterRef: sessionId,
+          amountCents: paymentAmount,
+          uploadLink,
+          urgency,
+          calendlyUrl,
+          clientEmail,
+          transcript: storedTranscript ?? undefined,
+        }),
+      },
+      { event: "intake_receipt", sessionId }
+    );
+    await redis.set(`payment-receipt-sent:${sessionId}`, "1", {
+      ex: RECEIPT_SENT_TTL_SECONDS,
+    });
+    return true;
+  } catch (err) {
+    console.error("[intake] receipt email failed", {
+      event: "intake_receipt_email_failed",
+      sessionId,
+      err: err instanceof Error ? err.message : String(err),
+    });
+    return false;
+  }
 }
 
 /**
@@ -155,6 +228,46 @@ export async function handleIntakePaid(
   }
 
   if (!claimed) {
+    const appUrl = process.env.APP_URL;
+    const receiptAlreadySent = await redis
+      .get<string>(`payment-receipt-sent:${sessionId}`)
+      .catch(() => null);
+    const recoveryClaim =
+      appUrl && !receiptAlreadySent
+        ? await redis
+            .set(`payment-receipt-recovery:${sessionId}`, "1", {
+              nx: true,
+              ex: DEDUPE_TTL_SECONDS,
+            })
+            .catch(() => null)
+        : null;
+
+    if (appUrl && recoveryClaim === "OK") {
+      const uploadLink = `${appUrl}/upload/${rawToken}`;
+      const intake = await getIntake(sessionId);
+      const storedTranscript = await redis
+        .get<string>(`transcript:${sessionId}`)
+        .catch(() => null);
+      const sent = await sendPaymentReceiptEmail({
+        sessionId,
+        clientEmail,
+        clientName,
+        paymentAmount,
+        uploadLink,
+        urgency: intake?.urgency ?? null,
+        storedTranscript,
+      });
+
+      if (sent) {
+        console.info("[intake] duplicate paid event recovered receipt", {
+          event: "intake_duplicate_receipt_recovered",
+          sessionId,
+          source,
+        });
+        return { status: "duplicate", uploadLink, rawToken };
+      }
+    }
+
     // Concurrent peer beat us, or recovery itself raced. Revoke the
     // orphan token we minted so it isn't dangling in Redis.
     try {
@@ -241,53 +354,15 @@ export async function handleIntakePaid(
   }
 
   // 5. Receipt email — best-effort
-  const from = process.env.RESEND_FROM_EMAIL;
-  if (from) {
-    try {
-      await assertNoResendTracking();
-      // PaymentReceipt only renders the Calendly block when both `urgency`
-      // is "non-urgent" AND `calendlyUrl` is set, so a missing env var just
-      // drops that block instead of failing the entire receipt send.
-      const calendlyUrl =
-        process.env.CALENDLY_BOOKING_URL ??
-        process.env.NEXT_PUBLIC_CALENDLY_BOOKING_URL;
-      if (!calendlyUrl) {
-        console.warn(
-          "[intake] Calendly booking URL not set — receipt sent without booking link",
-          { event: "intake_receipt_no_calendly", sessionId }
-        );
-      }
-      await sendAndLog(
-        {
-          from,
-          to: clientEmail,
-          subject: `Your payment receipt — ${BRANDING.firmName}`,
-          react: PaymentReceipt({
-            name: clientName || undefined,
-            matterRef: sessionId,
-            amountCents: paymentAmount,
-            uploadLink,
-            urgency: intake?.urgency ?? null,
-            calendlyUrl,
-            clientEmail,
-            transcript: storedTranscript ?? undefined,
-          }),
-        },
-        { event: "intake_receipt", sessionId }
-      );
-    } catch (err) {
-      console.error("[intake] receipt email failed", {
-        event: "intake_receipt_email_failed",
-        sessionId,
-        err: err instanceof Error ? err.message : String(err),
-      });
-    }
-  } else {
-    console.warn(
-      "[intake] RESEND_FROM_EMAIL not set — receipt email skipped",
-      { sessionId }
-    );
-  }
+  await sendPaymentReceiptEmail({
+    sessionId,
+    clientEmail,
+    clientName,
+    paymentAmount,
+    uploadLink,
+    urgency: intake?.urgency ?? null,
+    storedTranscript,
+  });
 
   // 6. Firm transcript — best-effort, requires intake record
   if (intake) {
