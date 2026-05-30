@@ -1,9 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { headers } from "next/headers";
-import {
-  resolveUploadToken,
-  revokeTokenByHash,
-} from "@/lib/upload-tokens";
+import { resolveUploadToken } from "@/lib/upload-tokens";
 import { getLimiter } from "@/lib/rate-limit";
 import {
   signCookie,
@@ -25,11 +22,11 @@ export const dynamic = "force-dynamic";
  *          from email. Mail-client link warmers (Outlook Safe Links,
  *          Mimecast, etc.) only ever issue GETs, so they walk away with
  *          the confirmation HTML and the token survives intact.
- *   POST → atomically consume the token, mint the signed session
- *          cookie, redirect to /upload/session. Single-use: even if the
- *          user closes the browser before uploading, the cookie they
- *          got from this POST is what authorizes the next 7 days of
- *          uploads. A second POST with the same magic link 404s.
+ *   POST → mint the signed session cookie, redirect to /upload/session.
+ *          The token remains valid until its Redis TTL expires so clients
+ *          can return from the same email link to upload more documents
+ *          during the 7-day upload window. Manual revocation still deletes
+ *          the Redis token if a link is reported leaked.
  *
  * Implemented as a Route Handler (not a Server Component page) because
  * Next.js 15 disallows cookie mutation in Server Components — only
@@ -86,21 +83,6 @@ export async function POST(
 
   const { record, tokenHash } = resolved;
   const exp = Math.floor(Date.now() / 1000) + COOKIE_MAX_AGE_SECONDS;
-
-  // Single-use: revoke now, before minting the cookie. If revoke fails,
-  // we still mint (the cookie is the durable authority for the 7-day
-  // window) but we log the failure so the operator can clean up. If we
-  // minted first and revoke threw, a network blip on the revoke could
-  // leave a still-redeemable token in Redis.
-  try {
-    await revokeTokenByHash(tokenHash);
-  } catch (err) {
-    console.error("[upload-token] revoke after redeem failed", {
-      event: "upload_token_revoke_failed",
-      tokenHash,
-      err: err instanceof Error ? err.message : String(err),
-    });
-  }
 
   const sessionUrl = new URL("/upload/session", req.url);
   const response = NextResponse.redirect(sessionUrl, { status: 303 });
@@ -185,7 +167,7 @@ function renderConfirmPage(): string {
     <form method="POST" action="">
       <button type="submit">Continue</button>
     </form>
-    <p class="note">This link is single-use. Once you continue, it can't be used again — open the page on the device you'll upload from.</p>
+    <p class="note">This secure link stays valid for 7 days, so you can return to this email if you need to upload more files later.</p>
   </main>
 </body>
 </html>`;
