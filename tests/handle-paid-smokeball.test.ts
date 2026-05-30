@@ -160,6 +160,43 @@ describe("handleIntakePaid Smokeball fan-out", () => {
     expect(mocks.sendToZapier).not.toHaveBeenCalled();
   });
 
+  it("sends one recovery receipt for a duplicate paid event when no receipt was recorded", async () => {
+    process.env.RESEND_FROM_EMAIL = "noreply@app.test";
+    mocks.redisSet
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce("OK")
+      .mockResolvedValueOnce("OK");
+    mocks.redisGet
+      .mockResolvedValueOnce("b".repeat(64))
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null);
+    mocks.sendAndLog.mockResolvedValue({ id: "email-1" });
+
+    const result = await handleIntakePaid({
+      sessionId: "sess-1",
+      paymentRef: "BPOINT-1",
+      paymentAmount: 132000,
+      clientEmail: "taylor@example.com",
+      clientName: "Taylor Smith",
+      source: "bpoint",
+    });
+
+    expect(result).toMatchObject({
+      status: "duplicate",
+      uploadLink: "https://app.test/upload/raw-token",
+      rawToken: "raw-token",
+    });
+    expect(mocks.sendAndLog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: "taylor@example.com",
+        subject: "Your payment receipt — Demo Law Firm",
+      }),
+      { event: "intake_receipt", sessionId: "sess-1" }
+    );
+    expect(mocks.revokeTokenByHash).not.toHaveBeenCalled();
+    expect(mocks.sendToZapier).not.toHaveBeenCalled();
+  });
+
   it("alerts the firm when create-matter Zap fails after retry", async () => {
     mocks.sendToZapier.mockRejectedValue(new Error("Zap failed"));
 

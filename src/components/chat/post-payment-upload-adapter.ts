@@ -25,6 +25,31 @@ function hasUploadAfterPayment(
   return false;
 }
 
+function paymentToolSessionId(
+  messages: ChatMessage[],
+  paymentToolCallId: string
+): string | null {
+  for (const message of messages) {
+    if (message.role !== "assistant") continue;
+    for (const part of message.parts) {
+      const maybeTool = part as {
+        toolCallId?: string;
+        type?: string;
+        input?: { sessionId?: unknown };
+      };
+      if (
+        maybeTool.type === "tool-initiatePayment" &&
+        maybeTool.toolCallId === paymentToolCallId &&
+        typeof maybeTool.input?.sessionId === "string" &&
+        maybeTool.input.sessionId.length > 0
+      ) {
+        return maybeTool.input.sessionId;
+      }
+    }
+  }
+  return null;
+}
+
 export function resolvePaymentAndMaybeAppendUpload(
   messages: ChatMessage[],
   toolCallId: string,
@@ -50,6 +75,7 @@ export function resolvePaymentAndMaybeAppendUpload(
   if (hasUploadAfterPayment(resolvedMessages, toolCallId)) return resolvedMessages;
 
   const id = `post_payment_upload_${idSuffix}`;
+  const uploadSessionId = paymentToolSessionId(resolvedMessages, toolCallId) ?? sessionId;
   return [
     ...resolvedMessages,
     {
@@ -61,7 +87,7 @@ export function resolvePaymentAndMaybeAppendUpload(
           state: "input-available",
           toolCallId: id,
           input: {
-            sessionId,
+            sessionId: uploadSessionId,
           },
         },
       ],
