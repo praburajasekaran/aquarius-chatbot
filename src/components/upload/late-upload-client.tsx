@@ -291,14 +291,25 @@ export function LateUploadClient({
         )}
 
         {uploadedFiles.length > 0 && pendingCount === 0 && !isUploading && (
-          <button
-            type="button"
-            onClick={startNewBatch}
-            className="flex-1 min-h-[44px] px-4 rounded-lg border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50 transition flex items-center justify-center gap-2"
-          >
-            <Plus className="h-4 w-4" aria-hidden />
-            Add more files
-          </button>
+          <>
+            <button
+              type="button"
+              disabled
+              className="flex-1 min-h-[44px] px-4 rounded-lg bg-brand text-white text-sm font-medium opacity-80 flex items-center justify-center gap-2"
+            >
+              <CheckCircle className="h-4 w-4" aria-hidden />
+              Submit documents
+            </button>
+
+            <button
+              type="button"
+              onClick={startNewBatch}
+              className="flex-1 min-h-[44px] px-4 rounded-lg border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50 transition flex items-center justify-center gap-2"
+            >
+              <Plus className="h-4 w-4" aria-hidden />
+              Add more files
+            </button>
+          </>
         )}
       </div>
     </section>

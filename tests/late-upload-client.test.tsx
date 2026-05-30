@@ -85,4 +85,29 @@ describe("LateUploadClient", () => {
     expect(screen.getByText("first.pdf")).toBeVisible();
     expect(screen.getByText("second.pdf")).toBeVisible();
   });
+
+  it("keeps the submit button visible after documents are submitted", async () => {
+    const user = userEvent.setup();
+    render(<LateUploadClient matterRef="s_test" clientName="Prabu" />);
+
+    const input = document.querySelector("input[type='file']");
+    expect(input).toBeInstanceOf(HTMLInputElement);
+
+    await user.upload(
+      input as HTMLInputElement,
+      new File(["%PDF-1.4\n"], "submitted.pdf", { type: "application/pdf" })
+    );
+    await user.click(
+      screen.getByRole("button", { name: /submit documents/i })
+    );
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: /submit documents/i })
+      ).toBeDisabled()
+    );
+    expect(
+      screen.getByRole("button", { name: /add more files/i })
+    ).toBeVisible();
+  });
 });
