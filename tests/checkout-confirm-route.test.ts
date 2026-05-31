@@ -1,12 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
+  after: vi.fn(),
   retrieveTransaction: vi.fn(),
   redisGet: vi.fn(),
   redisSet: vi.fn(),
   handleConfirmedPayment: vi.fn(),
   sendFirmIntegrationAlertEmail: vi.fn(),
 }));
+
+vi.mock("next/server", async () => {
+  const actual = await vi.importActual<typeof import("next/server")>(
+    "next/server"
+  );
+  return {
+    ...actual,
+    after: mocks.after,
+  };
+});
 
 vi.mock("@/lib/bpoint", () => ({
   retrieveTransaction: mocks.retrieveTransaction,
@@ -64,6 +75,11 @@ describe("GET /api/checkout/confirm", () => {
 
     expect(res.status).toBe(307);
     expect(res.headers.get("location")).toBe("https://app.test/?payment=success");
+    expect(mocks.sendFirmIntegrationAlertEmail).not.toHaveBeenCalled();
+
+    const callback = mocks.after.mock.calls[0]?.[0] as () => Promise<void>;
+    await callback();
+
     expect(mocks.sendFirmIntegrationAlertEmail).toHaveBeenCalledWith(
       expect.objectContaining({
         title: "Paid BPoint transaction needs manual follow-up",

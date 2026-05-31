@@ -238,8 +238,8 @@ describe("handleIntakePaid Smokeball fan-out", () => {
     const receiptCall = mocks.sendAndLog.mock.calls.find(
       ([, context]) => context.event === "intake_receipt"
     );
-    expect(JSON.stringify(receiptCall?.[0].react)).toContain(
-      "https://calendly.test/book"
-    );
+    const receiptJson = JSON.stringify(receiptCall?.[0].react);
+    expect(receiptJson).toContain("https://calendly.test/book");
+    expect(receiptJson).toContain("utm_content=sess-1");
   });
 });

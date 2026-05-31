@@ -30,12 +30,14 @@ function formatAud(cents: number): string {
 
 function buildCalendlyPrefillUrl(
   baseUrl: string,
-  name?: string,
-  email?: string
+  name: string | undefined,
+  email: string | undefined,
+  matterRef: string
 ): string {
   const params = new URLSearchParams();
   if (name) params.set("name", name);
   if (email) params.set("email", email);
+  params.set("utm_content", matterRef);
   const query = params.toString();
   return query ? `${baseUrl}?${query}` : baseUrl;
 }
@@ -112,7 +114,12 @@ export default function PaymentReceipt({
             walk you through your matter and next steps in detail.
           </Text>
           <BrandButton
-            href={buildCalendlyPrefillUrl(calendlyUrl, name, clientEmail)}
+            href={buildCalendlyPrefillUrl(
+              calendlyUrl,
+              name,
+              clientEmail,
+              matterRef
+            )}
           >
             Book your session
           </BrandButton>

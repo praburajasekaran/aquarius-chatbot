@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { retrieveTransaction, type BPointTxnResponse } from "@/lib/bpoint";
 import { redis } from "@/lib/kv";
 import { bucketBankCode } from "@/lib/payments/bucket-bank-code";
@@ -30,7 +30,10 @@ function browserReturnOrigin(req: Request): string {
   return requestUrl.origin;
 }
 
-function failedRedirect(req: Request, reason: "declined" | "invalid" | "system" | "expired") {
+function failedRedirect(
+  req: Request,
+  reason: "declined" | "invalid" | "system" | "expired"
+) {
   return NextResponse.redirect(
     `${browserReturnOrigin(req)}/?payment=failed&reason=${reason}`
   );
@@ -92,40 +95,43 @@ export async function GET(req: Request): Promise<NextResponse> {
     return successRedirect(req);
   }
 
-  try {
-    await handleConfirmedPayment({
-      sessionId: txn.TxnResp.Crn1,
-      bpointTxnNumber: txn.TxnResp.TxnNumber,
-      amountCents: txn.TxnResp.Amount,
-    });
-  } catch (err) {
-    console.error("[bpoint-confirm] paid fan-out failed", {
-      bpointTxnNumber: txn.TxnResp.TxnNumber,
-      err: err instanceof Error ? err.message : String(err),
-    });
+  const txnResp = txn.TxnResp;
+  after(async () => {
     try {
-      await sendFirmIntegrationAlertEmail({
-        title: "Paid BPoint transaction needs manual follow-up",
-        reason:
-          err instanceof Error
-            ? err.message
-            : "The payment was approved, but the chatbot could not create the paid intake fan-out.",
-        sessionId: txn.TxnResp.Crn1,
-        details: {
-          "BPoint transaction": txn.TxnResp.TxnNumber,
-          "Amount cents": txn.TxnResp.Amount,
-          "Bank response": txn.TxnResp.BankResponseCode,
-          "BPoint response": txn.TxnResp.ResponseText,
-        },
+      await handleConfirmedPayment({
+        sessionId: txnResp.Crn1,
+        bpointTxnNumber: txnResp.TxnNumber,
+        amountCents: txnResp.Amount,
       });
-    } catch (alertErr) {
-      console.error("[bpoint-confirm] paid fan-out firm alert failed", {
-        event: "bpoint_paid_fanout_alert_failed",
-        sessionId: txn.TxnResp.Crn1,
-        err: alertErr instanceof Error ? alertErr.message : String(alertErr),
+    } catch (err) {
+      console.error("[bpoint-confirm] paid fan-out failed", {
+        bpointTxnNumber: txnResp.TxnNumber,
+        err: err instanceof Error ? err.message : String(err),
       });
+      try {
+        await sendFirmIntegrationAlertEmail({
+          title: "Paid BPoint transaction needs manual follow-up",
+          reason:
+            err instanceof Error
+              ? err.message
+              : "The payment was approved, but the chatbot could not create the paid intake fan-out.",
+          sessionId: txnResp.Crn1,
+          details: {
+            "BPoint transaction": txnResp.TxnNumber,
+            "Amount cents": txnResp.Amount,
+            "Bank response": txnResp.BankResponseCode,
+            "BPoint response": txnResp.ResponseText,
+          },
+        });
+      } catch (alertErr) {
+        console.error("[bpoint-confirm] paid fan-out firm alert failed", {
+          event: "bpoint_paid_fanout_alert_failed",
+          sessionId: txnResp.Crn1,
+          err: alertErr instanceof Error ? alertErr.message : String(alertErr),
+        });
+      }
     }
-  }
+  });
 
   return successRedirect(req);
 }
