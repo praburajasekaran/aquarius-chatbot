@@ -5,6 +5,20 @@ import {
   expiredAuthKeyResponse,
 } from "./fixtures/bpoint-responses";
 
+const nextMocks = vi.hoisted(() => ({
+  after: vi.fn(),
+}));
+
+vi.mock("next/server", async () => {
+  const actual = await vi.importActual<typeof import("next/server")>(
+    "next/server"
+  );
+  return {
+    ...actual,
+    after: nextMocks.after,
+  };
+});
+
 vi.mock("@/lib/bpoint", () => ({
   retrieveTransaction: vi.fn(),
 }));
@@ -22,6 +36,14 @@ import { redis } from "@/lib/kv";
 
 function makeReq(url: string) {
   return new Request(url) as unknown as import("next/server").NextRequest;
+}
+
+async function runScheduledFanout() {
+  const callback = nextMocks.after.mock.calls[0]?.[0] as
+    | (() => Promise<void>)
+    | undefined;
+  expect(callback).toBeDefined();
+  await callback?.();
 }
 
 describe("GET /api/checkout/confirm", () => {
@@ -51,9 +73,11 @@ describe("GET /api/checkout/confirm", () => {
     expect(retrieveTransaction).toHaveBeenCalledWith("RK-OK");
   });
 
-  it("calls handleConfirmedPayment with mapped fields when approved", async () => {
+  it("schedules handleConfirmedPayment with mapped fields when approved", async () => {
     vi.mocked(retrieveTransaction).mockResolvedValue(approvedTxnResponse);
     await GET(makeReq("https://app.test/api/checkout/confirm?ResultKey=RK-OK&ResponseCode=0"));
+    expect(handleConfirmedPayment).not.toHaveBeenCalled();
+    await runScheduledFanout();
     expect(handleConfirmedPayment).toHaveBeenCalledWith({
       sessionId: "sess-test-001",
       bpointTxnNumber: "TXN-APPROVED-001",
@@ -87,6 +111,8 @@ describe("GET /api/checkout/confirm", () => {
     );
 
     expect(redis.get).toHaveBeenCalledWith("bpoint-result:RK-OK");
+    expect(handleConfirmedPayment).not.toHaveBeenCalled();
+    await runScheduledFanout();
     expect(handleConfirmedPayment).toHaveBeenCalledWith({
       sessionId: "sess-test-001",
       bpointTxnNumber: "TXN-APPROVED-001",
