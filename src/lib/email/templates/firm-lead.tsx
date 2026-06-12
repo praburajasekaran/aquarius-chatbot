@@ -1,4 +1,4 @@
-import { Heading, Hr, Text } from "@react-email/components";
+import { Heading, Hr, Link, Text } from "@react-email/components";
 import { EmailLayout } from "@/lib/email/components/EmailLayout";
 import { BrandButton } from "@/lib/email/components/BrandButton";
 import { DataTable } from "@/lib/email/components/DataTable";
@@ -12,6 +12,7 @@ export interface FirmLeadEmailProps {
   urgency: "urgent" | "non-urgent";
   displayPrice: string;
   resumeUrl: string;
+  leadSourceUrl?: string;
   transcript?: string;
 }
 
@@ -23,6 +24,7 @@ export default function FirmLeadEmail({
   urgency,
   displayPrice,
   resumeUrl,
+  leadSourceUrl,
   transcript,
 }: FirmLeadEmailProps) {
   return (
@@ -40,6 +42,23 @@ export default function FirmLeadEmail({
           { label: "Matter", value: matterDescription },
           { label: "Urgency", value: urgency },
           { label: "Fee", value: displayPrice },
+          ...(leadSourceUrl
+            ? [
+                {
+                  label: "Lead source",
+                  value: (
+                    <>
+                      <Link href={leadSourceUrl} style={styles.link}>
+                        {leadSourceUrl}
+                      </Link>
+                      <Text style={{ ...styles.paragraphMuted, margin: "4px 0 0" }}>
+                        Captured from embedded chatbot
+                      </Text>
+                    </>
+                  ),
+                },
+              ]
+            : []),
         ]}
       />
 

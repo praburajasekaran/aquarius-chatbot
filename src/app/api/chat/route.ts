@@ -16,6 +16,10 @@ import { redis } from "@/lib/kv";
 import { parseJsonBody } from "@/lib/api/parse";
 import { chatLimiter } from "@/lib/rate-limit";
 import { sanitizeAssistantText } from "@/lib/sanitize-llm-text";
+import {
+  normalizeLeadSourceUrl,
+  persistLeadSourceUrl,
+} from "@/lib/lead-source";
 
 export const maxDuration = 30;
 
@@ -48,6 +52,7 @@ const ChatMessageSchema = z.looseObject({
 const Body = z.object({
   messages: z.array(ChatMessageSchema).max(200),
   sessionId: z.string().min(1).max(200).optional(),
+  leadSourceUrl: z.string().max(4096).optional(),
 });
 
 // showOptions is a pure-UI tool that auto-resolves server-side. If the model
@@ -175,6 +180,18 @@ export async function POST(req: Request) {
     parsed.data.messages as unknown as ChatMessage[],
   );
   const sessionId = parsed.data.sessionId;
+  const leadSourceUrl = normalizeLeadSourceUrl(parsed.data.leadSourceUrl);
+
+  if (sessionId && leadSourceUrl) {
+    try {
+      await persistLeadSourceUrl(sessionId, leadSourceUrl);
+    } catch (err) {
+      console.error("[chat] lead source persist failed", {
+        sessionId,
+        err: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
 
   await logUnmatchedVisitorQuestion(messages, sessionId);
 

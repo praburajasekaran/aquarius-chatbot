@@ -30,6 +30,19 @@
   function writeState(s) {
     try { sessionStorage.setItem(STATE_KEY, s); } catch { /* noop */ }
   }
+  function sourceTaggedEmbedUrl(url) {
+    var source = '';
+    try { source = window.location.href; } catch { source = ''; }
+    if (!source) return url;
+    try {
+      var tagged = new URL(url, window.location.href);
+      tagged.searchParams.set('leadSourceUrl', source);
+      return tagged.toString();
+    } catch {
+      var sep = url.indexOf('?') === -1 ? '?' : '&';
+      return url + sep + 'leadSourceUrl=' + encodeURIComponent(source);
+    }
+  }
 
   var isDesktop = false;
   try { isDesktop = window.matchMedia(DESKTOP_QUERY).matches; } catch { /* noop */ }
@@ -47,7 +60,7 @@
   }
 
   var frame = document.createElement('iframe');
-  frame.src = EMBED_URL;
+  frame.src = sourceTaggedEmbedUrl(EMBED_URL);
   frame.title = 'Aquarius Lawyers chat assistant';
   frame.style.cssText = 'position:fixed;bottom:90px;right:20px;width:400px;height:600px;border:none;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,0.15);z-index:9999;display:' + (initialState === 'open' ? 'block' : 'none');
 
