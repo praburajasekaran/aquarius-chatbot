@@ -7,6 +7,7 @@ import { sendClientInquiryEmail, sendFirmLeadEmail } from "@/lib/resend";
 import { validateEmail, validatePhone } from "@/lib/validators";
 import { scheduleEmailReminder } from "@/lib/email-reminders/dispatch";
 import { logActivity } from "@/lib/digest/activity-log";
+import { getLeadSourceUrl } from "@/lib/lead-source";
 
 // Defense-in-depth caps. The model can pass arbitrary strings here (it's a
 // tool call, not a server-validated form) so we re-validate before any of
@@ -112,6 +113,7 @@ export const selectUrgency = tool({
     const transcript = await redis
       .get<string>(`transcript:${sessionId}`)
       .catch(() => null);
+    const leadSourceUrl = await getLeadSourceUrl(sessionId).catch(() => null);
 
     try {
       await sendFirmLeadEmail({
@@ -122,6 +124,7 @@ export const selectUrgency = tool({
         urgency,
         displayPrice: pricing.displayPrice,
         resumeUrl,
+        leadSourceUrl: leadSourceUrl ?? undefined,
         transcript: transcript ?? undefined,
       });
     } catch (err) {

@@ -203,6 +203,17 @@ function postUploadFallbackBookingUrl(messages: ChatMessage[]): string | null {
   return typeof url === "string" && url.length > 0 ? url : null;
 }
 
+function readLeadSourceUrl(): string | undefined {
+  if (typeof window === "undefined") return undefined;
+  const params = new URLSearchParams(window.location.search);
+  const explicit = params.get("leadSourceUrl");
+  if (explicit && explicit.trim().length > 0) return explicit;
+  if (document.referrer && document.referrer.trim().length > 0) {
+    return document.referrer;
+  }
+  return undefined;
+}
+
 // Auto-continuation condition. Fires only when one of the whitelisted client
 // tools in the last assistant message has entered a resolved state, meaning
 // the user has just completed an action (paid, uploaded, booked, etc.) and
@@ -279,10 +290,15 @@ export function ChatWidget() {
   // True when a sister tab on the same origin is mid-stream for this session.
   // Drives input disable + an inline notice so the visitor doesn't double-send.
   const [otherTabStreaming, setOtherTabStreaming] = useState(false);
+  const leadSourceUrl = useMemo(readLeadSourceUrl, []);
 
   const transport = useMemo(
-    () => new DefaultChatTransport({ api: "/api/chat", body: { sessionId } }),
-    [sessionId]
+    () =>
+      new DefaultChatTransport({
+        api: "/api/chat",
+        body: { sessionId, leadSourceUrl },
+      }),
+    [leadSourceUrl, sessionId]
   );
 
   const { messages, sendMessage, addToolOutput, status, setMessages, stop } = useChat<ChatMessage>({

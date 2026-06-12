@@ -55,6 +55,20 @@ function getServerSnapshot() {
   return false;
 }
 
+function sourceTaggedEmbedUrl(src: string): string {
+  if (typeof window === "undefined") return src;
+  const source = window.location.href;
+  if (!source) return src;
+  try {
+    const url = new URL(src, window.location.href);
+    url.searchParams.set("leadSourceUrl", source);
+    return url.toString();
+  } catch {
+    const separator = src.includes("?") ? "&" : "?";
+    return `${src}${separator}leadSourceUrl=${encodeURIComponent(source)}`;
+  }
+}
+
 export function ChatWidgetEmbed({ src = "/" }: { src?: string }) {
   const mounted = useSyncExternalStore(
     subscribeClientSnapshot,
@@ -136,6 +150,7 @@ export function ChatWidgetEmbed({ src = "/" }: { src?: string }) {
 
   const open = state === "open";
   const teaserShown = teaserVisible && !open;
+  const frameSrc = sourceTaggedEmbedUrl(src);
 
   return (
     <>
@@ -150,7 +165,7 @@ export function ChatWidgetEmbed({ src = "/" }: { src?: string }) {
         <div className="w-[min(400px,calc(100vw-2.5rem))] h-[min(620px,calc(100vh-8rem))] rounded-2xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.25)] bg-white ring-1 ring-black/5">
           {open && (
             <iframe
-              src={src}
+              src={frameSrc}
               title="Aquarius Lawyers chat assistant"
               className="w-full h-full border-0"
               allow="clipboard-write"

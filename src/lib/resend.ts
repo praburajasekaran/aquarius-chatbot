@@ -211,6 +211,7 @@ export async function sendFirmLeadEmail({
   urgency,
   displayPrice,
   resumeUrl,
+  leadSourceUrl,
   transcript,
 }: {
   clientName: string;
@@ -220,6 +221,7 @@ export async function sendFirmLeadEmail({
   urgency: "urgent" | "non-urgent";
   displayPrice: string;
   resumeUrl: string;
+  leadSourceUrl?: string;
   transcript?: string;
 }) {
   const from = process.env.RESEND_FROM_EMAIL;
@@ -250,6 +252,7 @@ export async function sendFirmLeadEmail({
         urgency,
         displayPrice,
         resumeUrl,
+        leadSourceUrl,
         transcript,
       }),
     },
