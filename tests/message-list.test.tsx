@@ -69,3 +69,19 @@ describe("MessageList mandatory payment options", () => {
     expect(onMandatoryOptionPick).toHaveBeenCalledWith("Yes, please proceed");
   });
 });
+
+describe("MessageList welcome message", () => {
+  it("renders the exact Ask Banjo greeting and preserves its accessible label and paragraph break", () => {
+    const expectedWelcome =
+      "Welcome to Ask Banjo, your assistant at Aquarius Lawyers. I'm here to help with your legal questions and guide you through booking a Legal Strategy Session.\n\nHow can I help you today?";
+    const expectedAccessibleLabel = `Assistant: ${expectedWelcome}`;
+
+    renderMessageList([]);
+
+    const welcome = screen.getByLabelText(
+      /Assistant: Welcome to Ask Banjo, your assistant at Aquarius Lawyers\./,
+    );
+    expect(welcome.textContent).toBe(expectedWelcome);
+    expect(welcome.getAttribute("aria-label")).toBe(expectedAccessibleLabel);
+  });
+});
