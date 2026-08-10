@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 
 // Mock MessageList to capture the props ChatWidget passes down.
 // The asserted prop surface is failureReason + onPaymentComplete + onRetryRequested.
@@ -24,6 +24,15 @@ vi.mock("@/components/chat/disclaimer-banner", () => ({
 vi.mock("@/components/chat/message-input", () => ({
   MessageInput: () => null,
 }));
+
+vi.mock("next/image", () => ({
+  default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img alt="" {...props} />
+  ),
+}));
+
+process.env.NEXT_PUBLIC_FIRM_NAME = "Aquarius Lawyers";
 
 // Mock @ai-sdk/react useChat (the hook chat-widget consumes).
 vi.mock("@ai-sdk/react", () => ({
@@ -133,6 +142,28 @@ describe("ChatWidget URL signal", () => {
     render(<ChatWidget />);
     expect(addToolOutputSpy).not.toHaveBeenCalled();
     expect(replaceStateSpy).not.toHaveBeenCalled();
+  });
+
+  it("retains the Aquarius Lawyers and Ask Banjo header with chat controls", async () => {
+    setSearch("");
+    mockMessages = [
+      {
+        id: "assistant-welcome",
+        role: "assistant",
+        parts: [{ type: "text", text: "Welcome" }],
+      },
+    ];
+    vi.resetModules();
+    const { ChatWidget } = await import("@/components/chat/chat-widget");
+    render(<ChatWidget />);
+
+    expect(screen.getByRole("banner")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Aquarius Lawyers" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Ask Banjo", { exact: true })).toBeInTheDocument();
+    expect(screen.getByRole("presentation")).toHaveAttribute("src", "/banjo.png");
+    expect(screen.getByRole("button", { name: "End chat" })).toBeInTheDocument();
   });
 
   it("appends Calendly scheduling directly when document upload resolves for a non-urgent intake", async () => {
