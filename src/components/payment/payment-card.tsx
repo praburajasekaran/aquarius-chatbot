@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type SyntheticEvent } from "react";
 import { AlertCircle, CheckCircle2, CreditCard, Loader2, LockKeyhole, ShieldCheck } from "lucide-react";
+import { verifyPaymentProof } from "@/lib/payment-proof-client";
 
 export type PaymentFailureReason = "declined" | "invalid" | "system" | "expired";
 
@@ -30,6 +31,9 @@ export function PaymentCard({ sessionId, onComplete, onFail }: PaymentCardProps)
   const [processing, setProcessing] = useState(false);
   const onCompleteRef = useRef(onComplete);
   const onFailRef = useRef(onFail);
+  const completedProofRef = useRef<string | null>(null);
+  const verifyingProofRef = useRef<string | null>(null);
+  const failedReturnHandledRef = useRef(false);
 
   useEffect(() => {
     onCompleteRef.current = onComplete;
@@ -40,6 +44,9 @@ export function PaymentCard({ sessionId, onComplete, onFail }: PaymentCardProps)
     let cancelled = false;
 
     async function preparePayment() {
+      completedProofRef.current = null;
+      verifyingProofRef.current = null;
+      failedReturnHandledRef.current = false;
       setState("loading");
       setError(null);
       setAuthKey(null);
@@ -107,16 +114,28 @@ export function PaymentCard({ sessionId, onComplete, onFail }: PaymentCardProps)
 
   const iframeSrc = useMemo(() => iframeUrl, [iframeUrl]);
 
-  function handleBpointFrameLoad(event: SyntheticEvent<HTMLIFrameElement>) {
+  async function handleBpointFrameLoad(event: SyntheticEvent<HTMLIFrameElement>) {
     try {
       const href = event.currentTarget.contentWindow?.location.href;
       if (!href) return;
       const url = new URL(href);
       const payment = url.searchParams.get("payment");
       if (payment === "success") {
+        const proof = url.searchParams.get("paymentProof") ?? "";
+        if (!proof || completedProofRef.current === proof || verifyingProofRef.current === proof) {
+          return;
+        }
+        verifyingProofRef.current = proof;
+        const confirmed = await verifyPaymentProof(proof, sessionId);
+        if (verifyingProofRef.current !== proof) return;
+        verifyingProofRef.current = null;
+        if (!confirmed) return;
+        completedProofRef.current = proof;
         setState("succeeded");
         onCompleteRef.current();
       } else if (payment === "failed") {
+        if (failedReturnHandledRef.current) return;
+        failedReturnHandledRef.current = true;
         setState("failed");
         setError("Payment was not approved. Please check the details and try again.");
         onFailRef.current?.();

@@ -118,7 +118,10 @@ describe("GET /api/checkout/confirm", () => {
       bpointTxnNumber: "TXN-APPROVED-001",
       amountCents: 132000,
     });
-    expect(res.headers.get("location")).toBe("https://app.test/?payment=success");
+    const location = new URL(res.headers.get("location") ?? "");
+    expect(location.origin).toBe("https://app.test");
+    expect(location.searchParams.get("payment")).toBe("success");
+    expect(location.searchParams.get("paymentProof")).toMatch(/^[A-Za-z0-9_-]{43}$/);
   });
 
   it("does NOT fan-out twice when SETNX returns null (dedup)", async () => {
@@ -131,6 +134,22 @@ describe("GET /api/checkout/confirm", () => {
   it("redirects to /?payment=success on approved + first call", async () => {
     vi.mocked(retrieveTransaction).mockResolvedValue(approvedTxnResponse);
     const res = await GET(makeReq("https://app.test/api/checkout/confirm?ResultKey=RK-OK&ResponseCode=0"));
-    expect(res.headers.get("location")).toBe("https://app.test/?payment=success");
+    const location = new URL(res.headers.get("location") ?? "");
+    expect(location.origin).toBe("https://app.test");
+    expect(location.pathname).toBe("/");
+    expect(location.searchParams.get("payment")).toBe("success");
+    expect(location.searchParams.get("paymentProof")).toMatch(/^[A-Za-z0-9_-]{43}$/);
+  });
+
+  it("never redirects an approved callback to an arbitrary return origin", async () => {
+    vi.mocked(retrieveTransaction).mockResolvedValue(approvedTxnResponse);
+    const res = await GET(
+      makeReq(
+        "https://app.test/api/checkout/confirm?ResultKey=RK-OK&ResponseCode=0&returnTo=https%3A%2F%2Fevil.example%2Fdone",
+      ),
+    );
+    const location = new URL(res.headers.get("location") ?? "");
+    expect(location.origin).toBe("https://app.test");
+    expect(location.searchParams.get("payment")).toBe("success");
   });
 });

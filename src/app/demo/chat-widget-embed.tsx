@@ -69,6 +69,69 @@ function sourceTaggedEmbedUrl(src: string): string {
   }
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (!value || typeof value !== "object") return false;
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
+function isEmbedMessage(value: unknown): value is {
+  source: "aq-chat";
+  type: "minimize" | "payment_confirmed" | "appointment_booked";
+} {
+  if (!isPlainObject(value)) return false;
+  const keys = Object.keys(value);
+  return (
+    keys.length === 2 &&
+    keys.includes("source") &&
+    keys.includes("type") &&
+    value.source === "aq-chat" &&
+    (value.type === "minimize" ||
+      value.type === "payment_confirmed" ||
+      value.type === "appointment_booked")
+  );
+}
+
+function embedOrigin(src: string): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return new URL(src, window.location.href).origin;
+  } catch {
+    return null;
+  }
+}
+
+function pushConversion(windowRef: Window, event: "aq_payment_confirmed" | "aq_appointment_booked") {
+  const dataLayer = ((windowRef as Window & { dataLayer?: unknown[] }).dataLayer ??= []);
+  dataLayer.push({ event });
+}
+
+type ConversionType = "payment_confirmed" | "appointment_booked";
+
+function conversionAlreadyHandled(
+  handled: Record<ConversionType, boolean>,
+  type: ConversionType,
+): boolean {
+  if (handled[type]) return true;
+  try {
+    return sessionStorage.getItem(`aq_conversion_${type}`) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function markConversionHandled(
+  handled: Record<ConversionType, boolean>,
+  type: ConversionType,
+): void {
+  handled[type] = true;
+  try {
+    sessionStorage.setItem(`aq_conversion_${type}`, "1");
+  } catch {
+    // noop
+  }
+}
+
 export function ChatWidgetEmbed({ src = "/" }: { src?: string }) {
   const mounted = useSyncExternalStore(
     subscribeClientSnapshot,
@@ -79,6 +142,11 @@ export function ChatWidgetEmbed({ src = "/" }: { src?: string }) {
     computeInitialState()
   );
   const bootStateRef = useRef(state);
+  const frameRef = useRef<HTMLIFrameElement>(null);
+  const handledConversionsRef = useRef({
+    payment_confirmed: false,
+    appointment_booked: false,
+  });
   const [teaserVisible, setTeaserVisible] = useState(false);
 
   // Compute initial state on client only, then mount + persist + track.
@@ -135,16 +203,31 @@ export function ChatWidgetEmbed({ src = "/" }: { src?: string }) {
     track("chat_minimized", { surface: "react", source });
   }
 
-  // Listen for the iframe's Minimize button via postMessage.
+  // Listen for the iframe's controls and conversion milestones. The source,
+  // origin, and exact envelope are all checked before any state or tracking
+  // side effect occurs.
   useEffect(() => {
     function onMessage(e: MessageEvent) {
-      const data = e.data as { source?: string; type?: string } | null;
-      if (!data || data.source !== "aq-chat") return;
-      if (data.type === "minimize") minimizeChat("panel");
+      const data = e.data;
+      if (e.origin !== embedOrigin(src)) return;
+      if (e.source !== frameRef.current?.contentWindow) return;
+      if (!isEmbedMessage(data)) return;
+      if (data.type === "minimize") {
+        minimizeChat("panel");
+        return;
+      }
+      if (conversionAlreadyHandled(handledConversionsRef.current, data.type)) return;
+      markConversionHandled(handledConversionsRef.current, data.type);
+      if (data.type === "payment_confirmed") {
+        pushConversion(window, "aq_payment_confirmed");
+      } else {
+        pushConversion(window, "aq_appointment_booked");
+        window.location.assign("/lp/criminal-law/thank-you/");
+      }
     }
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, []);
+  }, [src]);
 
   if (!mounted) return null;
 
@@ -165,6 +248,7 @@ export function ChatWidgetEmbed({ src = "/" }: { src?: string }) {
         <div className="w-[min(400px,calc(100vw-2.5rem))] h-[min(620px,calc(100vh-8rem))] rounded-2xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.25)] bg-white ring-1 ring-black/5">
           {open && (
             <iframe
+              ref={frameRef}
               src={frameSrc}
               title="Aquarius Lawyers chat assistant"
               className="w-full h-full border-0"

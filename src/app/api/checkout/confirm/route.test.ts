@@ -75,9 +75,10 @@ describe("GET /api/checkout/confirm", () => {
     );
 
     expect(res.status).toBe(307);
-    expect(res.headers.get("location")).toBe(
-      "https://client.test/?payment=success"
-    );
+    const location = new URL(res.headers.get("location") ?? "");
+    expect(location.origin).toBe("https://app.test");
+    expect(location.searchParams.get("payment")).toBe("success");
+    expect(location.searchParams.get("paymentProof")).toMatch(/^[A-Za-z0-9_-]{43}$/);
     expect(mocks.redisSet).toHaveBeenCalledWith("bpoint-txn:txn_123", "pending", {
       nx: true,
       ex: 60 * 60 * 24 * 7,
@@ -103,7 +104,10 @@ describe("GET /api/checkout/confirm", () => {
     );
 
     expect(res.status).toBe(307);
-    expect(res.headers.get("location")).toBe("https://app.test/?payment=success");
+    const location = new URL(res.headers.get("location") ?? "");
+    expect(location.origin).toBe("https://app.test");
+    expect(location.searchParams.get("payment")).toBe("success");
+    expect(location.searchParams.get("paymentProof")).toMatch(/^[A-Za-z0-9_-]{43}$/);
     expect(mocks.after).not.toHaveBeenCalled();
     expect(mocks.handleConfirmedPayment).not.toHaveBeenCalled();
   });

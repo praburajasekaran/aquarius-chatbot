@@ -25,11 +25,12 @@ function browserReturnUrlBase(req: Request): string | undefined {
   if (!origin) return undefined;
   try {
     const url = new URL(origin);
-    if (url.protocol === "https:") return url.origin;
-    if (
-      url.protocol === "http:" &&
-      (url.hostname === "localhost" || url.hostname === "127.0.0.1")
-    ) {
+    const requestOrigin = new URL(req.url).origin;
+    const configured = (process.env.CHATBOT_BROWSER_RETURN_ORIGINS ?? "")
+      .split(/[\s,]+/)
+      .map((value) => value.trim())
+      .filter(Boolean);
+    if (url.origin === requestOrigin || configured.includes(url.origin)) {
       return url.origin;
     }
   } catch {

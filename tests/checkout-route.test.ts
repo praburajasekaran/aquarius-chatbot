@@ -133,4 +133,23 @@ describe("POST /api/checkout", () => {
       bpointAuthKey: "AK-new",
     });
   });
+
+  it("does not pass an unapproved Origin through to BPoint's return URL", async () => {
+    mocks.getIntake.mockResolvedValue(intake());
+
+    await POST(
+      new Request("https://app.test/api/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Origin: "https://evil.example",
+        },
+        body: JSON.stringify({ sessionId: "s1" }),
+      }),
+    );
+
+    expect(mocks.createAuthKey).toHaveBeenCalledWith(
+      expect.objectContaining({ browserReturnUrlBase: undefined }),
+    );
+  });
 });

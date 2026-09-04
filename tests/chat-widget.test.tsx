@@ -86,7 +86,10 @@ describe("ChatWidget URL signal", () => {
   });
 
   it("resolves the payment tool when ?payment=success", async () => {
-    setSearch("?payment=success");
+    setSearch("?payment=success&paymentProof=proof_abcdefghijklmnopqrstuvwxyz123456");
+    vi.mocked(fetch).mockResolvedValue(
+      new Response(JSON.stringify({ confirmed: true }), { status: 200 }),
+    );
     vi.resetModules();
     const { ChatWidget } = await import("@/components/chat/chat-widget");
     render(<ChatWidget />);
@@ -105,6 +108,57 @@ describe("ChatWidget URL signal", () => {
     expect(nextMessages[1].parts[0]).toMatchObject({
       type: "tool-uploadDocuments",
     });
+  });
+
+  it("reports a server-proved payment to the embedding parent", async () => {
+    const postMessage = vi.fn();
+    const originalParent = window.parent;
+    const originalReferrer = document.referrer;
+    Object.defineProperty(window, "parent", {
+      configurable: true,
+      value: { postMessage },
+    });
+    Object.defineProperty(document, "referrer", {
+      configurable: true,
+      value: "https://www.aquariuscriminaldefence.com.au/lp/criminal-law",
+    });
+    process.env.NEXT_PUBLIC_EMBED_PARENT_ORIGINS =
+      "https://www.aquariuscriminaldefence.com.au";
+    setSearch("?payment=success&paymentProof=proof_abcdefghijklmnopqrstuvwxyz123456");
+    vi.mocked(fetch).mockResolvedValue(
+      new Response(JSON.stringify({ confirmed: true }), { status: 200 }),
+    );
+
+    try {
+      vi.resetModules();
+      const { ChatWidget } = await import("@/components/chat/chat-widget");
+      render(<ChatWidget />);
+      await waitFor(() => expect(postMessage).toHaveBeenCalledTimes(1));
+      expect(postMessage).toHaveBeenCalledWith(
+        { source: "aq-chat", type: "payment_confirmed" },
+        "https://www.aquariuscriminaldefence.com.au",
+      );
+    } finally {
+      Object.defineProperty(window, "parent", {
+        configurable: true,
+        value: originalParent,
+      });
+      Object.defineProperty(document, "referrer", {
+        configurable: true,
+        value: originalReferrer,
+      });
+      delete process.env.NEXT_PUBLIC_EMBED_PARENT_ORIGINS;
+    }
+  });
+
+  it("does not resolve or emit a payment conversion for an unproved success query", async () => {
+    setSearch("?payment=success");
+    vi.resetModules();
+    const { ChatWidget } = await import("@/components/chat/chat-widget");
+    render(<ChatWidget />);
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(setMessagesSpy).not.toHaveBeenCalled();
   });
 
   it("reports failed payment return to the payment tool", async () => {
@@ -128,7 +182,10 @@ describe("ChatWidget URL signal", () => {
   });
 
   it("calls window.history.replaceState to clear the ?payment= param after handling", async () => {
-    setSearch("?payment=success");
+    setSearch("?payment=success&paymentProof=proof_abcdefghijklmnopqrstuvwxyz123456");
+    vi.mocked(fetch).mockResolvedValue(
+      new Response(JSON.stringify({ confirmed: true }), { status: 200 }),
+    );
     vi.resetModules();
     const { ChatWidget } = await import("@/components/chat/chat-widget");
     render(<ChatWidget />);
@@ -278,5 +335,80 @@ describe("ChatWidget URL signal", () => {
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith("/api/intake/s_paid_intake/next-step");
     });
+  });
+
+  it("reports a non-urgent booking once to the embedding parent", async () => {
+    const postMessage = vi.fn();
+    const originalParent = window.parent;
+    const originalReferrer = document.referrer;
+    Object.defineProperty(window, "parent", {
+      configurable: true,
+      value: { postMessage },
+    });
+    Object.defineProperty(document, "referrer", {
+      configurable: true,
+      value: "https://www.aquariuscriminaldefence.com.au/lp/criminal-law",
+    });
+    process.env.NEXT_PUBLIC_EMBED_PARENT_ORIGINS =
+      "https://www.aquariuscriminaldefence.com.au";
+    setSearch("");
+    mockMessages = [
+      {
+        id: "assistant-booking",
+        role: "assistant",
+        parts: [
+          {
+            type: "tool-selectUrgency",
+            state: "output-available",
+            output: { urgency: "non-urgent" },
+          },
+          {
+            type: "tool-scheduleAppointment",
+            state: "input-available",
+            toolCallId: "book-1",
+            input: { sessionId: "sess-1" },
+          },
+        ],
+      },
+    ];
+
+    try {
+      vi.resetModules();
+      const { ChatWidget } = await import("@/components/chat/chat-widget");
+      render(<ChatWidget />);
+      const latestProps = messageListSpy.mock.calls.at(-1)?.[0] as {
+        onScheduleBooked: (toolCallId: string, result: {
+          eventStartTime: string;
+          eventUri: string;
+          inviteeUri: string;
+        }) => void;
+      };
+      latestProps.onScheduleBooked("book-1", {
+        eventStartTime: "2026-09-04T04:00:00Z",
+        eventUri: "https://api.calendly.com/scheduled_events/event-1",
+        inviteeUri: "https://api.calendly.com/scheduled_events/event-1/invitees/i-1",
+      });
+      latestProps.onScheduleBooked("book-1", {
+        eventStartTime: "2026-09-04T04:00:00Z",
+        eventUri: "https://api.calendly.com/scheduled_events/event-1",
+        inviteeUri: "https://api.calendly.com/scheduled_events/event-1/invitees/i-1",
+      });
+
+      expect(postMessage).toHaveBeenCalledTimes(1);
+      expect(postMessage).toHaveBeenCalledWith(
+        { source: "aq-chat", type: "appointment_booked" },
+        "https://www.aquariuscriminaldefence.com.au",
+      );
+    } finally {
+      Object.defineProperty(window, "parent", {
+        configurable: true,
+        value: originalParent,
+      });
+      Object.defineProperty(document, "referrer", {
+        configurable: true,
+        value: originalReferrer,
+      });
+      delete process.env.NEXT_PUBLIC_EMBED_PARENT_ORIGINS;
+    }
   });
 });
