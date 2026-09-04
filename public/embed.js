@@ -2,6 +2,8 @@
 // keep both surfaces in lockstep when changing widget UX.
 (function() {
   var EMBED_URL = window.CHATBOT_EMBED_URL || 'http://localhost:3000/';
+  var EMBED_ORIGIN = null;
+  try { EMBED_ORIGIN = new URL(EMBED_URL, window.location.href).origin; } catch { /* noop */ }
   var EVENTS_URL = EMBED_URL.replace(/\/$/, '') + '/api/events';
   var STATE_KEY = 'aq_widget_state';     // 'open' | 'minimized'
   var TEASER_FLAG_KEY = 'aq_teaser_shown';
@@ -109,6 +111,51 @@
     trackEvent('chat_minimized', { source: source || 'launcher' });
   }
 
+  function isPlainObject(value) {
+    if (!value || typeof value !== 'object') return false;
+    return Object.prototype.toString.call(value) === '[object Object]';
+  }
+
+  function isEmbedMessage(value) {
+    if (!isPlainObject(value)) return false;
+    var keys = Object.keys(value);
+    if (keys.length !== 2 || keys.indexOf('source') === -1 || keys.indexOf('type') === -1) return false;
+    return value.source === 'aq-chat' && (
+      value.type === 'minimize' ||
+      value.type === 'payment_confirmed' ||
+      value.type === 'appointment_booked'
+    );
+  }
+
+  function pushConversion(name) {
+    try {
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({ event: name });
+    } catch { /* noop */ }
+  }
+
+  function redirectToThankYou() {
+    try {
+      var target = new URL('/thank-you/', window.location.href);
+      window.location.assign(target.href);
+    } catch { /* noop */ }
+  }
+
+  function conversionAlreadyHandled(type) {
+    if (handledConversions[type]) return true;
+    try { return sessionStorage.getItem('aq_conversion_' + type) === '1'; } catch { return false; }
+  }
+
+  function markConversionHandled(type) {
+    handledConversions[type] = true;
+    try { sessionStorage.setItem('aq_conversion_' + type, '1'); } catch { /* noop */ }
+  }
+
+  var handledConversions = {
+    payment_confirmed: false,
+    appointment_booked: false
+  };
+
   btn.onclick = function() {
     if (frame.style.display === 'none') openChat('launcher'); else minimizeChat('launcher');
   };
@@ -118,8 +165,23 @@
   // postMessage listeners and we mustn't trust unrelated traffic.
   window.addEventListener('message', function(event) {
     var data = event.data;
-    if (!data || data.source !== 'aq-chat') return;
-    if (data.type === 'minimize') minimizeChat('panel');
+    if (!EMBED_ORIGIN || event.origin !== EMBED_ORIGIN) return;
+    if (event.source !== frame.contentWindow) return;
+    if (!isEmbedMessage(data)) return;
+    if (data.type === 'minimize') {
+      minimizeChat('panel');
+      return;
+    }
+    if (conversionAlreadyHandled(data.type)) return;
+    markConversionHandled(data.type);
+    if (data.type === 'payment_confirmed') {
+      pushConversion('aq_payment_confirmed');
+      return;
+    }
+    if (data.type === 'appointment_booked') {
+      pushConversion('aq_appointment_booked');
+      redirectToThankYou();
+    }
   });
 
   document.body.appendChild(frame);

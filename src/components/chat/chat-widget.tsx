@@ -13,6 +13,7 @@ import type { ChatMessage } from "@/lib/tools";
 import { Minus } from "lucide-react";
 import Image from "next/image";
 import { notifyParent, isEmbedded } from "@/lib/embed-bridge";
+import { verifyPaymentProof } from "@/lib/payment-proof-client";
 import { BRANDING } from "@/lib/branding";
 import { FIRM_CONTACT } from "@/lib/contact";
 import { postUploadBookingStepToChatMessage } from "./post-upload-booking-adapter";
@@ -314,12 +315,21 @@ export function ChatWidget() {
   });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const paymentReportedRef = useRef(false);
+  const appointmentReportedRef = useRef(false);
+
+  function reportPaymentConfirmed() {
+    if (paymentReportedRef.current) return;
+    paymentReportedRef.current = true;
+    notifyParent({ source: "aq-chat", type: "payment_confirmed" });
+  }
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const processedPaymentReturnRef = useRef(false);
+  const verifyingPaymentProofRef = useRef<string | null>(null);
   useEffect(() => {
     if (processedPaymentReturnRef.current) return;
     if (typeof window === "undefined") return;
@@ -330,16 +340,43 @@ export function ChatWidget() {
     const toolCallId = latestPaymentToolCallId(messages);
     if (!toolCallId) return;
 
-    processedPaymentReturnRef.current = true;
-    window.history.replaceState({}, "", window.location.pathname);
-    setMessages(
-      resolvePaymentAndMaybeAppendUpload(
-        messages,
-        toolCallId,
-        sessionId,
-        payment === "success" ? "completed" : "failed"
-      )
-    );
+    const clearPaymentReturnParams = () => {
+      const cleanUrl = new URL(window.location.href);
+      cleanUrl.searchParams.delete("payment");
+      cleanUrl.searchParams.delete("paymentProof");
+      cleanUrl.searchParams.delete("reason");
+      window.history.replaceState(
+        {},
+        "",
+        `${cleanUrl.pathname}${cleanUrl.search}${cleanUrl.hash}`,
+      );
+    };
+
+    if (payment === "failed") {
+      processedPaymentReturnRef.current = true;
+      clearPaymentReturnParams();
+      setMessages(resolvePaymentAndMaybeAppendUpload(messages, toolCallId, sessionId, "failed"));
+      return;
+    }
+
+    // A success query is only a browser return hint. The confirmation route
+    // issues a short-lived, session-bound proof after BPoint approval; without
+    // redeeming it here, a visitor cannot forge a payment conversion by
+    // typing `?payment=success` into the chatbot URL.
+    const proof = params.get("paymentProof") ?? "";
+    if (!proof || verifyingPaymentProofRef.current === proof) return;
+    verifyingPaymentProofRef.current = proof;
+    void verifyPaymentProof(proof, sessionId).then((confirmed) => {
+      if (verifyingPaymentProofRef.current !== proof) return;
+      verifyingPaymentProofRef.current = null;
+      if (!confirmed) return;
+      processedPaymentReturnRef.current = true;
+      clearPaymentReturnParams();
+      setMessages(
+        resolvePaymentAndMaybeAppendUpload(messages, toolCallId, sessionId, "completed"),
+      );
+      reportPaymentConfirmed();
+    });
   }, [messages, sessionId, setMessages]);
 
   useEffect(() => {
@@ -621,6 +658,7 @@ export function ChatWidget() {
   }
 
   function handlePaymentComplete(toolCallId: string) {
+    if (paymentReportedRef.current) return;
     setMessages(
       resolvePaymentAndMaybeAppendUpload(
         messages,
@@ -629,6 +667,7 @@ export function ChatWidget() {
         "completed"
       )
     );
+    reportPaymentConfirmed();
   }
 
   function handlePaymentFail(toolCallId: string) {
@@ -661,6 +700,13 @@ export function ChatWidget() {
         inviteeUri: result.inviteeUri,
       },
     });
+    if (
+      selectedUrgencyFromMessages(messages) === "non-urgent" &&
+      !appointmentReportedRef.current
+    ) {
+      appointmentReportedRef.current = true;
+      notifyParent({ source: "aq-chat", type: "appointment_booked" });
+    }
   }
 
   function handleUrgentAcknowledged(toolCallId: string) {
@@ -691,6 +737,10 @@ export function ChatWidget() {
     // Reset the in-memory chat state.
     setMessages([]);
     setDismissedForMessageId(null);
+    paymentReportedRef.current = false;
+    appointmentReportedRef.current = false;
+    processedPaymentReturnRef.current = false;
+    verifyingPaymentProofRef.current = null;
     // Re-mint sessionId by re-running loadChat, which now sees an empty
     // localStorage and returns a fresh sessionId + empty messages.
     setPersisted(loadChat());

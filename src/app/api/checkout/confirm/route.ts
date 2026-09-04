@@ -3,6 +3,7 @@ import { retrieveTransaction, type BPointTxnResponse } from "@/lib/bpoint";
 import { redis } from "@/lib/kv";
 import { bucketBankCode } from "@/lib/payments/bucket-bank-code";
 import { handleConfirmedPayment } from "@/lib/payments/handleConfirmedPayment";
+import { issuePaymentProof } from "@/lib/payment-proof";
 import { sendFirmIntegrationAlertEmail } from "@/lib/resend";
 
 const DEDUPE_TTL_SECONDS = 60 * 60 * 24 * 7;
@@ -17,11 +18,11 @@ function browserReturnOrigin(req: Request): string {
   if (!returnTo) return requestUrl.origin;
   try {
     const url = new URL(returnTo);
-    if (url.protocol === "https:") return url.origin;
-    if (
-      url.protocol === "http:" &&
-      (url.hostname === "localhost" || url.hostname === "127.0.0.1")
-    ) {
+    const configured = (process.env.CHATBOT_BROWSER_RETURN_ORIGINS ?? "")
+      .split(/[\s,]+/)
+      .map((value) => value.trim())
+      .filter(Boolean);
+    if (url.origin === requestUrl.origin || configured.includes(url.origin)) {
       return url.origin;
     }
   } catch {
@@ -39,8 +40,27 @@ function failedRedirect(
   );
 }
 
-function successRedirect(req: Request) {
-  return NextResponse.redirect(`${browserReturnOrigin(req)}/?payment=success`);
+async function successRedirect(req: Request, sessionId?: string) {
+  const redirectUrl = new URL("/", browserReturnOrigin(req));
+  redirectUrl.searchParams.set("payment", "success");
+
+  if (sessionId) {
+    try {
+      const proof = await issuePaymentProof(sessionId);
+      redirectUrl.searchParams.set("paymentProof", proof);
+    } catch (err) {
+      // The payment is still approved and remains in the server-side dedupe
+      // path. Without a proof the client will refuse to emit a conversion or
+      // continue the browser flow, which is safer than trusting a forged query.
+      console.error("[bpoint-confirm] payment proof issuance failed", {
+        event: "bpoint_payment_proof_issue_failed",
+        sessionId,
+        err: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  return NextResponse.redirect(redirectUrl);
 }
 
 function isApprovedTransaction(txn: BPointTxnResponse): boolean {
@@ -92,7 +112,7 @@ export async function GET(req: Request): Promise<NextResponse> {
   });
 
   if (created !== "OK") {
-    return successRedirect(req);
+    return successRedirect(req, txn.TxnResp.Crn1);
   }
 
   const txnResp = txn.TxnResp;
@@ -133,5 +153,5 @@ export async function GET(req: Request): Promise<NextResponse> {
     }
   });
 
-  return successRedirect(req);
+  return successRedirect(req, txnResp.Crn1);
 }

@@ -74,7 +74,11 @@ describe("GET /api/checkout/confirm", () => {
     );
 
     expect(res.status).toBe(307);
-    expect(res.headers.get("location")).toBe("https://app.test/?payment=success");
+    const location = new URL(res.headers.get("location") ?? "");
+    expect(location.origin).toBe("https://app.test");
+    expect(location.pathname).toBe("/");
+    expect(location.searchParams.get("payment")).toBe("success");
+    expect(location.searchParams.get("paymentProof")).toMatch(/^[A-Za-z0-9_-]{43}$/);
     expect(mocks.sendFirmIntegrationAlertEmail).not.toHaveBeenCalled();
 
     const callback = mocks.after.mock.calls[0]?.[0] as () => Promise<void>;

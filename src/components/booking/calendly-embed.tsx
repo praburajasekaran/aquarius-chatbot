@@ -18,7 +18,7 @@ interface CalendlyEmbedProps {
 }
 
 interface CalendlyScheduledPayload {
-  event?: { uri?: string };
+  event?: { uri?: string; start_time?: string };
   invitee?: { uri?: string };
 }
 
@@ -27,10 +27,34 @@ interface CalendlyPostMessageData {
   payload?: CalendlyScheduledPayload;
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (!value || typeof value !== "object") return false;
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
 function isCalendlyEvent(data: unknown): data is CalendlyPostMessageData {
-  if (!data || typeof data !== "object") return false;
-  const d = data as { event?: unknown };
-  return typeof d.event === "string" && d.event.startsWith("calendly.");
+  if (!isPlainObject(data)) return false;
+  if (Object.keys(data).some((key) => key !== "event" && key !== "payload")) {
+    return false;
+  }
+  const d = data as { event?: unknown; payload?: unknown };
+  if (d.event !== "calendly.event_scheduled" || !isPlainObject(d.payload)) {
+    return false;
+  }
+
+  const payload = d.payload as {
+    event?: { uri?: unknown };
+    invitee?: { uri?: unknown };
+  };
+  return (
+    isPlainObject(payload.event) &&
+    typeof payload.event.uri === "string" &&
+    payload.event.uri.length > 0 &&
+    isPlainObject(payload.invitee) &&
+    typeof payload.invitee.uri === "string" &&
+    payload.invitee.uri.length > 0
+  );
 }
 
 export function CalendlyEmbed({
@@ -46,17 +70,43 @@ export function CalendlyEmbed({
     eventUri: string;
   } | null>(null);
   const firedRef = useRef(false);
+  const embedContainerRef = useRef<HTMLDivElement>(null);
+  const url = process.env.NEXT_PUBLIC_CALENDLY_BOOKING_URL;
 
   useEffect(() => {
+    if (!url) return;
+
+    const allowedOrigins = new Set<string>();
+    const configuredOrigins = (process.env.NEXT_PUBLIC_CALENDLY_ALLOWED_ORIGINS ?? "")
+      .split(/[\s,]+/)
+      .map((value) => value.trim())
+      .filter(Boolean);
+    configuredOrigins.forEach((origin) => {
+      try {
+        allowedOrigins.add(new URL(origin).origin);
+      } catch {
+        // Ignore malformed deployment configuration.
+      }
+    });
+    try {
+      allowedOrigins.add(new URL(url).origin);
+    } catch {
+      return;
+    }
+
     function handler(e: MessageEvent) {
       if (!isCalendlyEvent(e.data)) return;
-      if (e.data.event !== "calendly.event_scheduled") return;
       if (firedRef.current || disabled) return;
+      if (!allowedOrigins.has(e.origin)) return;
 
-      const payload = e.data.payload ?? {};
+      const iframe = embedContainerRef.current?.querySelector("iframe");
+      if (!iframe || e.source !== iframe.contentWindow) return;
+
+      const payload = e.data.payload;
+      if (!payload) return;
       const eventUri = payload.event?.uri ?? "";
       const inviteeUri = payload.invitee?.uri ?? "";
-      const eventStartTime = "";
+      const eventStartTime = payload.event?.start_time ?? "";
 
       firedRef.current = true;
       setBooked({ eventStartTime, eventUri });
@@ -65,9 +115,7 @@ export function CalendlyEmbed({
 
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
-  }, [onBooked, disabled]);
-
-  const url = process.env.NEXT_PUBLIC_CALENDLY_BOOKING_URL;
+  }, [onBooked, disabled, url]);
 
   if (!url) {
     return (
@@ -98,7 +146,10 @@ export function CalendlyEmbed({
   }
 
   return (
-    <div className="-mx-4 rounded-2xl overflow-hidden border border-brand/30">
+    <div
+      ref={embedContainerRef}
+      className="-mx-4 rounded-2xl overflow-hidden border border-brand/30"
+    >
       <InlineWidget
         url={url}
         prefill={{

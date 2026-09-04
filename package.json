@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run --reporter=dot",
+    "test:embed": "node --test tests/embed-launcher.test.mjs",
     "test:watch": "vitest"
   },
   "dependencies": {
