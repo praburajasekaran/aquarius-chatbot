@@ -136,7 +136,7 @@
 
   function redirectToThankYou() {
     try {
-      var target = new URL('/thank-you/', window.location.href);
+      var target = new URL('/lp/criminal-law/thank-you/', window.location.href);
       window.location.assign(target.href);
     } catch { /* noop */ }
   }

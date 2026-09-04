@@ -222,7 +222,7 @@ export function ChatWidgetEmbed({ src = "/" }: { src?: string }) {
         pushConversion(window, "aq_payment_confirmed");
       } else {
         pushConversion(window, "aq_appointment_booked");
-        window.location.assign("/thank-you/");
+        window.location.assign("/lp/criminal-law/thank-you/");
       }
     }
     window.addEventListener("message", onMessage);

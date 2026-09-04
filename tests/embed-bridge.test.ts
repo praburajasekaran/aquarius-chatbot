@@ -41,7 +41,7 @@ describe("embed bridge", () => {
   });
 
   it("rejects unknown types and payload-bearing envelopes", () => {
-    expect(isEmbedMessage({ source: "aq-chat", type: "payment_confirmed", url: "/thank-you/" })).toBe(false);
+    expect(isEmbedMessage({ source: "aq-chat", type: "payment_confirmed", url: "/lp/criminal-law/thank-you/" })).toBe(false);
     expect(isEmbedMessage({ source: "other", type: "appointment_booked" })).toBe(false);
     expect(isEmbedMessage({ source: "aq-chat", type: "appointment_booked" })).toBe(true);
   });

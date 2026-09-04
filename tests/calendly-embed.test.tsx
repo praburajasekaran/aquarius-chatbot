@@ -92,7 +92,7 @@ describe("CalendlyEmbed message boundary", () => {
       new MessageEvent("message", {
         origin: "https://calendly.com",
         source: iframe.contentWindow,
-        data: { event: "calendly.event_scheduled", payload: { redirectUrl: "/thank-you/" } },
+        data: { event: "calendly.event_scheduled", payload: { redirectUrl: "/lp/criminal-law/thank-you/" } },
       }),
     );
 

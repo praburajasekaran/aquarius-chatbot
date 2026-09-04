@@ -125,7 +125,7 @@ test("a valid appointment emits one GTM event and uses the fixed thank-you path"
     harness.dataLayer.map((entry) => ({ ...entry })),
     [{ event: "aq_appointment_booked" }],
   );
-  assert.deepEqual(harness.assigned, ["https://www.aquariuscriminaldefence.com.au/thank-you/"]);
+  assert.deepEqual(harness.assigned, ["https://www.aquariuscriminaldefence.com.au/lp/criminal-law/thank-you/"]);
 });
 
 test("conversion guards survive a launcher reload in the same tab", () => {
