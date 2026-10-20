@@ -13,6 +13,8 @@ import { findBestMatch } from "@/lib/tools/match-question";
 import { logUnanswered } from "@/lib/tools/log-unanswered";
 import { systemPrompt } from "@/lib/system-prompt";
 import { redis } from "@/lib/kv";
+import { track } from "@vercel/analytics/server";
+import { recordChatStart } from "@/lib/chat-starts";
 import { parseJsonBody } from "@/lib/api/parse";
 import { chatLimiter } from "@/lib/rate-limit";
 import { sanitizeAssistantText } from "@/lib/sanitize-llm-text";
@@ -227,5 +229,16 @@ export async function POST(req: Request) {
     tools,
   });
 
-  return result.toUIMessageStreamResponse();
+  const response = result.toUIMessageStreamResponse();
+  if (await recordChatStart(sessionId, messages)) {
+    response.headers.set("X-Chat-Started", "1");
+    after(async () => {
+      try {
+        await track("chat_started");
+      } catch (error) {
+        console.warn("[chat] analytics event failed", { error });
+      }
+    });
+  }
+  return response;
 }

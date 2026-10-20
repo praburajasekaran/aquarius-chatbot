@@ -2,7 +2,12 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   logUnanswered: vi.fn(async () => undefined),
+  recordChatStart: vi.fn(async () => false),
+  track: vi.fn(async () => undefined),
 }));
+
+vi.mock("@/lib/chat-starts", () => ({ recordChatStart: mocks.recordChatStart }));
+vi.mock("@vercel/analytics/server", () => ({ track: mocks.track }));
 
 // Mock external boundaries before importing the route. chatModel calls
 // createOpenRouter at module load, redis touches Upstash, streamText would
@@ -58,6 +63,7 @@ vi.mock("ai", async () => {
 });
 
 import { POST } from "@/app/api/chat/route";
+import { after } from "next/server";
 
 function makeRequest(body: unknown): Request {
   return new Request("http://test/api/chat", {
@@ -71,6 +77,27 @@ describe("POST /api/chat — orphan tool parts", () => {
   beforeEach(() => {
     streamTextSpy.mockClear();
     mocks.logUnanswered.mockClear();
+    mocks.recordChatStart.mockReset().mockResolvedValue(false);
+  });
+
+  it("signals a new chat to the client and schedules the analytics event", async () => {
+    mocks.recordChatStart.mockResolvedValueOnce(true);
+    const messages = [{ id: "u1", role: "user", parts: [{ type: "text", text: "Hello" }] }];
+    const response = await POST(makeRequest({ sessionId: "s_new", messages }));
+    expect(response.headers.get("X-Chat-Started")).toBe("1");
+    expect(mocks.recordChatStart).toHaveBeenCalledWith("s_new", messages);
+    const callback = vi.mocked(after).mock.calls.at(-1)?.[0];
+    if (typeof callback !== "function") throw new Error("missing analytics callback");
+    await callback();
+    expect(mocks.track).toHaveBeenCalledWith("chat_started");
+  });
+
+  it("does not signal another start for an existing conversation", async () => {
+    const response = await POST(makeRequest({ sessionId: "s_existing", messages: [
+      { id: "u1", role: "user", parts: [{ type: "text", text: "Hello" }] },
+    ] }));
+    expect(response.headers.has("X-Chat-Started")).toBe(false);
+    expect(mocks.track).not.toHaveBeenCalled();
   });
 
   it("does not throw when an assistant message contains an input-available tool part", async () => {

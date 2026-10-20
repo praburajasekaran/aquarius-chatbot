@@ -147,3 +147,25 @@ test("conversion guards survive a launcher reload in the same tab", () => {
   });
   assert.deepEqual(Array.from(second.dataLayer), []);
 });
+
+test("trusted chat starts reach GTM without redirecting or blocking a new conversation", () => {
+  const harness = createHarness();
+  assert.deepEqual(Array.from(harness.dataLayer), []);
+  const data = { source: "aq-chat", type: "chat_started" };
+  harness.message({ origin: "https://evil.example", source: harness.frame.contentWindow, data });
+  harness.message({ origin: "https://aquarius-chatbot-nine.vercel.app", source: {}, data });
+  harness.message({
+    origin: "https://aquarius-chatbot-nine.vercel.app", source: harness.frame.contentWindow,
+    data: { ...data, text: "private question" },
+  });
+  assert.deepEqual(Array.from(harness.dataLayer), []);
+  for (let conversation = 0; conversation < 2; conversation++) {
+    harness.message({
+      origin: "https://aquarius-chatbot-nine.vercel.app", source: harness.frame.contentWindow, data,
+    });
+  }
+  assert.deepEqual(harness.dataLayer.map((entry) => ({ ...entry })), [
+    { event: "chat_started" }, { event: "chat_started" },
+  ]);
+  assert.deepEqual(harness.assigned, []);
+});
