@@ -9,6 +9,7 @@ const messageListSpy = vi.fn();
 const addToolOutputSpy = vi.fn();
 const sendMessageSpy = vi.fn();
 const setMessagesSpy = vi.fn();
+const transportSpy = vi.fn();
 let mockMessages: Array<Record<string, unknown>> = [];
 vi.mock("@/components/chat/message-list", () => ({
   MessageList: (props: Record<string, unknown>) => {
@@ -48,7 +49,9 @@ vi.mock("@ai-sdk/react", () => ({
 
 // Mock ai — chat-widget imports DefaultChatTransport + lastAssistantMessageIsCompleteWithToolCalls
 vi.mock("ai", () => ({
-  DefaultChatTransport: class {},
+  DefaultChatTransport: class {
+    constructor(options: unknown) { transportSpy(options); }
+  },
   lastAssistantMessageIsCompleteWithToolCalls: vi.fn(),
 }));
 
@@ -83,6 +86,37 @@ describe("ChatWidget URL signal", () => {
     replaceStateSpy.mockRestore();
     vi.unstubAllGlobals();
     vi.clearAllMocks();
+  });
+
+  it("reports only server-confirmed chat starts and preserves the stream response", async () => {
+    const originalParent = window.parent;
+    const postMessage = vi.fn();
+    Object.defineProperty(window, "parent", { configurable: true, value: { postMessage } });
+    process.env.NEXT_PUBLIC_EMBED_PARENT_ORIGINS = "https://www.aquariuscriminaldefence.com.au";
+    setSearch("");
+    try {
+      vi.resetModules();
+      const { ChatWidget } = await import("@/components/chat/chat-widget");
+      render(<ChatWidget />);
+      const transport = transportSpy.mock.calls.at(-1)?.[0] as { fetch: typeof fetch };
+      const started = new Response("stream", { headers: { "X-Chat-Started": "1" } });
+      vi.mocked(fetch).mockResolvedValueOnce(started);
+      expect(await transport.fetch("/api/chat", { method: "POST" })).toBe(started);
+      expect(postMessage).toHaveBeenCalledWith(
+        { source: "aq-chat", type: "chat_started" },
+        "https://www.aquariuscriminaldefence.com.au",
+      );
+      vi.mocked(fetch).mockResolvedValueOnce(new Response("next turn"));
+      await transport.fetch("/api/chat");
+      vi.mocked(fetch).mockResolvedValueOnce(new Response("error", {
+        status: 500, headers: { "X-Chat-Started": "1" },
+      }));
+      await transport.fetch("/api/chat");
+      expect(postMessage).toHaveBeenCalledTimes(1);
+    } finally {
+      Object.defineProperty(window, "parent", { configurable: true, value: originalParent });
+      delete process.env.NEXT_PUBLIC_EMBED_PARENT_ORIGINS;
+    }
   });
 
   it("resolves the payment tool when ?payment=success", async () => {

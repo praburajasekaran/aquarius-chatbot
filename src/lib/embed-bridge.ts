@@ -3,12 +3,14 @@
 // know that a conversion milestone happened, never anything from the intake.
 
 export type EmbedMessage =
+  | { source: "aq-chat"; type: "chat_started" }
   | { source: "aq-chat"; type: "minimize" }
   | { source: "aq-chat"; type: "payment_confirmed" }
   | { source: "aq-chat"; type: "appointment_booked" };
 
 const EMBED_SOURCE = "aq-chat" as const;
 const ALLOWED_MESSAGE_TYPES = new Set<EmbedMessage["type"]>([
+  "chat_started",
   "minimize",
   "payment_confirmed",
   "appointment_booked",

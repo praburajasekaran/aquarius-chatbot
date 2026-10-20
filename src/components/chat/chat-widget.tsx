@@ -298,6 +298,13 @@ export function ChatWidget() {
       new DefaultChatTransport({
         api: "/api/chat",
         body: { sessionId, leadSourceUrl },
+        fetch: async (input, init) => {
+          const response = await fetch(input, init);
+          if (response.ok && response.headers.get("X-Chat-Started") === "1") {
+            notifyParent({ source: "aq-chat", type: "chat_started" });
+          }
+          return response;
+        },
       }),
     [leadSourceUrl, sessionId]
   );

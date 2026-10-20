@@ -77,7 +77,7 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 
 function isEmbedMessage(value: unknown): value is {
   source: "aq-chat";
-  type: "minimize" | "payment_confirmed" | "appointment_booked";
+  type: "minimize" | "chat_started" | "payment_confirmed" | "appointment_booked";
 } {
   if (!isPlainObject(value)) return false;
   const keys = Object.keys(value);
@@ -87,6 +87,7 @@ function isEmbedMessage(value: unknown): value is {
     keys.includes("type") &&
     value.source === "aq-chat" &&
     (value.type === "minimize" ||
+      value.type === "chat_started" ||
       value.type === "payment_confirmed" ||
       value.type === "appointment_booked")
   );
@@ -101,7 +102,7 @@ function embedOrigin(src: string): string | null {
   }
 }
 
-function pushConversion(windowRef: Window, event: "aq_payment_confirmed" | "aq_appointment_booked") {
+function pushConversion(windowRef: Window, event: "chat_started" | "aq_payment_confirmed" | "aq_appointment_booked") {
   const dataLayer = ((windowRef as Window & { dataLayer?: unknown[] }).dataLayer ??= []);
   dataLayer.push({ event });
 }
@@ -214,6 +215,10 @@ export function ChatWidgetEmbed({ src = "/" }: { src?: string }) {
       if (!isEmbedMessage(data)) return;
       if (data.type === "minimize") {
         minimizeChat("panel");
+        return;
+      }
+      if (data.type === "chat_started") {
+        pushConversion(window, "chat_started");
         return;
       }
       if (conversionAlreadyHandled(handledConversionsRef.current, data.type)) return;

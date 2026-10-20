@@ -121,6 +121,7 @@
     var keys = Object.keys(value);
     if (keys.length !== 2 || keys.indexOf('source') === -1 || keys.indexOf('type') === -1) return false;
     return value.source === 'aq-chat' && (
+      value.type === 'chat_started' ||
       value.type === 'minimize' ||
       value.type === 'payment_confirmed' ||
       value.type === 'appointment_booked'
@@ -170,6 +171,10 @@
     if (!isEmbedMessage(data)) return;
     if (data.type === 'minimize') {
       minimizeChat('panel');
+      return;
+    }
+    if (data.type === 'chat_started') {
+      pushConversion('chat_started');
       return;
     }
     if (conversionAlreadyHandled(data.type)) return;
