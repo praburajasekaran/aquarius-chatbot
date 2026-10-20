@@ -20,6 +20,12 @@ In the host website's Google Tag Manager container, create a **Custom Event** tr
 
 The data-layer event alone does not create a GA4 tag. The chatbot deployment and the GTM container publication are separate operations. The currently inspected public container is `GTM-TXZ3P499`.
 
+The verified Criminal Defence web stream uses measurement ID `G-G2FKLXHS72`, stream ID `15323708714`, and property ID `547028679`. The prepared tag is **GA4 - Chat started**, with a **Chat started** custom-event trigger for the exact event name `chat_started`.
+
+GTM rejected the trigger save on 20 October 2026 with HTTP 400 and `errorCode: 3`, without an explanatory message. The tag and trigger were not saved or published. The editor remains a review preview, not a completed workspace change.
+
+The live website loads `https://aquarius-chatbot-nine.vercel.app/embed.js`. Its production Vercel project is `prj_pGC9O4sl9KcrqghtzmyGNoeg0yH0` in team `team_ss8RnktQSjAFOgEWny1K5wJ5`. The original checkout's `.vercel/project.json` points to an older project in another team. Deploy this change to the live project.
+
 ## Limits
 
 Counting starts when this code reaches production. There is no historical backfill. Resumed conversations with more than one visitor message are excluded. A conversation restored with only one visitor message can be counted on its next continuation after deployment.
