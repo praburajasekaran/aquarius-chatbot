@@ -4,4 +4,10 @@ const openrouter = createOpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY,
 });
 
-export const chatModel = openrouter("google/gemini-2.5-flash");
+export const chatModel = openrouter("openai/gpt-5-mini", {
+  provider: {
+    only: ["azure"],
+    zdr: true,
+    data_collection: "deny",
+  },
+});
